@@ -15,7 +15,6 @@ export default function ScanAdventure() {
     // Initialize scanner
     const config = { 
       fps: 10, 
-      qrbox: { width: 250, height: 250 },
       supportedFormats: [Html5QrcodeSupportedFormats.QR_CODE],
       rememberLastUsedCamera: true
     };
