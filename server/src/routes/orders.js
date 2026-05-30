@@ -128,7 +128,22 @@ router.get('/', async (req, res) => {
 
     if (req.query.status) {
       const statuses = req.query.status.split(',');
-      query.whereIn('orders.status', statuses);
+      if (req.query.include_undelivered === 'true') {
+        query.where(function() {
+          this.whereIn('orders.status', statuses)
+            .orWhere(function() {
+              this.whereIn('orders.status', ['completed'])
+                .whereExists(function() {
+                  this.select(1)
+                    .from('order_items')
+                    .whereRaw('order_items.order_id = orders.id')
+                    .whereIn('order_items.status', ['pending', 'accepted', 'preparing', 'prepared', 'picked_up']);
+                });
+            });
+        });
+      } else {
+        query.whereIn('orders.status', statuses);
+      }
     }
     if (req.query.table_id) {
       query.where('orders.table_id', req.query.table_id);
@@ -188,7 +203,18 @@ router.get('/table/:tableId/active', async (req, res) => {
       .join('restaurant_tables', 'orders.table_id', 'restaurant_tables.id')
       .leftJoin('promo_codes', 'orders.promo_code_id', 'promo_codes.id')
       .where('orders.table_id', req.params.tableId)
-      .whereIn('orders.status', ['active', 'checkout_requested', 'payment_ready'])
+      .where(function() {
+        this.whereIn('orders.status', ['active', 'checkout_requested', 'payment_ready'])
+          .orWhere(function() {
+            this.where('orders.status', 'completed')
+              .whereExists(function() {
+                this.select(1)
+                  .from('order_items')
+                  .whereRaw('order_items.order_id = orders.id')
+                  .whereIn('order_items.status', ['pending', 'accepted', 'preparing', 'prepared', 'picked_up']);
+              });
+          });
+      })
       .orderBy('orders.created_at', 'desc')
       .select('orders.*', 'restaurant_tables.number as table_number', 'restaurant_tables.section', 'promo_codes.code as promo_code_name')
       .first();

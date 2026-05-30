@@ -40,7 +40,7 @@ export default function PendingOrders({ updateCounts }) {
   const fetchPending = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold');
+      const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       // Filter to only get orders that have pending items for this station
       const pendingOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
