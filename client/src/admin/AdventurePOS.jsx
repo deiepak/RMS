@@ -121,17 +121,15 @@ export default function AdventurePOS() {
               box-sizing: border-box;
             }
             .ticket-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-            .ticket-subtitle { font-size: 14px; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-            .ticket-price { font-size: 16px; margin: 10px 0; font-weight: bold; }
-            .qr-container { margin: 15px 0; display: flex; justify-content: center; }
-            .ticket-footer { font-size: 12px; margin-top: 10px; }
+            .ticket-subtitle { font-size: 14px; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .ticket-price { font-size: 16px; margin: 5px 0; font-weight: bold; }
+            .qr-container { margin: 0; display: flex; justify-content: flex-end; }
+            .ticket-footer { font-size: 12px; margin-top: 5px; }
             .disclaimer { 
-              font-size: 9px; 
-              margin-top: 15px; 
+              font-size: 11px; 
+              margin-top: 5px; 
               text-align: justify; 
               line-height: 1.2;
-              border-top: 1px solid #000;
-              padding-top: 5px;
             }
           </style>
         </head>
@@ -288,24 +286,28 @@ export default function AdventurePOS() {
                     <div className="ticket-title">Happy Hills Resort</div>
                     <div className="ticket-subtitle">ADVENTURE TICKET</div>
                     
-                    <div style={{ fontSize: 18, fontWeight: 'bold' }}>{ticket.item_name}</div>
-                    <div className="ticket-price">Price: Rs. {ticket.price}</div>
-                    
-                    <div className="qr-container">
-                      <QRCodeSVG 
-                        value={ticket.ticket_code} 
-                        size={180} 
-                        level="M" 
-                        includeMargin={true} 
-                      />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottom: '1px solid #000', paddingBottom: 10 }}>
+                      <div style={{ flex: 1, textAlign: 'left', paddingRight: 10 }}>
+                        <div style={{ fontSize: 18, fontWeight: 'bold' }}>{ticket.item_name}</div>
+                        <div className="ticket-price">Price: Rs. {ticket.price}</div>
+                        <div className="ticket-footer" style={{ textAlign: 'left' }}>
+                          <div>TKT #{ticket.id.toString().padStart(6, '0')}</div>
+                          <div>{new Date(ticket.purchased_at).toLocaleDateString()}</div>
+                          <div>{new Date(ticket.purchased_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="qr-container" style={{ flexShrink: 0 }}>
+                        <QRCodeSVG 
+                          value={ticket.ticket_code} 
+                          size={110} 
+                          level="M" 
+                          includeMargin={true} 
+                        />
+                      </div>
                     </div>
                     
-                    <div className="ticket-footer">
-                      <div>Ticket #${ticket.id.toString().padStart(6, '0')}</div>
-                      <div>${new Date(ticket.purchased_at).toLocaleString()}</div>
-                      <div style={{ marginTop: 5 }}>Please present this QR code at the activity counter.</div>
-                    </div>
-                    
+                    <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>Terms and Conditions</div>
                     <div className="disclaimer">
                       By purchasing this ticket, I acknowledge that I accept all risks involved and agree to follow all health, safety, and conduct requirements. I understand the refund and cancellation policies and waive liability and responsibility for any damages or injuries that may occur. I release and hold harmless the organizers, staff, and affiliates from any claims or demands that may arise from participation.
                     </div>
