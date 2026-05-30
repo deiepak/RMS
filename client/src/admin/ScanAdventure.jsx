@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { CheckCircle, XCircle, Camera } from 'lucide-react';
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType } from 'html5-qrcode';
+import { CheckCircle, XCircle, Camera, UploadCloud } from 'lucide-react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
+import jsQR from 'jsqr';
 
 export default function ScanAdventure() {
-  const [scanResult, setScanResult] = useState(null); // null | { success: true, message: '', title: '' } | { success: false, message: '' }
+  const [scanResult, setScanResult] = useState(null);
   const [isScanning, setIsScanning] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const scannerRef = useRef(null);
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Initialize scanner
+    // Initialize scanner with ONLY Camera type
     const config = { 
       fps: 10, 
       supportedFormats: [Html5QrcodeSupportedFormats.QR_CODE],
-      rememberLastUsedCamera: true
+      rememberLastUsedCamera: true,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
     
     const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
@@ -33,10 +35,9 @@ export default function ScanAdventure() {
     };
   }, []);
 
-  const onScanSuccess = async (decodedText, decodedResult) => {
+  const onScanSuccess = async (decodedText) => {
     if (isProcessing || !isScanning) return;
     
-    // Pause scanning temporarily while processing
     if (scannerRef.current) {
       scannerRef.current.pause(true);
     }
@@ -46,8 +47,7 @@ export default function ScanAdventure() {
     try {
       const res = await api.post('/adventures/scan', { ticket_code: decodedText });
       
-      // Play success sound
-      const audio = new Audio('/success-sound.mp3'); // Assuming standard success beep exists or browser generic
+      const audio = new Audio('/success-sound.mp3');
       audio.play().catch(e => console.log('Audio play failed', e));
 
       setScanResult({
@@ -57,7 +57,6 @@ export default function ScanAdventure() {
       });
       
     } catch (error) {
-      // Play error sound
       const audio = new Audio('/error-sound.mp3');
       audio.play().catch(e => console.log('Audio play failed', e));
 
@@ -72,7 +71,77 @@ export default function ScanAdventure() {
   };
 
   const onScanFailure = (error) => {
-    // Ignore frequent scan failures (e.g. background noise)
+    // Ignore frequent scan failures
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (scannerRef.current) {
+      scannerRef.current.pause(true);
+    }
+
+    setIsProcessing(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Scale down huge images to 800px max for instant processing
+        const MAX_DIM = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height && width > MAX_DIM) {
+          height *= MAX_DIM / width;
+          width = MAX_DIM;
+        } else if (height > MAX_DIM) {
+          width *= MAX_DIM / height;
+          height = MAX_DIM;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Fill background with white in case of transparent images
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Use jsQR to decode the image
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "attemptBoth",
+        });
+
+        if (code) {
+          onScanSuccess(code.data);
+        } else {
+          // Play error sound and show UI
+          const audio = new Audio('/error-sound.mp3');
+          audio.play().catch(err => console.log('Audio play failed', err));
+
+          setScanResult({
+            success: false,
+            message: 'No QR code found in the image. Please ensure the QR code is clearly visible and not blurry.'
+          });
+          setIsProcessing(false);
+          setIsScanning(false);
+        }
+      };
+      img.onerror = () => {
+        showToast('Invalid image file', 'error');
+        setIsProcessing(false);
+        if (scannerRef.current) scannerRef.current.resume();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    // Reset input
+    e.target.value = null;
   };
 
   const resetScanner = () => {
@@ -99,11 +168,27 @@ export default function ScanAdventure() {
             id="reader" 
             style={{ 
               width: '100%', 
-              display: isScanning ? 'block' : 'none',
+              display: isScanning && !isProcessing ? 'block' : 'none',
               borderRadius: 'var(--radius-md)',
               overflow: 'hidden'
             }}
           ></div>
+
+          {/* Custom File Upload Button */}
+          {isScanning && !isProcessing && (
+            <div className="mt-md text-center">
+              <div className="text-secondary mb-sm text-sm">OR</div>
+              <label className="btn btn-secondary w-full flex-center gap-sm cursor-pointer" style={{ maxWidth: 300, margin: '0 auto' }}>
+                <UploadCloud size={20} /> Upload from Gallery
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  style={{ display: 'none' }} 
+                />
+              </label>
+            </div>
+          )}
 
           {/* Result View */}
           {!isScanning && scanResult && (
@@ -133,8 +218,8 @@ export default function ScanAdventure() {
           )}
           
           {isProcessing && (
-            <div className="flex-center p-xl">
-              <div className="text-xl text-primary animate-pulse">Verifying ticket...</div>
+            <div className="flex-center p-xl flex-col gap-md">
+              <div className="text-xl text-primary animate-pulse">Analyzing QR Code...</div>
             </div>
           )}
         </div>
