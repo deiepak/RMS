@@ -120,21 +120,20 @@ export default function AdventurePOS() {
     const printStyle = document.createElement('style');
     printStyle.id = 'global-print-styles';
     
-    // Calculate exact height to prevent Windows GDI centering bugs
-    const exactHeightPx = clone.scrollHeight + 20;
-    // Chrome @page size strictly requires physical units (mm, in) to be reliable. px can be rejected.
-    // 96 pixels per inch, 25.4 mm per inch -> mm = px * 25.4 / 96
-    const exactHeightMm = Math.ceil(exactHeightPx * 25.4 / 96);
-    
     printStyle.innerHTML = `
       @media screen {
         #global-print-container { display: none !important; }
       }
       @media print {
-        @page { margin: 0; padding: 0; size: 80mm ${exactHeightMm > 50 ? exactHeightMm : 100}mm; }
+        @page { margin: 0; padding: 0; size: auto; }
         html, body {
           background-color: #fff !important;
           background: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         body * { visibility: hidden; }
         #global-print-container, #global-print-container * { visibility: visible; }
@@ -142,7 +141,9 @@ export default function AdventurePOS() {
           position: absolute; 
           left: 0; 
           top: 0; 
-          width: 80mm; 
+          width: 100% !important;
+          max-width: 100% !important;
+          display: block !important;
           margin: 0 !important;
           padding: 0 !important;
           background-color: #fff !important;
