@@ -95,118 +95,9 @@ export default function AdventurePOS() {
   };
 
   const handlePrint = () => {
-    if (!printRef.current) return;
-    
-    // Create a container for printing directly in the main document
-    // This bypasses all Chrome iframe and popup bugs by printing the parent window.
-    let printContainer = document.getElementById('global-print-container');
-    if (!printContainer) {
-      printContainer = document.createElement('div');
-      printContainer.id = 'global-print-container';
-      document.body.appendChild(printContainer);
-    }
-    
-    // Clone content and convert relative image URLs to absolute
-    const clone = printRef.current.cloneNode(true);
-    clone.querySelectorAll('img').forEach(img => {
-      if (img.src.startsWith('/') || !img.src.startsWith('http')) {
-        img.src = window.location.origin + img.getAttribute('src');
-      }
-    });
-    
-    printContainer.innerHTML = clone.innerHTML;
-    
-    // Inject global print styles
-    const printStyle = document.createElement('style');
-    printStyle.id = 'global-print-styles';
-    
-    printStyle.innerHTML = `
-      @media screen {
-        #global-print-container { display: none !important; }
-      }
-      @media print {
-        @page { margin: 0; padding: 0; size: auto; }
-        html, body {
-          background-color: #fff !important;
-          background: none !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          display: block !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        body * { visibility: hidden; }
-        #global-print-container, #global-print-container * { visibility: visible; }
-        #global-print-container { 
-          position: absolute; 
-          left: 0; 
-          top: 0; 
-          width: 100% !important;
-          max-width: 100% !important;
-          display: block !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background-color: #fff !important;
-          font-family: Arial, Helvetica, sans-serif;
-          color: #000 !important;
-          font-weight: 900;
-          text-align: center;
-        }
-        #global-print-container * {
-          font-weight: 900 !important;
-          box-sizing: border-box;
-        }
-        #global-print-container .ticket { 
-          padding: 2px 8px 8px 8px; 
-          page-break-after: always; 
-        }
-        #global-print-container .ticket-price { font-size: 18px; margin: 2px 0; }
-        #global-print-container .qr-container { margin: 0; display: flex; justify-content: flex-end; }
-        #global-print-container .ticket-footer { font-size: 14px; margin-top: 2px; }
-        #global-print-container .disclaimer { 
-          font-size: 12px; 
-          margin-top: 5px; 
-          text-align: justify; 
-          line-height: 1.1;
-        }
-      }
-    `;
-    
-    if (document.getElementById('global-print-styles')) {
-      document.getElementById('global-print-styles').remove();
-    }
-    document.head.appendChild(printStyle);
-    
-    // Wait for images then print the main window
-    const images = printContainer.querySelectorAll('img');
-    let loaded = 0;
-    const total = images.length;
-    const doPrint = () => {
-      window.print();
-      // Cleanup after print dialog closes
-      setTimeout(() => {
-        printContainer.innerHTML = '';
-        if (document.getElementById('global-print-styles')) {
-          document.getElementById('global-print-styles').remove();
-        }
-      }, 1000);
-    };
-    
-    if (total === 0) {
-      setTimeout(doPrint, 200);
-    } else {
-      images.forEach(img => {
-        if (img.complete) {
-          loaded++;
-          if (loaded === total) setTimeout(doPrint, 200);
-        } else {
-          img.onload = img.onerror = () => {
-            loaded++;
-            if (loaded === total) setTimeout(doPrint, 200);
-          };
-        }
-      });
-    }
+    // Barebones print: No exact height calculations, no iframes, no @page hacks.
+    // Just the raw window.print() command.
+    window.print();
   };
 
   if (isLoading) return <div className="p-lg">Loading adventures...</div>;
@@ -336,16 +227,19 @@ export default function AdventurePOS() {
         <Modal isOpen={true} onClose={() => setTicketModal(null)} title="Print Tickets" maxWidth="500px">
           <div className="flex flex-col gap-md">
             <div className="alert alert-success">
-              Successfully generated {ticketModal.length} tickets.
+        <Modal title="Print Tickets" onClose={() => setTicketModal(null)}>
+          <div className="p-md">
+            <div className="flex justify-center mb-md no-print">
+              <div className="text-center">
+                <h3 className="m-0">Ready to Print</h3>
+                <p className="text-muted m-0">{ticketModal.length} tickets generated</p>
+              </div>
             </div>
-            
-            <div 
-              className="bg-white p-md" 
-              style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}
-            >
+
+            <div style={{ background: '#fff', color: '#000', padding: '10px' }} id="barebones-print-container">
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
-                  <div key={ticket.id} className="ticket">
+                  <div key={ticket.id} className="ticket" style={{ pageBreakAfter: 'always', marginBottom: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8, gap: 10 }}>
                       <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 80, height: 80, flexShrink: 0 }} />
                       <div style={{ textAlign: 'left' }}>
@@ -376,7 +270,7 @@ export default function AdventurePOS() {
                     </div>
                     
                     <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>✦ TERMS & CONDITIONS ✦</div>
-                    <div className="disclaimer">
+                    <div className="disclaimer" style={{ fontSize: '12px', marginTop: '5px', textAlign: 'justify', lineHeight: '1.1' }}>
                       By purchasing this ticket, I acknowledge that I accept all risks involved and agree to follow all health, safety, and conduct requirements. I understand the refund and cancellation policies and waive liability and responsibility for any damages or injuries that may occur. I release and hold harmless the organizers, staff, and affiliates from any claims or demands that may arise from participation.
                     </div>
                   </div>
@@ -384,7 +278,7 @@ export default function AdventurePOS() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-md mt-sm">
+            <div className="flex justify-end gap-md mt-sm no-print">
               <button className="btn btn-secondary" onClick={() => setTicketModal(null)}>Close</button>
               <button className="btn btn-primary flex align-center gap-sm" onClick={handlePrint}>
                 <Printer size={18} /> Print All Tickets
@@ -393,6 +287,35 @@ export default function AdventurePOS() {
           </div>
         </Modal>
       )}
+
+      <style>{`
+        @media print {
+          /* Hide everything in the body by default */
+          body * {
+            visibility: hidden;
+            background: #fff;
+            color: #000;
+          }
+          
+          /* Only show the barebones print container */
+          #barebones-print-container, #barebones-print-container * {
+            visibility: visible;
+          }
+          
+          /* Position it absolutely so it starts at the true top-left of the paper */
+          #barebones-print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          
+          /* Don't print the close/print buttons */
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
