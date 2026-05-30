@@ -272,7 +272,12 @@ export default function AdventurePOS() {
                     <div className="ticket-price">Price: Rs. {ticket.price}</div>
                     
                     <div className="qr-container">
-                      <QRCodeSVG value={ticket.ticket_code} size={150} level="H" />
+                      <QRCodeSVG 
+                        value={ticket.ticket_code} 
+                        size={180} 
+                        level="M" 
+                        includeMargin={true} 
+                      />
                     </div>
                     
                     <div className="ticket-footer">
