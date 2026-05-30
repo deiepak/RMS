@@ -99,6 +99,7 @@ export default function AdventurePOS() {
     const printContent = printRef.current.innerHTML;
     const printWindow = window.open('', '', 'width=350,height=600');
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <title>Print Tickets</title>
@@ -107,10 +108,10 @@ export default function AdventurePOS() {
               margin: 0;
               size: 80mm auto;
             }
-            body { 
+            html, body { 
               font-family: Arial, Helvetica, sans-serif; 
-              margin: 0; 
-              padding: 0;
+              margin: 0 !important; 
+              padding: 0 !important;
               width: 80mm;
               text-align: center; 
               color: #000;
@@ -124,7 +125,7 @@ export default function AdventurePOS() {
               page-break-after: always; 
               box-sizing: border-box;
             }
-            .ticket-title { font-size: 24px; margin-top: 0; padding-top: 5px; margin-bottom: 2px; text-transform: uppercase; }
+            .ticket-title { font-size: 24px; margin: 0; padding: 0; text-transform: uppercase; }
             .ticket-subtitle { font-size: 16px; margin-bottom: 5px; border-bottom: 2px dashed #000; padding-bottom: 5px; text-transform: uppercase; }
             .ticket-price { font-size: 18px; margin: 2px 0; }
             .qr-container { margin: 0; display: flex; justify-content: flex-end; }
