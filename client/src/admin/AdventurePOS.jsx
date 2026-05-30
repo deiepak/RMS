@@ -129,6 +129,10 @@ export default function AdventurePOS() {
       }
       @media print {
         @page { margin: 0; padding: 0; size: 80mm ${exactHeightPx > 100 ? exactHeightPx : 'auto'}; }
+        html, body {
+          background-color: #fff !important;
+          background: none !important;
+        }
         body * { visibility: hidden; }
         #global-print-container, #global-print-container * { visibility: visible; }
         #global-print-container { 
@@ -138,8 +142,9 @@ export default function AdventurePOS() {
           width: 80mm; 
           margin: 0 !important;
           padding: 0 !important;
+          background-color: #fff !important;
           font-family: Arial, Helvetica, sans-serif;
-          color: #000;
+          color: #000 !important;
           font-weight: 900;
           text-align: center;
         }
