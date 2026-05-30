@@ -116,8 +116,8 @@ router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
     await db('payments').insert({
       order_id: orderId,
       amount: total,
-      payment_method: payment_method || 'cash',
-      status: 'completed'
+      method: payment_method || 'cash',
+      collected_by: req.user?.username || 'Admin'
     });
 
     // Generate adventure tickets for EACH quantity of EACH item
