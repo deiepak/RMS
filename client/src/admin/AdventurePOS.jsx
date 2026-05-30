@@ -96,7 +96,15 @@ export default function AdventurePOS() {
 
   const handlePrint = () => {
     if (!printRef.current) return;
-    const printContent = printRef.current.innerHTML;
+    
+    // Clone content and convert relative image URLs to absolute
+    const clone = printRef.current.cloneNode(true);
+    clone.querySelectorAll('img').forEach(img => {
+      if (img.src.startsWith('/') || !img.src.startsWith('http')) {
+        img.src = window.location.origin + img.getAttribute('src');
+      }
+    });
+    const printContent = clone.innerHTML;
     
     // Use a hidden iframe to bypass Chrome's default header/footer margins
     let iframe = document.getElementById('ticket-print-frame');
@@ -147,13 +155,31 @@ html, body {
 </html>`);
     doc.close();
     
-    iframe.onload = () => {
-      setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        setTimeout(() => iframe.remove(), 1000);
-      }, 200);
+    // Wait for all images to load before printing
+    const images = doc.querySelectorAll('img');
+    let loaded = 0;
+    const total = images.length;
+    const doPrint = () => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => iframe.remove(), 1000);
     };
+    
+    if (total === 0) {
+      setTimeout(doPrint, 200);
+    } else {
+      images.forEach(img => {
+        if (img.complete) {
+          loaded++;
+          if (loaded === total) setTimeout(doPrint, 200);
+        } else {
+          img.onload = img.onerror = () => {
+            loaded++;
+            if (loaded === total) setTimeout(doPrint, 200);
+          };
+        }
+      });
+    }
   };
 
   if (isLoading) return <div className="p-lg">Loading adventures...</div>;
@@ -294,53 +320,7 @@ html, body {
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
                     <div style={{ textAlign: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8 }}>
-                      <svg width="120" height="120" viewBox="0 0 200 200" style={{ display: 'block', margin: '0 auto' }}>
-                        <defs>
-                          <clipPath id={`clip-${ticket.id}`}>
-                            <circle cx="100" cy="100" r="95" />
-                          </clipPath>
-                        </defs>
-                        <g clipPath={`url(#clip-${ticket.id})`}>
-                          {/* Sky - upper dome shape with organic wavy bottom edge */}
-                          <path d="M 0,0 L 200,0 L 200,110 
-                            C 180,100 170,95 155,105 
-                            C 140,115 130,100 120,95 
-                            C 110,90 100,92 90,100 
-                            C 80,108 70,115 60,108 
-                            C 50,100 40,95 30,100 
-                            C 20,105 10,110 0,108 Z" fill="#000" />
-                          
-                          {/* Sun circle - nestled in the valley */}
-                          <circle cx="138" cy="105" r="14" fill="#000" />
-                          
-                          {/* Left organic figure - larger abstract human/mountain shape */}
-                          <path d="M 5,130 
-                            C 10,115 25,100 40,105 
-                            C 55,110 60,100 65,108 
-                            C 70,116 78,120 85,118 
-                            C 92,116 95,125 90,135 
-                            C 85,145 80,155 75,165
-                            C 70,175 55,185 40,195 
-                            L 5,200 Z" fill="#000" />
-                          
-                          {/* Small white dot in left figure */}
-                          <circle cx="55" cy="128" r="5" fill="#fff" />
-                          
-                          {/* Right organic figure - smaller abstract shape */}
-                          <path d="M 120,140 
-                            C 130,125 145,118 160,125 
-                            C 175,132 185,140 188,155 
-                            C 190,165 185,180 175,190 
-                            L 140,200 L 105,200 
-                            C 108,185 112,170 115,155 
-                            C 117,148 118,144 120,140 Z" fill="#000" />
-                          
-                          {/* Small white dot in right figure */}
-                          <circle cx="152" cy="148" r="4.5" fill="#fff" />
-                        </g>
-                        {/* Circle outline for clean edge */}
-                        <circle cx="100" cy="100" r="95" fill="none" stroke="#000" strokeWidth="5" />
-                      </svg>
+                      <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 120, height: 120, display: 'block', margin: '0 auto' }} />
                       <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 8, lineHeight: 1 }}>ADVENTURE</div>
                       <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold', marginTop: 2 }}>PASS</div>
                     </div>
