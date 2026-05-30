@@ -236,7 +236,7 @@ export default function AdventurePOS() {
             <div style={{ background: '#fff', color: '#000', padding: '10px', maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)' }} id="barebones-print-container">
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
-                  <div key={ticket.id} className="ticket" style={{ pageBreakAfter: 'always', marginBottom: '20px' }}>
+                  <div key={ticket.id} className="ticket" style={{ pageBreakAfter: index === ticketModal.length - 1 ? 'auto' : 'always', marginBottom: index === ticketModal.length - 1 ? '0px' : '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8, gap: 10 }}>
                       <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 80, height: 80, flexShrink: 0 }} />
                       <div style={{ textAlign: 'left' }}>
@@ -287,11 +287,19 @@ export default function AdventurePOS() {
 
       <style>{`
         @media print {
+          @page {
+            margin: 0;
+          }
+
+          /* Force white background for the whole page */
+          html, body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+          }
+
           /* Hide everything in the body by default */
           body * {
             visibility: hidden;
-            background: #fff;
-            color: #000;
           }
           
           /* Only show the barebones print container */
@@ -305,6 +313,12 @@ export default function AdventurePOS() {
             left: 0;
             top: 0;
             width: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background-color: #ffffff !important;
           }
           
           /* Don't print the close/print buttons */

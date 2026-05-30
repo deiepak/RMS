@@ -69,6 +69,14 @@ services:
       - client
       - server
 
+  tunnel:
+    image: node:20-alpine
+    container_name: rms_tunnel
+    command: sh -c "npm install -g localtunnel && lt --port 80 --subdomain happyhillsrms --local-host caddy"
+    restart: unless-stopped
+    depends_on:
+      - caddy
+
 volumes:
   mysql_data:
     driver: local
