@@ -104,17 +104,20 @@ export default function AdventurePOS() {
         <head>
           <title>Print Tickets</title>
           <style>
-            @page {
-              margin: 0;
-            }
-            html, body { 
-              font-family: Arial, Helvetica, sans-serif; 
-              margin: 0 !important; 
-              padding: 0 !important;
-              width: 80mm;
-              text-align: center; 
-              color: #000;
-              font-weight: 900;
+            @media print {
+              @page {
+                margin: 0;
+                size: 80mm auto;
+              }
+              html, body { 
+                font-family: Arial, Helvetica, sans-serif; 
+                margin: 0 !important; 
+                padding: 0 !important;
+                width: 80mm;
+                text-align: center; 
+                color: #000;
+                font-weight: 900;
+              }
             }
             * {
               font-weight: 900 !important;
@@ -123,6 +126,7 @@ export default function AdventurePOS() {
               padding: 0 10px 10px 10px; 
               page-break-after: always; 
               box-sizing: border-box;
+              margin-top: -5px; /* Aggressively pull up to fight PC driver margins */
             }
             .ticket-title { font-size: 24px; margin: 0; padding: 0; text-transform: uppercase; }
             .ticket-subtitle { font-size: 16px; margin-bottom: 5px; border-bottom: 2px dashed #000; padding-bottom: 5px; text-transform: uppercase; }
@@ -288,12 +292,22 @@ export default function AdventurePOS() {
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
                     <div style={{ textAlign: 'center', marginBottom: 15, borderBottom: '3px solid black', paddingBottom: 10 }}>
-                      <svg width="100" height="50" viewBox="0 0 24 24" fill="black" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8 3l4 8 5-5 5 15H2L8 3z"></path>
-                        <circle cx="17" cy="7" r="2" fill="white"></circle>
+                      <svg width="200" height="70" viewBox="0 0 240 80" fill="black" style={{ display: 'block', margin: '0 auto' }}>
+                        {/* Sun */}
+                        <circle cx="120" cy="25" r="14" />
+                        {/* Back Mountains */}
+                        <path d="M30,80 L90,15 L150,80 Z" />
+                        <path d="M100,80 L160,10 L220,80 Z" />
+                        {/* Front Mountain */}
+                        <path d="M0,80 L60,25 L120,80 Z" fill="white" stroke="black" strokeWidth="6" strokeLinejoin="round" />
+                        <path d="M60,25 L85,55 L60,80 Z" fill="black" />
+                        {/* Trees */}
+                        <path d="M10,80 L20,45 L30,80 Z" />
+                        <path d="M190,80 L200,50 L210,80 Z" />
+                        <path d="M210,80 L220,55 L230,80 Z" />
                       </svg>
-                      <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '2px', marginTop: 5, lineHeight: 1 }}>ADVENTURE</div>
-                      <div style={{ fontSize: 14, letterSpacing: '4px', fontWeight: 'bold' }}>PASS</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 5, lineHeight: 1 }}>ADVENTURE</div>
+                      <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold' }}>PASS</div>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
