@@ -305,6 +305,8 @@ export default function AdventurePOS() {
           /* Only show the barebones print container */
           #barebones-print-container, #barebones-print-container * {
             visibility: visible;
+            font-weight: 900 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
           }
           
           /* Position it absolutely so it starts at the true top-left of the paper */
