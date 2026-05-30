@@ -274,7 +274,7 @@ export default function TableManagement() {
               style={{ cursor: table.status === 'occupied' ? 'pointer' : 'default' }}
             >
               <div className="table-card-header">
-                <span className="table-number">T{table.number}</span>
+                <span className="table-number">{table.number}</span>
                 <span className={getStatusBadge(table.status)}>
                   {table.status || 'available'}
                 </span>
@@ -392,14 +392,14 @@ export default function TableManagement() {
         <div className="modal-overlay" onClick={() => setShowShiftModal(false)}>
           <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Shift Table {shiftFromTable.number}</h2>
+              <h2>Shift {shiftFromTable.number}</h2>
               <button className="btn btn-icon" onClick={() => setShowShiftModal(false)}>
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleShiftSubmit}>
               <div className="modal-body">
-                <p style={{ marginBottom: '16px' }}>Move the current order from Table {shiftFromTable.number} to a new available table.</p>
+                <p style={{ marginBottom: '16px' }}>Move the current order from {shiftFromTable.number} to a new available table.</p>
                 <div className="form-group">
                   <label className="form-label">Select Destination Table</label>
                   <select 
@@ -410,7 +410,7 @@ export default function TableManagement() {
                   >
                     <option value="" disabled>-- Select a table --</option>
                     {tables.filter(t => t.status === 'available' || t.status === null).map(t => (
-                      <option key={t.id} value={t.id}>Table {t.number} ({t.capacity} seats, {t.section})</option>
+                      <option key={t.id} value={t.id}>{t.number} ({t.capacity} seats, {t.section})</option>
                     ))}
                   </select>
                 </div>
@@ -437,7 +437,7 @@ export default function TableManagement() {
               </button>
             </div>
             <div className="modal-body">
-              <p>Are you sure you want to delete <strong>Table {deleteTarget.number}</strong>? This action cannot be undone.</p>
+              <p>Are you sure you want to delete <strong>{deleteTarget.number}</strong>? This action cannot be undone.</p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>Cancel</button>
@@ -452,7 +452,7 @@ export default function TableManagement() {
         <div className="modal-overlay" onClick={() => setQrTable(null)}>
           <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>QR Code — Table {qrTable.number}</h2>
+              <h2>QR Code — {qrTable.number}</h2>
               <button className="btn btn-icon" onClick={() => setQrTable(null)}>
                 <X size={20} />
               </button>
@@ -467,7 +467,7 @@ export default function TableManagement() {
                 fgColor="#1a1a2e"
               />
               <p style={{ marginTop: '0.5rem', fontWeight: 600, fontSize: '1.1rem' }}>
-                Table {qrTable.number}
+                {qrTable.number}
               </p>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                 Scan to order from this table
@@ -488,7 +488,7 @@ export default function TableManagement() {
         <div className="modal-overlay" onClick={() => setViewOrderTable(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="modal-header">
-              <h2>Table {viewOrderTable.number} - Active Order</h2>
+              <h2>{viewOrderTable.number} - Active Order</h2>
               <button className="btn btn-icon" onClick={() => setViewOrderTable(null)}>
                 <X size={20} />
               </button>

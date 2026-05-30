@@ -323,7 +323,7 @@ export default function CounterOrders() {
               <div className="flex gap-sm w-full mt-sm mb-sm p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', alignItems: 'center' }}>
                 <select className="form-select flex-2" value={assignTableId} onChange={e => setAssignTableId(e.target.value)}>
                   <option value="">-- Assign to Table --</option>
-                  {tables.map(t => <option key={t.id} value={t.id}>Table {t.number} ({t.capacity} pax)</option>)}
+                  {tables.map(t => <option key={t.id} value={t.id}>{t.number} ({t.capacity} pax)</option>)}
                 </select>
                 <button className="btn btn-secondary flex-1" onClick={handleAssignTable} disabled={!assignTableId}>Assign</button>
               </div>

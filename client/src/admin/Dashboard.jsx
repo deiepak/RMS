@@ -180,7 +180,7 @@ export default function Dashboard() {
               <div className="table-status-grid" style={{ maxHeight: '350px', overflowY: 'auto' }}>
                 {tables.map((t) => (
                   <div key={t.id || t._id || t.number} className={`table-status-card ${getStatusClass(t.status)}`}>
-                    <span className="table-num">T{t.number || t.table_number}</span>
+                    <span className="table-num">{t.number || t.table_number}</span>
                     <span className="table-cap">{t.capacity} seats</span>
                     <span className={`badge badge-sm ${
                       t.status === 'available' ? 'badge-success' :
@@ -225,7 +225,7 @@ export default function Dashboard() {
                     {orders.map((o) => (
                       <tr key={o.id || o._id}>
                         <td>#{String(o.id || o._id || '').padStart(5, '0').toUpperCase()}</td>
-                        <td>T{o.table_number || o.tableNumber || o.table?.number || '—'}</td>
+                        <td>{o.table_number || o.tableNumber || o.table?.number || '—'}</td>
                         <td>{showData ? formatCurrency(o.totalAmount || o.total) : '***'}</td>
                         <td>
                           <span className={getOrderBadge(o.status)}>

@@ -299,7 +299,7 @@ export default function OrdersManagement() {
                         )}
                       </td>
                       <td className="order-id">#{String(order.id || order._id || '').padStart(5, '0').toUpperCase()}</td>
-                      <td>T{order.table_number || order.tableNumber || order.table?.number || '—'}</td>
+                      <td>{order.table_number || order.tableNumber || order.table?.number || '—'}</td>
                       <td>{order.customer_name || order.customerName || order.customer?.name || '—'}</td>
                       <td>{order.items?.length || 0}</td>
                       <td className="amount text-warning font-bold">{formatCurrency(order.discount || 0)}</td>
