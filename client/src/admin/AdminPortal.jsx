@@ -108,12 +108,25 @@ export default function AdminPortal() {
     sectionTitle = 'Vendor Profile';
   }
 
-  const userAccess = user?.access_pages 
-    ? (typeof user.access_pages === 'string' ? JSON.parse(user.access_pages) : user.access_pages) 
-    : [];
+  const userAccessRaw = user?.access_pages;
+  let userAccess = null; // null means unrestricted legacy admin
+  
+  if (userAccessRaw !== null && userAccessRaw !== undefined) {
+    if (typeof userAccessRaw === 'string') {
+      try {
+        userAccess = JSON.parse(userAccessRaw);
+      } catch (e) {
+        userAccess = [];
+      }
+    } else {
+      userAccess = userAccessRaw;
+    }
+  }
+
   const hasAccess = (path) => {
-    if (user?.role === 'admin') return true; // Admins always have full access
-    if (!userAccess || userAccess.length === 0) return false; // Default to NO access if none specified
+    if (user?.id === 1) return true; // Super Admin always has full access
+    if (user?.role === 'admin' && userAccess === null) return true; // Legacy unrestricted admins
+    if (!Array.isArray(userAccess) || userAccess.length === 0) return false; // Default to NO access if none specified
     // Check exact match or sub-path match
     return userAccess.some(allowedPath => path === allowedPath || path.startsWith(`${allowedPath}/`));
   };

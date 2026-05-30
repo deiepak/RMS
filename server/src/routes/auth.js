@@ -38,7 +38,8 @@ router.post('/login', async (req, res) => {
         id: matchedEmployee.id, 
         role: matchedEmployee.role, 
         name: matchedEmployee.name,
-        station_id: matchedEmployee.station_id || null
+        station_id: matchedEmployee.station_id || null,
+        access_pages: matchedEmployee.access_pages
       },
       JWT_SECRET,
       { expiresIn: '12h' }
@@ -50,7 +51,8 @@ router.post('/login', async (req, res) => {
         id: matchedEmployee.id, 
         role: matchedEmployee.role, 
         name: matchedEmployee.name,
-        station_id: matchedEmployee.station_id || null
+        station_id: matchedEmployee.station_id || null,
+        access_pages: matchedEmployee.access_pages
       },
     });
   } catch (err) {
