@@ -325,6 +325,13 @@ export default function AdventurePOS() {
           .no-print {
             display: none !important;
           }
+          
+          /* Thermal printers are 1-bit monochrome. They ruin colored SVGs with dithering.
+             This filter forces high-contrast grayscale to prevent muddy printing. */
+          #barebones-print-container img[src="/adventure-logo.svg"] {
+            filter: grayscale(100%) contrast(200%) brightness(80%);
+            /* Using CSS filters to optimize the vector logo for the hardware spooler */
+          }
         }
       `}</style>
     </div>
