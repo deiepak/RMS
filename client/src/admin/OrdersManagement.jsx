@@ -1,0 +1,441 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Search,
+  Filter,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Clock,
+  X,
+} from 'lucide-react';
+import { api } from '../api/client';
+import { socket, subscribeToEvent } from '../api/socket';
+import { useToast } from '../contexts/ToastContext';
+import '../index.css';
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Orders' },
+  { value: 'active', label: 'Active' },
+  { value: 'checkout_requested', label: 'Checkout Requested' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const formatCurrency = (val) => `रू ${Number(val || 0).toLocaleString('en-NP')}`;
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'active': return 'badge badge-info';
+    case 'completed': return 'badge badge-success';
+    case 'cancelled': return 'badge badge-danger';
+    case 'checkout_requested': return 'badge badge-warning';
+    case 'preparing': return 'badge badge-warning';
+    case 'ready': return 'badge badge-success';
+    case 'served': return 'badge badge-info';
+    case 'pending': return 'badge badge-secondary';
+    default: return 'badge';
+  }
+};
+
+export default function OrdersManagement() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [detailModal, setDetailModal] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const { showToast } = useToast();
+  const refreshInterval = useRef(null);
+
+  const fetchOrders = useCallback(async (reset = false) => {
+    try {
+      if (reset) setLoading(true);
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status', statusFilter);
+      if (dateFilter) params.append('date', dateFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      params.append('page', reset ? 1 : page);
+      params.append('limit', 20);
+
+      const res = await api.get(`/orders?${params.toString()}`);
+      const data = res.data?.data || res.data?.orders || res.data || [];
+      const list = Array.isArray(data) ? data : [];
+
+      if (reset) {
+        setOrders(list);
+        setPage(1);
+      } else {
+        setOrders((prev) => {
+          const ids = new Set(prev.map((o) => o.id || o._id));
+          return [...prev, ...list.filter((o) => !ids.has(o.id || o._id))];
+        });
+      }
+      setHasMore(list.length >= 20);
+    } catch (err) {
+      showToast('Failed to load orders', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, dateFilter, searchTerm, page]);
+
+  useEffect(() => {
+    fetchOrders(true);
+  }, [statusFilter, dateFilter, searchTerm]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    refreshInterval.current = setInterval(() => {
+      fetchOrders(true);
+    }, 30000);
+    return () => clearInterval(refreshInterval.current);
+  }, [statusFilter, dateFilter, searchTerm]);
+
+  // Real-time socket updates
+  useEffect(() => {
+    const unsub1 = subscribeToEvent('orderUpdate', (data) => {
+      setOrders((prev) => {
+        const idx = prev.findIndex((o) => (o.id || o._id) === (data.id || data._id));
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], ...data };
+          return updated;
+        }
+        return [data, ...prev];
+      });
+    });
+
+    const unsub2 = subscribeToEvent('newOrder', (data) => {
+      setOrders((prev) => {
+        if (prev.some((o) => (o.id || o._id) === (data.id || data._id))) return prev;
+        return [data, ...prev];
+      });
+      showToast('New order received!', 'info');
+    });
+
+    return () => {
+      if (unsub1) unsub1();
+      if (unsub2) unsub2();
+    };
+  }, []);
+
+  const toggleExpand = (id) => {
+    setExpandedOrder(expandedOrder === id ? null : id);
+  };
+
+  const handleItemStatus = async (itemId, newStatus) => {
+    try {
+      await api.patch(`/orders/items/${itemId}/status`, { status: newStatus });
+      showToast('Item status updated', 'success');
+      fetchOrders(true);
+    } catch (err) {
+      showToast('Failed to update item status', 'error');
+    }
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const tableNum = String(o.table_number || o.tableNumber || o.table?.number || '');
+      const orderId = String(o.id || o._id || '').toLowerCase();
+      const hasItem = (o.items || []).some(i => 
+        (i.item_name || i.name || i.menuItem?.name || '').toLowerCase().includes(search)
+      );
+      if (!tableNum.includes(search) && !orderId.includes(search) && !hasItem) return false;
+    }
+    return true;
+  });
+
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    if (sortConfig.key === 'created_at') {
+      const dateA = new Date(a.created_at || a.createdAt).getTime();
+      const dateB = new Date(b.created_at || b.createdAt).getTime();
+      return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    if (sortConfig.key === 'discount') {
+      const discA = parseFloat(a.discount || 0);
+      const discB = parseFloat(b.discount || 0);
+      return sortConfig.direction === 'asc' ? discA - discB : discB - discA;
+    }
+    if (sortConfig.key === 'total') {
+      const totalA = parseFloat(a.totalAmount || a.total || 0);
+      const totalB = parseFloat(b.totalAmount || b.total || 0);
+      return sortConfig.direction === 'asc' ? totalA - totalB : totalB - totalA;
+    }
+    return 0;
+  });
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const totalDiscounts = sortedOrders.reduce((sum, o) => sum + parseFloat(o.discount || 0), 0);
+
+  return (
+    <div className="orders-page">
+      {/* Filter Bar */}
+      <div className="card filter-bar">
+        <div className="filter-row">
+          <div className="form-group filter-search">
+            <div className="input-with-icon">
+              <Search size={16} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Search by table, order ID, or item name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <input
+              type="date"
+              className="form-input"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => fetchOrders(true)}
+            title="Refresh"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Orders Table */}
+      <div className="grid mb-md" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+        <div className="stat-card card p-md" style={{ borderColor: 'var(--accent-secondary)' }}>
+          <div className="stat-title">Total Discount Given</div>
+          <div className="stat-value" style={{ color: 'var(--accent-secondary)' }}>{formatCurrency(totalDiscounts)}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-body" style={{ padding: 0 }}>
+          {loading ? (
+            <div className="skeleton-table" style={{ padding: '1rem' }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="skeleton-row" />
+              ))}
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="empty-state text-center" style={{ padding: '3rem' }}>
+              <ShoppingBagEmpty />
+              <p>No orders found</p>
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Order ID</th>
+                  <th>Table</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th onClick={() => requestSort('discount')} style={{ cursor: 'pointer' }}>
+                    Discount {sortConfig.key === 'discount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th onClick={() => requestSort('total')} style={{ cursor: 'pointer' }}>
+                    Total {sortConfig.key === 'total' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th>Status</th>
+                  <th onClick={() => requestSort('created_at')} style={{ cursor: 'pointer' }}>
+                    Time {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedOrders.map((order) => (
+                  <React.Fragment key={order.id || order._id}>
+                    <tr
+                      className={`order-row ${expandedOrder === (order.id || order._id) ? 'row-expanded' : ''}`}
+                      onClick={() => toggleExpand(order.id || order._id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        {expandedOrder === (order.id || order._id) ? (
+                          <ChevronUp size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
+                      </td>
+                      <td className="order-id">#{String(order.id || order._id || '').padStart(5, '0').toUpperCase()}</td>
+                      <td>T{order.table_number || order.tableNumber || order.table?.number || '—'}</td>
+                      <td>{order.customer_name || order.customerName || order.customer?.name || '—'}</td>
+                      <td>{order.items?.length || 0}</td>
+                      <td className="amount text-warning font-bold">{formatCurrency(order.discount || 0)}</td>
+                      <td className="amount">{formatCurrency(order.totalAmount || order.total)}</td>
+                      <td>
+                        <span className={getStatusBadge(order.status)}>
+                          {(order.status || '').replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="time-cell">
+                          <Clock size={14} />
+                          {formatTime(order.created_at || order.createdAt)}
+                        </span>
+                      </td>
+                    </tr>
+                    {expandedOrder === (order.id || order._id) && (
+                      <tr className="expanded-row">
+                        <td colSpan={8}>
+                          <div className="order-items-detail">
+                            <h4>Order Items</h4>
+                            <table className="data-table nested-table">
+                              <thead>
+                                <tr>
+                                  <th>Item</th>
+                                  <th>Qty</th>
+                                  <th>Price</th>
+                                  <th>Status</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(order.items || []).map((item, idx) => (
+                                  <tr key={item.id || item._id || idx} style={{
+                                    opacity: (item.status === 'rejected' || item.status === 'cancelled') ? 0.6 : 1,
+                                    textDecoration: (item.status === 'rejected' || item.status === 'cancelled') ? 'line-through' : 'none'
+                                  }}>
+                                    <td>
+                                      {item.item_name || item.name || item.menuItem?.name || '—'}
+                                      {(item.status === 'rejected' || item.status === 'cancelled') && (
+                                        <span className="badge badge-danger" style={{ marginLeft: 8, fontSize: 10, padding: '2px 4px' }}>CANCELLED</span>
+                                      )}
+                                    </td>
+                                    <td>{item.quantity}</td>
+                                    <td>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                                    <td>
+                                      <span className={getStatusBadge(item.status)}>
+                                        {item.status || 'pending'}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      {item.status !== 'served' && item.status !== 'cancelled' && item.status !== 'rejected' && (
+                                        <div className="btn-group">
+                                          {item.status === 'pending' && (
+                                            <button
+                                              className="btn btn-sm btn-secondary"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleItemStatus(item.id || item._id, 'preparing');
+                                              }}
+                                            >
+                                              Prepare
+                                            </button>
+                                          )}
+                                          {item.status === 'preparing' && (
+                                            <button
+                                              className="btn btn-sm btn-success"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleItemStatus(item.id || item._id, 'ready');
+                                              }}
+                                            >
+                                              Ready
+                                            </button>
+                                          )}
+                                          {item.status === 'ready' && (
+                                            <button
+                                              className="btn btn-sm btn-primary"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleItemStatus(item.id || item._id, 'served');
+                                              }}
+                                            >
+                                              Served
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {order.notes && (
+                              <div className="order-notes">
+                                <strong>Notes:</strong> {order.notes}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Load More */}
+      {!loading && hasMore && filteredOrders.length >= 20 && (
+        <div className="text-center" style={{ marginTop: '1rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setPage((p) => p + 1);
+              fetchOrders(false);
+            }}
+          >
+            Load More
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShoppingBagEmpty() {
+  return (
+    <div style={{ opacity: 0.3, marginBottom: '1rem' }}>
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <path d="M16 10a4 4 0 01-8 0" />
+      </svg>
+    </div>
+  );
+}

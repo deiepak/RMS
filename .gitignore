@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Build output
+client/dist/
+
+# Docker
+mysql_data/
+
+# Backup dumps (keep only committed ones)
+backup/dumps/*.sql
+!backup/dumps/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,239 @@
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Grid3X3,
+  UtensilsCrossed,
+  Package,
+  Truck,
+  Users,
+  Tag,
+  BookOpen,
+  AlertTriangle,
+  BarChart3,
+  MessageSquare,
+  Bell,
+  LogOut,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Settings,
+  Wrench,
+  Heart,
+  TrendingDown,
+  ScrollText
+} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { useSettings } from '../contexts/SettingsContext';
+import '../index.css';
+
+const NAV_CATEGORIES = [
+  {
+    title: 'Operations',
+    items: [
+      { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
+      { to: '/admin/counter', icon: ShoppingBag, label: 'Counter Orders' },
+      { to: '/admin/payments', icon: DollarSign, label: 'Accept Payments' },
+      { to: '/admin/tables', icon: Grid3X3, label: 'Tables' },
+      { to: '/admin/packages', icon: Package, label: 'Packages' },
+    ]
+  },
+  {
+    title: 'Catalog',
+    items: [
+      { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu' },
+      { to: '/admin/promos', icon: Tag, label: 'Promo Codes' },
+    ]
+  },
+  {
+    title: 'Inventory',
+    items: [
+      { to: '/admin/stock', icon: Package, label: 'Stock' },
+      { to: '/admin/vendors', icon: Truck, label: 'Vendors' },
+    ]
+  },
+  {
+    title: 'Administration',
+    items: [
+      { to: '/admin/employees', icon: Users, label: 'Employees' },
+      { to: '/admin/ledger', icon: BookOpen, label: 'Books & Ledger' },
+      { to: '/admin/expenses', icon: TrendingDown, label: 'Expenses' },
+      { to: '/admin/financial-log', icon: BookOpen, label: 'Financial Log' },
+      { to: '/admin/tips', icon: Heart, label: 'Tips Ledger' },
+      { to: '/admin/damage', icon: AlertTriangle, label: 'Damage Report' },
+      { to: '/admin/maintenance', icon: Wrench, label: 'Maintenance Log' },
+      { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/admin/stations', icon: Settings, label: 'Stations' },
+      { to: '/admin/communication', icon: MessageSquare, label: 'Communication' },
+      { to: '/admin/settings', icon: Settings, label: 'Settings' },
+    ]
+  }
+];
+
+const SECTION_TITLES = {
+  '/admin': 'Dashboard',
+  '/admin/orders': 'Orders Management',
+  '/admin/tables': 'Table Management',
+  '/admin/menu': 'Menu Management',
+  '/admin/stock': 'Stock Management',
+  '/admin/vendors': 'Vendor Management',
+  '/admin/employees': 'Employee Management',
+  '/admin/promos': 'Promo Codes',
+  '/admin/ledger': 'Books & Ledger',
+  '/admin/expenses': 'Expenses',
+  '/admin/financial-log': 'Financial Log',
+  '/admin/damage': 'Damage Report',
+  '/admin/analytics': 'Analytics',
+  '/admin/communication': 'Communication',
+  '/admin/counter': 'Counter Orders',
+  '/admin/packages': 'Packages',
+};
+
+export default function AdminPortal() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const { settings } = useSettings();
+
+  let sectionTitle = SECTION_TITLES[location.pathname] || 'Admin Portal';
+  if (location.pathname.startsWith('/admin/vendors/')) {
+    sectionTitle = 'Vendor Profile';
+  }
+
+  const userAccess = user?.access_pages 
+    ? (typeof user.access_pages === 'string' ? JSON.parse(user.access_pages) : user.access_pages) 
+    : [];
+  const hasAccess = (path) => {
+    if (user?.role === 'admin') return true; // Admins always have full access
+    if (!userAccess || userAccess.length === 0) return false; // Default to NO access if none specified
+    // Check exact match or sub-path match
+    return userAccess.some(allowedPath => path === allowedPath || path.startsWith(`${allowedPath}/`));
+  };
+
+  const visibleCategories = NAV_CATEGORIES.map(cat => ({
+    ...cat,
+    items: cat.items.filter(item => hasAccess(item.to))
+  })).filter(cat => cat.items.length > 0);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('rms_token');
+    localStorage.removeItem('rms_user');
+    showToast('Logged out successfully', 'info');
+    navigate('/');
+  };
+
+  return (
+    <div className="admin-layout">
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`admin-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+      >
+        <div className="sidebar-brand" onClick={() => navigate('/admin')} style={{ cursor: 'pointer' }}>
+          <div className="brand-logo">{settings?.restaurant_name ? settings.restaurant_name.charAt(0) : 'R'}</div>
+          {!collapsed && <span className="brand-text">{settings?.restaurant_name || 'Restaurant'}</span>}
+          <button
+            className="btn btn-icon sidebar-close-mobile"
+            onClick={(e) => { e.stopPropagation(); setMobileOpen(false); }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {visibleCategories.map((category) => (
+            <div key={category.title} className="sidebar-category">
+              {!collapsed && <div className="sidebar-category-title">{category.title}</div>}
+              {category.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `sidebar-link ${isActive ? 'active' : ''}`
+                  }
+                  title={collapsed ? item.label : undefined}
+                >
+                  <item.icon size={20} />
+                  {!collapsed && <span>{item.label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <button
+            className="sidebar-link sidebar-link-logout"
+            onClick={handleLogout}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center' }}
+          >
+            <LogOut size={20} />
+            {!collapsed && <span>Logout</span>}
+          </button>
+          <button
+            className="btn btn-icon sidebar-collapse-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ alignSelf: 'center', marginTop: '16px' }}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className={`admin-main ${collapsed ? 'expanded' : ''}`}>
+        <header className="admin-header">
+          <div className="header-left">
+            <button
+              className="btn btn-icon mobile-menu-btn"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={22} />
+            </button>
+            <h1 className="header-title">{sectionTitle}</h1>
+          </div>
+          <div className="header-right">
+            <span className="header-user">
+              {user?.name || 'Admin'}
+            </span>
+            <button className="btn btn-icon header-bell">
+              <Bell size={20} />
+            </button>
+          </div>
+        </header>
+
+        <main className="admin-content">
+          {!hasAccess(location.pathname) ? (
+            <div className="flex-center flex-col" style={{ height: '50vh', textAlign: 'center' }}>
+              <AlertTriangle size={64} className="text-danger mb-md" />
+              <h2>Access Denied</h2>
+              <p className="text-secondary mt-sm">You do not have permission to view this page.</p>
+            </div>
+          ) : (
+            <Outlet />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}

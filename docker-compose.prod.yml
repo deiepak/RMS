@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: rms_mysql_prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass123}
+      MYSQL_DATABASE: ${DB_NAME:-rms_db}
+      MYSQL_USER: ${DB_USER:-rms_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-rms_pass_2026}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: --default-authentication-plugin=mysql_native_password
+
+  server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: rms_server_prod
+    restart: always
+    ports:
+      - "${PORT:-80}:3001"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-rms_user}
+      DB_PASSWORD: ${DB_PASSWORD:-rms_pass_2026}
+      DB_NAME: ${DB_NAME:-rms_db}
+      JWT_SECRET: ${JWT_SECRET:-rms_jwt_secret_2026_change_me}
+      NODE_ENV: production
+      API_PORT: 3001
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data_prod:
+    driver: local
