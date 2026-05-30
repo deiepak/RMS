@@ -225,10 +225,7 @@ export default function AdventurePOS() {
       {/* Ticket Print Modal */}
       {ticketModal && (
         <Modal isOpen={true} onClose={() => setTicketModal(null)} title="Print Tickets" maxWidth="500px">
-          <div className="flex flex-col gap-md">
-            <div className="alert alert-success">
-        <Modal title="Print Tickets" onClose={() => setTicketModal(null)}>
-          <div className="p-md">
+          <div className="flex flex-col gap-md p-md">
             <div className="flex justify-center mb-md no-print">
               <div className="text-center">
                 <h3 className="m-0">Ready to Print</h3>
@@ -236,7 +233,7 @@ export default function AdventurePOS() {
               </div>
             </div>
 
-            <div style={{ background: '#fff', color: '#000', padding: '10px' }} id="barebones-print-container">
+            <div style={{ background: '#fff', color: '#000', padding: '10px', maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)' }} id="barebones-print-container">
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket" style={{ pageBreakAfter: 'always', marginBottom: '20px' }}>
