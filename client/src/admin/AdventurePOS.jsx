@@ -287,8 +287,14 @@ export default function AdventurePOS() {
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
-                    <div className="ticket-title">ADVENTURE PASS</div>
-                    <div className="ticket-subtitle">ZIPLINES • SWINGS • THRILLS</div>
+                    <div style={{ textAlign: 'center', marginBottom: 15, borderBottom: '3px solid black', paddingBottom: 10 }}>
+                      <svg width="100" height="50" viewBox="0 0 24 24" fill="black" stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 3l4 8 5-5 5 15H2L8 3z"></path>
+                        <circle cx="17" cy="7" r="2" fill="white"></circle>
+                      </svg>
+                      <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '2px', marginTop: 5, lineHeight: 1 }}>ADVENTURE</div>
+                      <div style={{ fontSize: 14, letterSpacing: '4px', fontWeight: 'bold' }}>PASS</div>
+                    </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
                       <div style={{ flex: 1, textAlign: 'left', paddingRight: 5 }}>
