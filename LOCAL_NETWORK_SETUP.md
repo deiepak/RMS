@@ -63,12 +63,28 @@ To allow waiters (mobile phones) and kitchen staff (tablets) to access the syste
 2. Type `ipconfig getifaddr en0` (for Wi-Fi) or `ipconfig getifaddr en1` (for Ethernet) and press Enter.
 3. The output is your IP address (e.g., `192.168.1.X`).
 
-### Step B: Connect from Client Devices
+### Step B: Connect via IP Address (Quick Method)
 1. Ensure the Host machine and the Client devices (phones, tablets) are connected to the **same Wi-Fi network**.
 2. Open a web browser on the Client device.
 3. Type the Host's IP address into the URL bar.
    - Example: `http://192.168.1.50`
 4. The RMS portal will load!
+
+### Step C: Connect via `happyhills.lan` (Recommended Method)
+To use a friendly domain name like `http://happyhills.lan` on all devices across your network, you need to configure your Wi-Fi Router's DNS settings.
+
+1. **Log into your Wi-Fi Router Admin Panel:**
+   - Go to your router's IP address (commonly `http://192.168.1.1` or `http://192.168.0.1`) in your web browser.
+   - Log in using your router's admin username and password.
+2. **Find the Local DNS / LAN Settings:**
+   - Look for a setting called **"Local DNS Record"**, **"LAN DNS"**, **"Static DNS"**, or **"DHCP Server Settings"**.
+3. **Add a new DNS Entry:**
+   - **Domain Name / Hostname:** `happyhills.lan`
+   - **IP Address:** Enter the Host Machine's IP Address (e.g., `192.168.1.50`) that you found in Step A.
+4. **Save & Reboot:**
+   - Save the settings. You may need to reboot your router or toggle the Wi-Fi off/on on your client devices to flush their DNS cache.
+5. **Access the App:**
+   - On any phone or tablet connected to the Wi-Fi, open the browser and go to `http://happyhills.lan`!
 
 ---
 
