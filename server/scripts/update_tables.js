@@ -67,7 +67,8 @@ async function updateTables() {
           .update({
             number: tables[i].number,
             capacity: tables[i].capacity,
-            section: tables[i].section
+            section: tables[i].section,
+            sort_order: i + 1
           });
       }
     }
@@ -75,11 +76,15 @@ async function updateTables() {
     // Insert the rest
     const remaining = tables.slice(existing.length);
     if (remaining.length > 0) {
-      const toInsert = remaining.map(t => ({ ...t, status: 'available' }));
+      const toInsert = remaining.map((t, index) => ({ 
+        ...t, 
+        status: 'available',
+        sort_order: existing.length + index + 1
+      }));
       await db('restaurant_tables').insert(toInsert);
     }
     
-    // Delete any excess existing tables (only if no foreign key constraints would break)
+    // Delete any excess existing tables
     if (existing.length > tables.length) {
       const idsToDelete = existing.slice(tables.length).map(t => t.id);
       await db('restaurant_tables').whereIn('id', idsToDelete).del();

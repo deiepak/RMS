@@ -73,8 +73,12 @@ exports.seed = async function (knex) {
       { number: 'TENT -01 (TENT-01)', capacity: 4, section: 'Tents' },
     ];
     
-    // Add default status
-    const tablesWithStatus = tables.map(t => ({ ...t, status: 'available' }));
+    // Add default status and sort_order
+    const tablesWithStatus = tables.map((t, index) => ({ 
+      ...t, 
+      status: 'available',
+      sort_order: index + 1
+    }));
     await knex('restaurant_tables').insert(tablesWithStatus);
     console.log('✓ Seeded restaurant tables');
   }

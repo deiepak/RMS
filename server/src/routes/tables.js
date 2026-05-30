@@ -7,7 +7,7 @@ const router = express.Router();
 // GET /api/tables
 router.get('/', async (req, res) => {
   try {
-    const tables = await db('restaurant_tables').orderBy('number');
+    const tables = await db('restaurant_tables').orderBy('sort_order', 'asc');
     res.json(tables);
   } catch (err) {
     console.error('Tables list error:', err);

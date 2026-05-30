@@ -61,7 +61,13 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await db('stock_items').where({ id }).del();
+    await db.transaction(async trx => {
+      // Delete child records first to satisfy foreign key constraints
+      await trx('stock_transactions').where({ stock_item_id: id }).del();
+      await trx('stock_menu_links').where({ stock_id: id }).del();
+      // Then delete the item itself
+      await trx('stock_items').where({ id }).del();
+    });
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
