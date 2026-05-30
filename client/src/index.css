@@ -971,7 +971,7 @@ a {
 @media (max-width: 768px) {
   .admin-sidebar {
     position: fixed;
-    z-index: 100;
+    z-index: 1000;
     transform: translateX(-100%);
   }
   .admin-sidebar.open {
