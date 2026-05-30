@@ -155,6 +155,13 @@ html, body {
 </html>`);
     doc.close();
     
+    // Inject @page into parent document to fix Chrome iframe print bug
+    // Chrome ignores @page rules inside iframes and uses the parent's margins.
+    const parentStyle = document.createElement('style');
+    parentStyle.id = 'print-page-style';
+    parentStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm auto; }`;
+    document.head.appendChild(parentStyle);
+    
     // Wait for all images to load before printing
     const images = doc.querySelectorAll('img');
     let loaded = 0;
@@ -162,7 +169,12 @@ html, body {
     const doPrint = () => {
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
-      setTimeout(() => iframe.remove(), 1000);
+      setTimeout(() => {
+        iframe.remove();
+        if (document.getElementById('print-page-style')) {
+          document.getElementById('print-page-style').remove();
+        }
+      }, 1000);
     };
     
     if (total === 0) {
