@@ -7,6 +7,7 @@ import jsQR from 'jsqr';
 
 export default function ScanAdventure() {
   const [scanResult, setScanResult] = useState(null);
+  const [pendingTicket, setPendingTicket] = useState(null);
   const [isScanning, setIsScanning] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const scannerRef = useRef(null);
@@ -45,16 +46,16 @@ export default function ScanAdventure() {
     setIsProcessing(true);
     
     try {
-      const res = await api.post('/adventures/scan', { ticket_code: decodedText });
+      const res = await api.get(`/adventures/ticket/${decodedText}`);
       
       const audio = new Audio('/success-sound.mp3');
       audio.play().catch(e => console.log('Audio play failed', e));
 
-      setScanResult({
-        success: true,
-        title: res.data.adventure_name || 'Valid Ticket',
-        message: 'Ticket validated successfully! Safe for entry.'
+      setPendingTicket({
+        code: decodedText,
+        title: res.data.adventure_name || 'Valid Ticket'
       });
+      setIsScanning(false);
       
     } catch (error) {
       const audio = new Audio('/error-sound.mp3');
@@ -64,9 +65,37 @@ export default function ScanAdventure() {
         success: false,
         message: error.response?.data?.error || 'Invalid ticket code.'
       });
+      setIsScanning(false);
     } finally {
       setIsProcessing(false);
-      setIsScanning(false);
+    }
+  };
+
+  const confirmTicket = async () => {
+    if (!pendingTicket) return;
+    setIsProcessing(true);
+    try {
+      await api.post('/adventures/scan', { ticket_code: pendingTicket.code });
+      
+      const audio = new Audio('/success-sound.mp3');
+      audio.play().catch(e => console.log('Audio play failed', e));
+
+      setScanResult({
+        success: true,
+        title: pendingTicket.title,
+        message: 'Ticket validated successfully! Safe for entry.'
+      });
+    } catch (error) {
+      const audio = new Audio('/error-sound.mp3');
+      audio.play().catch(e => console.log('Audio play failed', e));
+
+      setScanResult({
+        success: false,
+        message: error.response?.data?.error || 'Failed to use ticket.'
+      });
+    } finally {
+      setIsProcessing(false);
+      setPendingTicket(null);
     }
   };
 
@@ -146,6 +175,7 @@ export default function ScanAdventure() {
 
   const resetScanner = () => {
     setScanResult(null);
+    setPendingTicket(null);
     setIsScanning(true);
     if (scannerRef.current) {
       scannerRef.current.resume();
@@ -190,8 +220,35 @@ export default function ScanAdventure() {
             </div>
           )}
 
+          {/* Pending Confirmation View */}
+          {!isScanning && pendingTicket && !scanResult && (
+            <div className="flex flex-col align-center p-lg animate-scale-in text-center">
+              <CheckCircle size={80} className="text-info mb-md" />
+              <h2 className="text-info mb-sm">Ticket Found!</h2>
+              <p className="text-lg font-bold">{pendingTicket.title}</p>
+              <p className="text-secondary mt-sm">This ticket is valid and ready to be used.</p>
+
+              <div className="flex gap-md w-full mt-xl" style={{ maxWidth: 400, margin: '32px auto 0' }}>
+                <button 
+                  className="btn btn-secondary btn-lg flex-1" 
+                  onClick={resetScanner}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-success btn-lg flex-1" 
+                  onClick={confirmTicket}
+                  disabled={isProcessing}
+                >
+                  Accept Ticket
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Result View */}
-          {!isScanning && scanResult && (
+          {!isScanning && scanResult && !pendingTicket && (
             <div className="flex flex-col align-center p-lg animate-scale-in text-center">
               {scanResult.success ? (
                 <>
@@ -210,7 +267,7 @@ export default function ScanAdventure() {
               <button 
                 className="btn btn-primary btn-lg mt-xl w-full" 
                 onClick={resetScanner}
-                style={{ maxWidth: 300 }}
+                style={{ maxWidth: 300, margin: '32px auto 0' }}
               >
                 Scan Next Ticket
               </button>

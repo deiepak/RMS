@@ -186,4 +186,36 @@ router.post('/scan', verifyToken, requireRole(['admin']), async (req, res) => {
   }
 });
 
+// GET /api/adventures/ticket/:code
+router.get('/ticket/:code', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { code } = req.params;
+    const ticket = await db('adventure_tickets').where({ ticket_code: code }).first();
+    
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    if (ticket.status === 'used') {
+      return res.status(400).json({ error: 'Ticket has already been used!' });
+    }
+
+    if (ticket.status === 'cancelled') {
+      return res.status(400).json({ error: 'Ticket is cancelled!' });
+    }
+
+    // Fetch details to show on scan success
+    const item = await db('order_items')
+      .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .where('order_items.id', ticket.order_item_id)
+      .select('menu_items.name')
+      .first();
+
+    res.json({ success: true, ticket, adventure_name: item?.name });
+  } catch (err) {
+    console.error('Ticket fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
