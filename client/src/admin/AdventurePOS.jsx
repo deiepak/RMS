@@ -125,7 +125,7 @@ export default function AdventurePOS() {
 <html>
 <head>
 <style>
-@page { margin: 0; padding: 0; }
+@page { margin: 0; padding: 0; size: 80mm auto; }
 html, body { 
   font-family: Arial, Helvetica, sans-serif; 
   margin: 0 !important; 
@@ -322,13 +322,13 @@ html, body {
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8, gap: 10 }}>
                       <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 80, height: 80, flexShrink: 0 }} />
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, letterSpacing: '1px' }}>Happy Hills</div>
-                        <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginTop: 4, letterSpacing: '2px' }}>Adventure</div>
+                        <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '1px' }}>Happy Hills</div>
+                        <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1, marginTop: 4, letterSpacing: '2px' }}>Adventure</div>
                       </div>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
-                      <div style={{ flex: 1, textAlign: 'left', paddingRight: 5 }}>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 5 }}>{ticket.item_name}</div>
                         <div className="ticket-price">RS. {ticket.price}</div>
                         <div className="ticket-footer" style={{ textAlign: 'left' }}>
@@ -341,14 +341,14 @@ html, body {
                       <div className="qr-container" style={{ flexShrink: 0 }}>
                         <QRCodeSVG 
                           value={ticket.ticket_code} 
-                          size={110} 
+                          size={135} 
                           level="M" 
                           includeMargin={true} 
                         />
                       </div>
                     </div>
                     
-                    <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>Terms and Conditions</div>
+                    <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>✦ TERMS & CONDITIONS ✦</div>
                     <div className="disclaimer">
                       By purchasing this ticket, I acknowledge that I accept all risks involved and agree to follow all health, safety, and conduct requirements. I understand the refund and cancellation policies and waive liability and responsibility for any damages or injuries that may occur. I release and hold harmless the organizers, staff, and affiliates from any claims or demands that may arise from participation.
                     </div>
