@@ -103,15 +103,35 @@ export default function AdventurePOS() {
         <head>
           <title>Print Tickets</title>
           <style>
-            body { font-family: monospace; padding: 10px; margin: 0; text-align: center; }
-            .ticket { border-bottom: 2px dashed #000; padding-bottom: 20px; margin-bottom: 20px; page-break-inside: avoid; }
+            @page {
+              margin: 0;
+              size: 80mm auto;
+            }
+            body { 
+              font-family: monospace; 
+              margin: 0; 
+              padding: 0;
+              width: 80mm;
+              text-align: center; 
+              color: #000;
+            }
+            .ticket { 
+              padding: 10px 15px 15px 15px; 
+              page-break-after: always; 
+              box-sizing: border-box;
+            }
             .ticket-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-            .ticket-subtitle { font-size: 14px; margin-bottom: 15px; }
-            .ticket-price { font-size: 16px; margin: 10px 0; }
-            .qr-container { margin: 15px 0; }
+            .ticket-subtitle { font-size: 14px; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .ticket-price { font-size: 16px; margin: 10px 0; font-weight: bold; }
+            .qr-container { margin: 15px 0; display: flex; justify-content: center; }
             .ticket-footer { font-size: 12px; margin-top: 10px; }
-            @media print {
-              body { width: 80mm; }
+            .disclaimer { 
+              font-size: 9px; 
+              margin-top: 15px; 
+              text-align: justify; 
+              line-height: 1.2;
+              border-top: 1px solid #000;
+              padding-top: 5px;
             }
           </style>
         </head>
@@ -285,7 +305,10 @@ export default function AdventurePOS() {
                       <div>${new Date(ticket.purchased_at).toLocaleString()}</div>
                       <div style={{ marginTop: 5 }}>Please present this QR code at the activity counter.</div>
                     </div>
-                    {index < ticketModal.length - 1 && <hr style={{ borderTop: '2px dashed #ccc', margin: '20px 0' }} />}
+                    
+                    <div className="disclaimer">
+                      By purchasing this ticket, I acknowledge that I accept all risks involved and agree to follow all health, safety, and conduct requirements. I understand the refund and cancellation policies and waive liability and responsibility for any damages or injuries that may occur. I release and hold harmless the organizers, staff, and affiliates from any claims or demands that may arise from participation.
+                    </div>
                   </div>
                 ))}
               </div>
