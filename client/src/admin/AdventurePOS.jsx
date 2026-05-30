@@ -316,7 +316,7 @@ export default function AdventurePOS() {
             top: 0;
             width: 100%;
             margin: 0 !important;
-            padding: 0 !important;
+            /* Allow the 10px inline padding to apply so content (like the logo) isn't cut off at the edges */
             border: none !important;
             max-height: none !important;
             overflow: visible !important;
@@ -329,10 +329,9 @@ export default function AdventurePOS() {
           }
           
           /* Thermal printers are 1-bit monochrome. They ruin colored SVGs with dithering.
-             This filter forces high-contrast grayscale to prevent muddy printing. */
+             This filter forces pure black and white (1-bit monochrome) to prevent muddy printing. */
           #barebones-print-container img[src="/adventure-logo.svg"] {
-            filter: grayscale(100%) contrast(200%) brightness(80%);
-            /* Using CSS filters to optimize the vector logo for the hardware spooler */
+            filter: grayscale(100%) brightness(65%) contrast(1000%);
           }
         }
       `}</style>
