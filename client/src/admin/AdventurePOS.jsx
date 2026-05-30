@@ -319,10 +319,12 @@ html, body {
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
-                    <div style={{ textAlign: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8 }}>
-                      <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 120, height: 120, display: 'block', margin: '0 auto' }} />
-                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 8, lineHeight: 1 }}>ADVENTURE</div>
-                      <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold', marginTop: 2 }}>PASS</div>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8, gap: 10 }}>
+                      <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 80, height: 80, flexShrink: 0 }} />
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, letterSpacing: '1px' }}>Happy Hills</div>
+                        <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginTop: 4, letterSpacing: '2px' }}>Adventure</div>
+                      </div>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
