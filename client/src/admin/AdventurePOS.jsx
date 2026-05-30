@@ -97,6 +97,15 @@ export default function AdventurePOS() {
   const handlePrint = () => {
     if (!printRef.current) return;
     
+    // Create a container for printing directly in the main document
+    // This bypasses all Chrome iframe and popup bugs by printing the parent window.
+    let printContainer = document.getElementById('global-print-container');
+    if (!printContainer) {
+      printContainer = document.createElement('div');
+      printContainer.id = 'global-print-container';
+      document.body.appendChild(printContainer);
+    }
+    
     // Clone content and convert relative image URLs to absolute
     const clone = printRef.current.cloneNode(true);
     clone.querySelectorAll('img').forEach(img => {
@@ -104,91 +113,72 @@ export default function AdventurePOS() {
         img.src = window.location.origin + img.getAttribute('src');
       }
     });
-    const printContent = clone.innerHTML;
     
-    // Use a hidden iframe to bypass Chrome's default header/footer margins
-    let iframe = document.getElementById('ticket-print-frame');
-    if (iframe) iframe.remove();
-    iframe = document.createElement('iframe');
-    iframe.id = 'ticket-print-frame';
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
+    printContainer.innerHTML = clone.innerHTML;
     
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`<!DOCTYPE html>
-<html>
-<head>
-<style>
-@page { margin: 0; padding: 0; size: 80mm auto; }
-html, body { 
-  font-family: Arial, Helvetica, sans-serif; 
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 80mm;
-  text-align: center; 
-  color: #000;
-  font-weight: 900;
-}
-* { font-weight: 900 !important; margin: 0; padding: 0; box-sizing: border-box; }
-.ticket { 
-  padding: 2px 8px 8px 8px; 
-  page-break-after: always; 
-}
-.ticket-price { font-size: 18px; margin: 2px 0; }
-.qr-container { margin: 0; display: flex; justify-content: flex-end; }
-.ticket-footer { font-size: 14px; margin-top: 2px; }
-.disclaimer { 
-  font-size: 12px; 
-  margin-top: 5px; 
-  text-align: justify; 
-  line-height: 1.1;
-}
-</style>
-</head>
-<body>${printContent}</body>
-</html>`);
-    doc.close();
+    // Inject global print styles
+    const printStyle = document.createElement('style');
+    printStyle.id = 'global-print-styles';
     
-    // Inject @page into parent document to fix Chrome iframe print bug
-    // Chrome ignores @page rules inside iframes and uses the parent's margins.
-    const parentStyle = document.createElement('style');
-    parentStyle.id = 'print-page-style';
-    parentStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm auto; }`;
-    document.head.appendChild(parentStyle);
+    // Calculate exact height to prevent Windows GDI centering bugs
+    const exactHeightPx = clone.scrollHeight + 20;
     
-    // Wait for all images to load before printing
-    const images = doc.querySelectorAll('img');
+    printStyle.innerHTML = `
+      @media screen {
+        #global-print-container { display: none !important; }
+      }
+      @media print {
+        @page { margin: 0; padding: 0; size: 80mm ${exactHeightPx > 100 ? exactHeightPx : 'auto'}; }
+        body * { visibility: hidden; }
+        #global-print-container, #global-print-container * { visibility: visible; }
+        #global-print-container { 
+          position: absolute; 
+          left: 0; 
+          top: 0; 
+          width: 80mm; 
+          margin: 0 !important;
+          padding: 0 !important;
+          font-family: Arial, Helvetica, sans-serif;
+          color: #000;
+          font-weight: 900;
+          text-align: center;
+        }
+        #global-print-container * {
+          font-weight: 900 !important;
+          box-sizing: border-box;
+        }
+        #global-print-container .ticket { 
+          padding: 2px 8px 8px 8px; 
+          page-break-after: always; 
+        }
+        #global-print-container .ticket-price { font-size: 18px; margin: 2px 0; }
+        #global-print-container .qr-container { margin: 0; display: flex; justify-content: flex-end; }
+        #global-print-container .ticket-footer { font-size: 14px; margin-top: 2px; }
+        #global-print-container .disclaimer { 
+          font-size: 12px; 
+          margin-top: 5px; 
+          text-align: justify; 
+          line-height: 1.1;
+        }
+      }
+    `;
+    
+    if (document.getElementById('global-print-styles')) {
+      document.getElementById('global-print-styles').remove();
+    }
+    document.head.appendChild(printStyle);
+    
+    // Wait for images then print the main window
+    const images = printContainer.querySelectorAll('img');
     let loaded = 0;
     const total = images.length;
     const doPrint = () => {
-      // Calculate the EXACT height of the rendered content in pixels
-      // Add a small buffer (20px) to prevent cut-offs
-      const exactHeightPx = doc.body.scrollHeight + 20;
-      
-      // Update the parent @page style to use the exact calculated height instead of 'auto'
-      // This stops Chrome from falling back to the 11-inch default page size.
-      const parentStyle = document.getElementById('print-page-style');
-      if (parentStyle) {
-        parentStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm ${exactHeightPx}px; }`;
-      }
-
-      // Also update the iframe's internal @page style
-      const iframeStyle = doc.createElement('style');
-      iframeStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm ${exactHeightPx}px; }`;
-      doc.head.appendChild(iframeStyle);
-
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
+      window.print();
+      // Cleanup after print dialog closes
       setTimeout(() => {
-        iframe.remove();
-        if (document.getElementById('print-page-style')) {
-          document.getElementById('print-page-style').remove();
+        printContainer.innerHTML = '';
+        if (document.getElementById('global-print-styles')) {
+          document.getElementById('global-print-styles').remove();
         }
       }, 1000);
     };
