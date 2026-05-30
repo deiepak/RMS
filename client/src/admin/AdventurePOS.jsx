@@ -97,59 +97,63 @@ export default function AdventurePOS() {
   const handlePrint = () => {
     if (!printRef.current) return;
     const printContent = printRef.current.innerHTML;
-    const printWindow = window.open('', '', 'width=350,height=600');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Print Tickets</title>
-          <style>
-            @page {
-              margin: 0;
-            }
-            @media print {
-              html, body { 
-                font-family: Arial, Helvetica, sans-serif; 
-                margin: 0 !important; 
-                padding: 0 !important;
-                width: 80mm;
-                text-align: center; 
-                color: #000;
-                font-weight: 900;
-              }
-            }
-            * {
-              font-weight: 900 !important;
-            }
-            .ticket { 
-              padding: 0 10px 10px 10px; 
-              page-break-after: always; 
-              box-sizing: border-box;
-            }
-            .ticket-title { font-size: 24px; margin: 0; padding: 0; text-transform: uppercase; }
-            .ticket-subtitle { font-size: 16px; margin-bottom: 5px; border-bottom: 2px dashed #000; padding-bottom: 5px; text-transform: uppercase; }
-            .ticket-price { font-size: 18px; margin: 2px 0; }
-            .qr-container { margin: 0; display: flex; justify-content: flex-end; }
-            .ticket-footer { font-size: 14px; margin-top: 2px; }
-            .disclaimer { 
-              font-size: 12px; 
-              margin-top: 5px; 
-              text-align: justify; 
-              line-height: 1.1;
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+    
+    // Use a hidden iframe to bypass Chrome's default header/footer margins
+    let iframe = document.getElementById('ticket-print-frame');
+    if (iframe) iframe.remove();
+    iframe = document.createElement('iframe');
+    iframe.id = 'ticket-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+<style>
+@page { margin: 0; padding: 0; }
+html, body { 
+  font-family: Arial, Helvetica, sans-serif; 
+  margin: 0 !important; 
+  padding: 0 !important;
+  width: 80mm;
+  text-align: center; 
+  color: #000;
+  font-weight: 900;
+}
+* { font-weight: 900 !important; margin: 0; padding: 0; box-sizing: border-box; }
+.ticket { 
+  padding: 2px 8px 8px 8px; 
+  page-break-after: always; 
+}
+.ticket-price { font-size: 18px; margin: 2px 0; }
+.qr-container { margin: 0; display: flex; justify-content: flex-end; }
+.ticket-footer { font-size: 14px; margin-top: 2px; }
+.disclaimer { 
+  font-size: 12px; 
+  margin-top: 5px; 
+  text-align: justify; 
+  line-height: 1.1;
+}
+</style>
+</head>
+<body>${printContent}</body>
+</html>`);
+    doc.close();
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => iframe.remove(), 1000);
+      }, 200);
+    };
   };
 
   if (isLoading) return <div className="p-lg">Loading adventures...</div>;
@@ -289,22 +293,56 @@ export default function AdventurePOS() {
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
-                    <div style={{ textAlign: 'center', marginBottom: 15, borderBottom: '3px solid black', paddingBottom: 10 }}>
-                      <svg width="100" height="100" viewBox="0 0 100 100" style={{ display: 'block', margin: '0 auto' }}>
-                        <clipPath id="circleClip">
-                          <circle cx="50" cy="50" r="48" />
-                        </clipPath>
-                        <g clipPath="url(#circleClip)">
-                          <path d="M -10 60 Q 25 20, 55 55 T 110 50 L 110 -10 L -10 -10 Z" fill="#000" />
-                          <circle cx="62" cy="50" r="8" fill="#000" />
-                          <circle cx="43" cy="51" r="4" fill="#000" />
-                          <path d="M 15 65 Q 35 45, 50 58 Q 45 75, 45 110 L -10 110 Z" fill="#000" />
-                          <circle cx="65" cy="60" r="3.5" fill="#000" />
-                          <path d="M 55 80 Q 65 60, 85 65 Q 85 85, 75 110 L 40 110 Z" fill="#000" />
+                    <div style={{ textAlign: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8 }}>
+                      <svg width="120" height="120" viewBox="0 0 200 200" style={{ display: 'block', margin: '0 auto' }}>
+                        <defs>
+                          <clipPath id={`clip-${ticket.id}`}>
+                            <circle cx="100" cy="100" r="95" />
+                          </clipPath>
+                        </defs>
+                        <g clipPath={`url(#clip-${ticket.id})`}>
+                          {/* Sky - upper dome shape with organic wavy bottom edge */}
+                          <path d="M 0,0 L 200,0 L 200,110 
+                            C 180,100 170,95 155,105 
+                            C 140,115 130,100 120,95 
+                            C 110,90 100,92 90,100 
+                            C 80,108 70,115 60,108 
+                            C 50,100 40,95 30,100 
+                            C 20,105 10,110 0,108 Z" fill="#000" />
+                          
+                          {/* Sun circle - nestled in the valley */}
+                          <circle cx="138" cy="105" r="14" fill="#000" />
+                          
+                          {/* Left organic figure - larger abstract human/mountain shape */}
+                          <path d="M 5,130 
+                            C 10,115 25,100 40,105 
+                            C 55,110 60,100 65,108 
+                            C 70,116 78,120 85,118 
+                            C 92,116 95,125 90,135 
+                            C 85,145 80,155 75,165
+                            C 70,175 55,185 40,195 
+                            L 5,200 Z" fill="#000" />
+                          
+                          {/* Small white dot in left figure */}
+                          <circle cx="55" cy="128" r="5" fill="#fff" />
+                          
+                          {/* Right organic figure - smaller abstract shape */}
+                          <path d="M 120,140 
+                            C 130,125 145,118 160,125 
+                            C 175,132 185,140 188,155 
+                            C 190,165 185,180 175,190 
+                            L 140,200 L 105,200 
+                            C 108,185 112,170 115,155 
+                            C 117,148 118,144 120,140 Z" fill="#000" />
+                          
+                          {/* Small white dot in right figure */}
+                          <circle cx="152" cy="148" r="4.5" fill="#fff" />
                         </g>
+                        {/* Circle outline for clean edge */}
+                        <circle cx="100" cy="100" r="95" fill="none" stroke="#000" strokeWidth="5" />
                       </svg>
-                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 10, lineHeight: 1 }}>ADVENTURE</div>
-                      <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold' }}>PASS</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 8, lineHeight: 1 }}>ADVENTURE</div>
+                      <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold', marginTop: 2 }}>PASS</div>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
