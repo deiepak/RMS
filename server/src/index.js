@@ -26,12 +26,16 @@ require('./socket/handlers')(io);
 const expensesRoutes = require('./routes/expenses');
 const financialLogRoutes = require('./routes/financial-log');
 const ledgerRoutes = require('./routes/ledger');
+const stationRoutes = require('./routes/stations');
+const settingsRoutes = require('./routes/settings');
+const packagesRoutes = require('./routes/packages');
+const adventuresRoutes = require('./routes/adventures');
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/tables', require('./routes/tables'));
-app.use('/api/settings', require('./routes/settings'));
+app.use('/api/settings', settingsRoutes);
 app.use('/api/employees', require('./routes/employees'));
 
 app.use('/api/vendors', require('./routes/vendors'));
@@ -43,10 +47,11 @@ app.use('/api/financial-log', financialLogRoutes);
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/assistance', require('./routes/assistance'));
-app.use('/api/stations', require('./routes/stations'));
+app.use('/api/stations', stationRoutes);
 app.use('/api/stock-requests', require('./routes/stock_requests'));
 app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/packages', require('./routes/packages'));
+app.use('/api/adventures', adventuresRoutes);
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../../client/dist')));

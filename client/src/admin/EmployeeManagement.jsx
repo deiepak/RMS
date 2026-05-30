@@ -37,7 +37,10 @@ export default function EmployeeManagement() {
     { id: '/admin/analytics', label: 'Analytics' },
     { id: '/admin/stations', label: 'Stations' },
     { id: '/admin/communication', label: 'Communication' },
-    { id: '/admin/settings', label: 'Settings' }
+    { id: '/admin/settings', label: 'Settings' },
+    { id: '/admin/adventures/manage', label: 'Manage Adventures' },
+    { id: '/admin/adventures/sell', label: 'Sell Adventure' },
+    { id: '/admin/adventures/scan', label: 'Scan Adventure' }
   ];
 
   const initialFormState = { 

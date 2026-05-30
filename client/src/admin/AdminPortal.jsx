@@ -24,7 +24,8 @@ import {
   Wrench,
   Heart,
   TrendingDown,
-  ScrollText
+  ScrollText,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -41,6 +42,14 @@ const NAV_CATEGORIES = [
       { to: '/admin/payments', icon: DollarSign, label: 'Accept Payments' },
       { to: '/admin/tables', icon: Grid3X3, label: 'Tables' },
       { to: '/admin/packages', icon: Package, label: 'Packages' },
+    ]
+  },
+  {
+    title: 'Adventures',
+    items: [
+      { to: '/admin/adventures/sell', icon: Compass, label: 'Sell Adventure' },
+      { to: '/admin/adventures/scan', icon: Compass, label: 'Scan Adventure' },
+      { to: '/admin/adventures/manage', icon: Compass, label: 'Manage Adventures' },
     ]
   },
   {

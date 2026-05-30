@@ -36,6 +36,9 @@ import Analytics from './admin/Analytics';
 import Communication from './admin/Communication';
 import StationManagement from './admin/StationManagement';
 import GeneralSettings from './admin/GeneralSettings';
+import AdventureManagement from './admin/AdventureManagement';
+import AdventurePOS from './admin/AdventurePOS';
+import ScanAdventure from './admin/ScanAdventure';
 
 const App = () => {
   return (
@@ -97,6 +100,9 @@ const App = () => {
                   <Route path="communication" element={<Communication />} />
                   <Route path="stations" element={<StationManagement />} />
                   <Route path="settings" element={<GeneralSettings />} />
+                  <Route path="adventures/manage" element={<AdventureManagement />} />
+                  <Route path="adventures/sell" element={<AdventurePOS />} />
+                  <Route path="adventures/scan" element={<ScanAdventure />} />
                 </Route>
               </Routes>
             </SocketProvider>
