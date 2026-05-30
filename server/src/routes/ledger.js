@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
       .select(
         'payments.*',
         'orders.id as order_id',
+        'orders.order_name as customer_name',
         'orders.total as order_total',
         'orders.discount as order_discount',
         'restaurant_tables.number as table_number'
@@ -129,7 +130,7 @@ router.get('/by-category', async (req, res) => {
       .where('orders.status', 'completed')
       .where('order_items.status', '!=', 'rejected')
       .select('menu_categories.name as category')
-      .sum('order_items.price as total')
+      .select(db.raw('SUM(order_items.quantity * menu_items.price) as total'))
       .count('order_items.id as items_count')
       .groupBy('menu_categories.id', 'menu_categories.name');
 
