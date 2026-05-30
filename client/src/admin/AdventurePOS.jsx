@@ -129,7 +129,6 @@ export default function AdventurePOS() {
 html, body { 
   font-family: Arial, Helvetica, sans-serif; 
   margin: 0 !important;
-  margin-top: -2.3in !important; /* Brute-force pull-up to defeat Windows GDI margins */
   padding: 0 !important;
   width: 80mm;
   text-align: center; 
