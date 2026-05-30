@@ -104,11 +104,10 @@ export default function AdventurePOS() {
         <head>
           <title>Print Tickets</title>
           <style>
+            @page {
+              margin: 0;
+            }
             @media print {
-              @page {
-                margin: 0;
-                size: 80mm auto;
-              }
               html, body { 
                 font-family: Arial, Helvetica, sans-serif; 
                 margin: 0 !important; 
@@ -126,7 +125,6 @@ export default function AdventurePOS() {
               padding: 0 10px 10px 10px; 
               page-break-after: always; 
               box-sizing: border-box;
-              margin-top: -5px; /* Aggressively pull up to fight PC driver margins */
             }
             .ticket-title { font-size: 24px; margin: 0; padding: 0; text-transform: uppercase; }
             .ticket-subtitle { font-size: 16px; margin-bottom: 5px; border-bottom: 2px dashed #000; padding-bottom: 5px; text-transform: uppercase; }
@@ -292,21 +290,20 @@ export default function AdventurePOS() {
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
                     <div style={{ textAlign: 'center', marginBottom: 15, borderBottom: '3px solid black', paddingBottom: 10 }}>
-                      <svg width="200" height="70" viewBox="0 0 240 80" fill="black" style={{ display: 'block', margin: '0 auto' }}>
-                        {/* Sun */}
-                        <circle cx="120" cy="25" r="14" />
-                        {/* Back Mountains */}
-                        <path d="M30,80 L90,15 L150,80 Z" />
-                        <path d="M100,80 L160,10 L220,80 Z" />
-                        {/* Front Mountain */}
-                        <path d="M0,80 L60,25 L120,80 Z" fill="white" stroke="black" strokeWidth="6" strokeLinejoin="round" />
-                        <path d="M60,25 L85,55 L60,80 Z" fill="black" />
-                        {/* Trees */}
-                        <path d="M10,80 L20,45 L30,80 Z" />
-                        <path d="M190,80 L200,50 L210,80 Z" />
-                        <path d="M210,80 L220,55 L230,80 Z" />
+                      <svg width="100" height="100" viewBox="0 0 100 100" style={{ display: 'block', margin: '0 auto' }}>
+                        <clipPath id="circleClip">
+                          <circle cx="50" cy="50" r="48" />
+                        </clipPath>
+                        <g clipPath="url(#circleClip)">
+                          <path d="M -10 60 Q 25 20, 55 55 T 110 50 L 110 -10 L -10 -10 Z" fill="#000" />
+                          <circle cx="62" cy="50" r="8" fill="#000" />
+                          <circle cx="43" cy="51" r="4" fill="#000" />
+                          <path d="M 15 65 Q 35 45, 50 58 Q 45 75, 45 110 L -10 110 Z" fill="#000" />
+                          <circle cx="65" cy="60" r="3.5" fill="#000" />
+                          <path d="M 55 80 Q 65 60, 85 65 Q 85 85, 75 110 L 40 110 Z" fill="#000" />
+                        </g>
                       </svg>
-                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 5, lineHeight: 1 }}>ADVENTURE</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '3px', marginTop: 10, lineHeight: 1 }}>ADVENTURE</div>
                       <div style={{ fontSize: 16, letterSpacing: '5px', fontWeight: 'bold' }}>PASS</div>
                     </div>
                     
