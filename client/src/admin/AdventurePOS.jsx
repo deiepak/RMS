@@ -167,6 +167,22 @@ html, body {
     let loaded = 0;
     const total = images.length;
     const doPrint = () => {
+      // Calculate the EXACT height of the rendered content in pixels
+      // Add a small buffer (20px) to prevent cut-offs
+      const exactHeightPx = doc.body.scrollHeight + 20;
+      
+      // Update the parent @page style to use the exact calculated height instead of 'auto'
+      // This stops Chrome from falling back to the 11-inch default page size.
+      const parentStyle = document.getElementById('print-page-style');
+      if (parentStyle) {
+        parentStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm ${exactHeightPx}px; }`;
+      }
+
+      // Also update the iframe's internal @page style
+      const iframeStyle = doc.createElement('style');
+      iframeStyle.innerHTML = `@page { margin: 0; padding: 0; size: 80mm ${exactHeightPx}px; }`;
+      doc.head.appendChild(iframeStyle);
+
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
       setTimeout(() => {
