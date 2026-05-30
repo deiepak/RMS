@@ -141,6 +141,7 @@ export default function AdventurePOS() {
           top: 0; 
           width: 80mm; 
           margin: 0 !important;
+          margin-top: -60mm !important; /* Brute-force pull-up into the driver's unprintable void */
           padding: 0 !important;
           background-color: #fff !important;
           font-family: Arial, Helvetica, sans-serif;
