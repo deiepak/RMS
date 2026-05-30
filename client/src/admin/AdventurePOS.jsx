@@ -108,28 +108,32 @@ export default function AdventurePOS() {
               size: 80mm auto;
             }
             body { 
-              font-family: monospace; 
+              font-family: Arial, Helvetica, sans-serif; 
               margin: 0; 
               padding: 0;
               width: 80mm;
               text-align: center; 
               color: #000;
+              font-weight: 900;
+            }
+            * {
+              font-weight: 900 !important;
             }
             .ticket { 
-              padding: 10px 15px 15px 15px; 
+              padding: 0 10px 10px 10px; 
               page-break-after: always; 
               box-sizing: border-box;
             }
-            .ticket-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-            .ticket-subtitle { font-size: 14px; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-            .ticket-price { font-size: 16px; margin: 5px 0; font-weight: bold; }
+            .ticket-title { font-size: 24px; margin-top: 0; padding-top: 5px; margin-bottom: 2px; text-transform: uppercase; }
+            .ticket-subtitle { font-size: 16px; margin-bottom: 5px; border-bottom: 2px dashed #000; padding-bottom: 5px; text-transform: uppercase; }
+            .ticket-price { font-size: 18px; margin: 2px 0; }
             .qr-container { margin: 0; display: flex; justify-content: flex-end; }
-            .ticket-footer { font-size: 12px; margin-top: 5px; }
+            .ticket-footer { font-size: 14px; margin-top: 2px; }
             .disclaimer { 
-              font-size: 11px; 
+              font-size: 12px; 
               margin-top: 5px; 
               text-align: justify; 
-              line-height: 1.2;
+              line-height: 1.1;
             }
           </style>
         </head>
@@ -286,10 +290,10 @@ export default function AdventurePOS() {
                     <div className="ticket-title">Happy Hills Resort</div>
                     <div className="ticket-subtitle">ADVENTURE TICKET</div>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottom: '1px solid #000', paddingBottom: 10 }}>
-                      <div style={{ flex: 1, textAlign: 'left', paddingRight: 10 }}>
-                        <div style={{ fontSize: 18, fontWeight: 'bold' }}>{ticket.item_name}</div>
-                        <div className="ticket-price">Price: Rs. {ticket.price}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
+                      <div style={{ flex: 1, textAlign: 'left', paddingRight: 5 }}>
+                        <div style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 5 }}>{ticket.item_name}</div>
+                        <div className="ticket-price">RS. {ticket.price}</div>
                         <div className="ticket-footer" style={{ textAlign: 'left' }}>
                           <div>TKT #{ticket.id.toString().padStart(6, '0')}</div>
                           <div>{new Date(ticket.purchased_at).toLocaleDateString()}</div>
