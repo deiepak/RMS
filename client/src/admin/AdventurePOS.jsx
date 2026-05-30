@@ -106,7 +106,6 @@ export default function AdventurePOS() {
           <style>
             @page {
               margin: 0;
-              size: 80mm auto;
             }
             html, body { 
               font-family: Arial, Helvetica, sans-serif; 
@@ -288,8 +287,8 @@ export default function AdventurePOS() {
               <div ref={printRef}>
                 {ticketModal.map((ticket, index) => (
                   <div key={ticket.id} className="ticket">
-                    <div className="ticket-title">Happy Hills Resort</div>
-                    <div className="ticket-subtitle">ADVENTURE TICKET</div>
+                    <div className="ticket-title">ADVENTURE PASS</div>
+                    <div className="ticket-subtitle">ZIPLINES • SWINGS • THRILLS</div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '2px solid #000', paddingBottom: 5 }}>
                       <div style={{ flex: 1, textAlign: 'left', paddingRight: 5 }}>
