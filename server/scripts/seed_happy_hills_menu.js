@@ -17,6 +17,7 @@ const categories = [
   'Thukpa',
   'Happy Hills Special',
   'Hot Beverage',
+  'Curry / Khana Set',
   'Breakfast',
   'Drinks',
   'Burger',
@@ -117,6 +118,19 @@ const menuItems = [
   { category: 'Thukpa', name: 'Mix Thukpa', price: 320, is_veg: false },
   { category: 'Thukpa', name: 'Egg Thukpa', price: 230, is_veg: false },
   { category: 'Thukpa', name: 'Waiwai Jhol Thukpa', price: 160, is_veg: false },
+
+  // Curry / Khana Set
+  { category: 'Curry / Khana Set', name: 'Roti (MOQ - 6 pcs)', price: 30, is_veg: true },
+  { category: 'Curry / Khana Set', name: 'Chicken Curry', price: 300, is_veg: false },
+  { category: 'Curry / Khana Set', name: 'Mix Veg Curry', price: 250, is_veg: true },
+  { category: 'Curry / Khana Set', name: 'Paneer Curry', price: 280, is_veg: true },
+  { category: 'Curry / Khana Set', name: 'Mutton Curry', price: 420, is_veg: false },
+  { category: 'Curry / Khana Set', name: 'Dal Fry', price: 180, is_veg: true },
+  { category: 'Curry / Khana Set', name: 'Chicken Khana Set', price: 450, is_veg: false },
+  { category: 'Curry / Khana Set', name: 'Veg Khana Set', price: 320, is_veg: true },
+  { category: 'Curry / Khana Set', name: 'Local Chicken Khana Set', price: 550, is_veg: false },
+  { category: 'Curry / Khana Set', name: 'Mutton Khana Set', price: 600, is_veg: false },
+  { category: 'Curry / Khana Set', name: 'Fish Khana Set', price: 500, is_veg: false },
 
   // Happy Hills Special
   { category: 'Happy Hills Special', name: 'Crunchy Fried Chicken', price: 210, is_veg: false },
