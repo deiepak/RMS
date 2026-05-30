@@ -36,8 +36,8 @@ export default function ScanAdventure() {
     };
   }, []);
 
-  const onScanSuccess = async (decodedText) => {
-    if (isProcessing || !isScanning) return;
+  const onScanSuccess = async (decodedText, overrideProcessing = false) => {
+    if ((isProcessing && !overrideProcessing) || !isScanning) return;
     
     if (scannerRef.current) {
       scannerRef.current.pause(true);
@@ -147,7 +147,7 @@ export default function ScanAdventure() {
         });
 
         if (code) {
-          onScanSuccess(code.data);
+          onScanSuccess(code.data, true);
         } else {
           // Play error sound and show UI
           const audio = new Audio('/error-sound.mp3');
