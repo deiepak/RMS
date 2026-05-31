@@ -453,19 +453,18 @@ export default function OrdersManagement() {
           title={`Print Order #${String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}`}
         >
           <div className="flex-col gap-md">
-            <div className="ticket-print-area" style={{ fontFamily: 'monospace' }}>
-              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 5px 0' }}>ORDER SUMMARY</h3>
+            <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
+              <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                <h3 style={{ margin: '0 0 2px 0' }}>ORDER SUMMARY</h3>
               </div>
               
-              <div style={{ fontSize: '12px', marginBottom: '10px' }}>
-                <div><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
-                <div><strong>Date:</strong> {formatDate(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
-                <div><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
-                <div><strong>Customer:</strong> {printOrderModal.customer_name || printOrderModal.customerName || printOrderModal.customer?.name || '—'}</div>
+              <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+                <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
+                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
+                <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
               </div>
 
-              <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+              <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
               <table style={{ width: '100%', fontSize: '11px', textAlign: 'left', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
@@ -480,43 +479,43 @@ export default function OrdersManagement() {
                     const isCancelled = item.status === 'cancelled' || item.status === 'rejected';
                     return (
                       <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
-                        <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
-                        <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '4px 0' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '4px 0' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                        <td style={{ padding: '2px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '2px 0' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '2px 0' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
 
-              <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+              <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-              <div style={{ fontSize: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Subtotal:</span>
                   <span>{formatCurrency(printOrderModal.subtotal || printOrderModal.items?.reduce((acc, item) => acc + ((item.price_at_order || item.price) * item.quantity), 0) || 0)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Discount:</span>
                   <span>{formatCurrency(printOrderModal.discount || 0)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Tax ({settings?.tax_rate || 0}%):</span>
                   <span>{formatCurrency(printOrderModal.tax || 0)}</span>
                 </div>
-                <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}>
+                <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px', margin: '4px 0' }}>
                   <span>Total:</span>
                   <span>{formatCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Status:</span>
                   <span>{(printOrderModal.status || '').replace(/_/g, ' ').toUpperCase()}</span>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px' }}>
-                <p>Thank you for visiting!</p>
+              <div style={{ textAlign: 'center', margin: '8px 0 0 0', fontSize: '11px' }}>
+                <p style={{ margin: 0 }}>Thank you for visiting!</p>
               </div>
             </div>
             
