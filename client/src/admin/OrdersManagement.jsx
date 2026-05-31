@@ -290,6 +290,7 @@ export default function OrdersManagement() {
                   <th onClick={() => requestSort('created_at')} style={{ cursor: 'pointer' }}>
                     Time {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,19 +325,22 @@ export default function OrdersManagement() {
                           {formatTime(order.created_at || order.createdAt)}
                         </span>
                       </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          className="btn btn-secondary btn-sm flex align-center gap-sm" 
+                          onClick={() => setPrintOrderModal(order)}
+                          title="Print Receipt"
+                        >
+                          <Printer size={14} /> Print
+                        </button>
+                      </td>
                     </tr>
                     {expandedOrder === (order.id || order._id) && (
                       <tr className="expanded-row">
-                        <td colSpan={8}>
+                        <td colSpan={9}>
                           <div className="order-items-detail">
                             <div className="flex justify-between align-center mb-sm">
                               <h4>Order Items</h4>
-                              <button 
-                                className="btn btn-secondary btn-sm flex align-center gap-sm" 
-                                onClick={(e) => { e.stopPropagation(); setPrintOrderModal(order); }}
-                              >
-                                <Printer size={16} /> Print Order
-                              </button>
                             </div>
                             <table className="data-table nested-table">
                               <thead>
