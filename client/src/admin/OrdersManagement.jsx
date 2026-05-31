@@ -455,11 +455,7 @@ export default function OrdersManagement() {
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace' }}>
               <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                <h2 style={{ margin: 0 }}>{settings?.restaurant_name || 'Restaurant'}</h2>
-                <p style={{ margin: '2px 0', fontSize: '12px' }}>{settings?.restaurant_address}</p>
-                <p style={{ margin: '2px 0', fontSize: '12px' }}>Ph: {settings?.restaurant_phone}</p>
-                <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
-                <h3 style={{ margin: '5px 0' }}>ORDER SUMMARY</h3>
+                <h3 style={{ margin: '0 0 5px 0' }}>ORDER SUMMARY</h3>
               </div>
               
               <div style={{ fontSize: '12px', marginBottom: '10px' }}>
@@ -471,12 +467,12 @@ export default function OrdersManagement() {
 
               <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
 
-              <table style={{ width: '100%', fontSize: '12px', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <table style={{ width: '100%', fontSize: '11px', textAlign: 'left', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th>Item</th>
-                    <th style={{ textAlign: 'center' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th style={{ width: '55%' }}>Item</th>
+                    <th style={{ textAlign: 'center', width: '15%' }}>Qty</th>
+                    <th style={{ textAlign: 'right', width: '30%' }}>Amt</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -484,9 +480,9 @@ export default function OrdersManagement() {
                     const isCancelled = item.status === 'cancelled' || item.status === 'rejected';
                     return (
                       <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
-                        <td style={{ padding: '4px 0' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
-                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                        <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '4px 0' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '4px 0' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
                       </tr>
                     )
                   })}
@@ -554,8 +550,8 @@ export default function OrdersManagement() {
             position: absolute;
             left: 0;
             top: 0;
-            width: 80mm;
-            padding: 5mm;
+            width: 72mm;
+            padding: 0;
             margin: 0;
           }
         }
