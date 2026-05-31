@@ -457,11 +457,9 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '4px' }}>
-                {settings?.restaurant_logo && (
-                  <img src={settings.restaurant_logo} alt="Logo" style={{ height: '32px', marginBottom: '4px', objectFit: 'contain' }} />
-                )}
-                <h3 style={{ margin: '0 0 2px 0' }}>ORDER SUMMARY</h3>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: '4px', gap: '8px' }}>
+                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '24px', objectFit: 'contain' }} />
+                <h3 style={{ margin: '0' }}>ORDER SUMMARY</h3>
               </div>
               
               <div style={{ fontSize: '11px', marginBottom: '4px' }}>
