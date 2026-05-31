@@ -222,9 +222,14 @@ async function seedMenu() {
   try {
     console.log('Starting menu seeding...');
 
-    // 1. Soft delete all existing menu items so they don't show up in the POS
+    // 1. Soft delete all existing menu items (except Adventures) so they don't show up in the POS
     console.log('Archiving existing menu items...');
-    await db('menu_items').update({ is_available: false });
+    const adventureCat = await db('menu_categories').where({ name: 'Adventures' }).first();
+    if (adventureCat) {
+      await db('menu_items').whereNot({ category_id: adventureCat.id }).update({ is_available: false });
+    } else {
+      await db('menu_items').update({ is_available: false });
+    }
 
     // 2. We don't delete categories, we just append or find existing ones.
     const categoryMap = {}; // name -> id
