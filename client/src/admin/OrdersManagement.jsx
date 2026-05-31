@@ -549,7 +549,7 @@ export default function OrdersManagement() {
                   </div>
                   
                   <div style={{ marginTop: '12px', fontSize: '11px' }}>
-                    <p style={{ margin: '4px 0', fontWeight: 'bold' }}>Thank you for dining with us! 😊</p>
+                    <p style={{ margin: '4px 0', fontWeight: 'bold' }}>😊 Thank you for dining with us! 😊</p>
                     <p style={{ margin: '4px 0', fontStyle: 'italic', fontSize: '10px' }}>Note: This is an order summary. Kindly contact us for the invoice.</p>
                   </div>
                 </div>
