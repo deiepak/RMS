@@ -62,8 +62,25 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/verify
-router.get('/verify', verifyToken, (req, res) => {
-  res.json({ valid: true, user: req.user });
+router.get('/verify', verifyToken, async (req, res) => {
+  try {
+    const emp = await db('employees').where({ id: req.user.id, is_active: true }).first();
+    if (!emp) {
+      return res.status(401).json({ error: 'User no longer active.' });
+    }
+    res.json({ 
+      valid: true, 
+      user: {
+        id: emp.id,
+        role: emp.role,
+        name: emp.name,
+        station_id: emp.station_id || null,
+        access_pages: emp.access_pages
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify user.' });
+  }
 });
 
 module.exports = router;
