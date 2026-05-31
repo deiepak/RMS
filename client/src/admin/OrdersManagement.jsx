@@ -15,6 +15,7 @@ import { socket, subscribeToEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { numberToWords } from '../utils/helpers';
+import { formatToBS } from '../utils/nepaliDate';
 import Modal from '../components/Modal';
 import '../index.css';
 
@@ -27,6 +28,7 @@ const STATUS_OPTIONS = [
 ];
 
 const formatCurrency = (val) => `रू ${Number(val || 0).toLocaleString('en-NP')}`;
+const formatReceiptCurrency = (val) => `${Number(val || 0).toLocaleString('en-NP')}`;
 
 const formatTime = (dateStr) => {
   if (!dateStr) return '—';
@@ -455,13 +457,16 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '4px' }}>
+                {settings?.restaurant_logo && (
+                  <img src={settings.restaurant_logo} alt="Logo" style={{ height: '32px', marginBottom: '4px', objectFit: 'contain' }} />
+                )}
                 <h3 style={{ margin: '0 0 2px 0' }}>ORDER SUMMARY</h3>
               </div>
               
               <div style={{ fontSize: '11px', marginBottom: '4px' }}>
                 <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
-                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
+                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
                 <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
               </div>
 
@@ -482,7 +487,7 @@ export default function OrdersManagement() {
                       <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
                         <td style={{ padding: '2px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
                         <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '2px 0' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '2px 0' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '2px 0' }}>{formatReceiptCurrency((item.price_at_order || item.price) * item.quantity)}</td>
                       </tr>
                     )
                   })}
@@ -494,22 +499,22 @@ export default function OrdersManagement() {
               <div style={{ fontSize: '11px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Subtotal:</span>
-                  <span>{formatCurrency(printOrderModal.subtotal || printOrderModal.items?.reduce((acc, item) => acc + ((item.price_at_order || item.price) * item.quantity), 0) || 0)}</span>
+                  <span>{formatReceiptCurrency(printOrderModal.subtotal || printOrderModal.items?.reduce((acc, item) => acc + ((item.price_at_order || item.price) * item.quantity), 0) || 0)}</span>
                 </div>
                 {(printOrderModal.discount > 0) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                     <span>Discount:</span>
-                    <span>{formatCurrency(printOrderModal.discount)}</span>
+                    <span>{formatReceiptCurrency(printOrderModal.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Tax ({settings?.tax_rate || 0}%):</span>
-                  <span>{formatCurrency(printOrderModal.tax || 0)}</span>
+                  <span>{formatReceiptCurrency(printOrderModal.tax || 0)}</span>
                 </div>
                 <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px', margin: '4px 0' }}>
                   <span>Total:</span>
-                  <span>{formatCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
+                  <span>{formatReceiptCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: '10px', fontStyle: 'italic' }}>
                   <span>In words:</span>
