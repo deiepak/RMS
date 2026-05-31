@@ -351,9 +351,6 @@ export default function StockManagement() {
                       <button className="btn btn-icon btn-secondary" onClick={() => openModal(item)} title="Edit Item">
                         <Edit2 size={16} />
                       </button>
-                      <button className="btn btn-icon btn-secondary" onClick={() => handleDelete(item.id)} title="Delete Item">
-                        <Trash2 size={16} color="var(--danger)" />
-                      </button>
                     </div>
                   </td>
                 </tr>

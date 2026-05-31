@@ -457,15 +457,17 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', gap: '12px' }}>
-                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '64px', objectFit: 'contain' }} />
+              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
                 <h3 style={{ margin: '0' }}>ORDER SUMMARY</h3>
               </div>
               
-              <div style={{ fontSize: '11px', marginBottom: '4px' }}>
-                <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
-                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
-                <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
+                </div>
+                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '48px', objectFit: 'contain', flexShrink: 0, marginLeft: '8px' }} />
               </div>
 
               <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>

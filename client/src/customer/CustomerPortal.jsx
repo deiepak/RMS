@@ -48,9 +48,8 @@ export default function CustomerPortal() {
     }
     socket.on('connect', joinRoom);
 
-    // Fetch table details to get the actual table DB ID
     api.get('/tables').then(res => {
-      const table = res.data.find(t => t.number === parseInt(tableNum));
+      const table = res.data.find(t => String(t.number) === String(tableNum));
       if (table) {
         setTableId(table.id);
         checkActiveOrder(table.id);
