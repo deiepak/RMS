@@ -457,7 +457,7 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
                 <div style={{ textAlign: 'left' }}>
                   <h2 style={{ margin: '0 0 2px 0', fontSize: '16px' }}>Happy Hills</h2>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '13px' }}>ORDER SUMMARY</h3>
@@ -467,7 +467,7 @@ export default function OrdersManagement() {
                     <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
                   </div>
                 </div>
-                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '48px', objectFit: 'contain', flexShrink: 0, marginLeft: '8px' }} />
+                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '72px', maxWidth: '90px', objectFit: 'contain', flexShrink: 0, marginLeft: '8px' }} />
               </div>
 
               <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
