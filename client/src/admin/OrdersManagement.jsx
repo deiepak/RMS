@@ -542,7 +542,7 @@ export default function OrdersManagement() {
                 <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
                 <div style={{ textAlign: 'center', marginTop: '12px' }}>
                   <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold' }}>Scan to leave a Review!</p>
-                  <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://g.page/r/CcsRyoPK89tBEBM/review" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                 </div>
               </div>
 
