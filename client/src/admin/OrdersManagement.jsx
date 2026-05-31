@@ -542,7 +542,23 @@ export default function OrdersManagement() {
                 <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
                 <div style={{ textAlign: 'center', marginTop: '16px' }}>
                   <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: 'bold' }}>Loved your meal? Scan to share a quick review!</p>
-                  <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
+                    <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="black" strokeWidth="4" />
+                      <circle cx="50" cy="50" r="35" fill="none" stroke="black" strokeWidth="2" strokeDasharray="4 4" />
+                      <path d="M 50 5 L 55 35 L 85 50 L 55 65 L 50 95 L 45 65 L 15 50 L 45 35 Z" fill="none" stroke="black" strokeWidth="4" strokeLinejoin="round" />
+                      <circle cx="50" cy="50" r="8" fill="black" />
+                    </svg>
+                    
+                    <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+
+                    <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="black" strokeWidth="4" />
+                      <circle cx="50" cy="50" r="35" fill="none" stroke="black" strokeWidth="2" strokeDasharray="4 4" />
+                      <path d="M 50 5 L 55 35 L 85 50 L 55 65 L 50 95 L 45 65 L 15 50 L 45 35 Z" fill="none" stroke="black" strokeWidth="4" strokeLinejoin="round" />
+                      <circle cx="50" cy="50" r="8" fill="black" />
+                    </svg>
+                  </div>
                   
                   <div style={{ marginTop: '12px', fontSize: '11px' }}>
                     <p style={{ margin: '4px 0', fontWeight: 'bold' }}>Thank you for dining with us!</p>
