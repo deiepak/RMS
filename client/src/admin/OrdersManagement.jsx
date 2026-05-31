@@ -14,6 +14,7 @@ import { api } from '../api/client';
 import { socket, subscribeToEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { numberToWords } from '../utils/helpers';
 import Modal from '../components/Modal';
 import '../index.css';
 
@@ -495,10 +496,12 @@ export default function OrdersManagement() {
                   <span>Subtotal:</span>
                   <span>{formatCurrency(printOrderModal.subtotal || printOrderModal.items?.reduce((acc, item) => acc + ((item.price_at_order || item.price) * item.quantity), 0) || 0)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
-                  <span>Discount:</span>
-                  <span>{formatCurrency(printOrderModal.discount || 0)}</span>
-                </div>
+                {(printOrderModal.discount > 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                    <span>Discount:</span>
+                    <span>{formatCurrency(printOrderModal.discount)}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                   <span>Tax ({settings?.tax_rate || 0}%):</span>
                   <span>{formatCurrency(printOrderModal.tax || 0)}</span>
@@ -508,9 +511,11 @@ export default function OrdersManagement() {
                   <span>Total:</span>
                   <span>{formatCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
-                  <span>Status:</span>
-                  <span>{(printOrderModal.status || '').replace(/_/g, ' ').toUpperCase()}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: '10px', fontStyle: 'italic' }}>
+                  <span>In words:</span>
+                  <span style={{ textAlign: 'right', maxWidth: '70%' }}>
+                    {numberToWords(Math.round(printOrderModal.totalAmount || printOrderModal.total || 0))}
+                  </span>
                 </div>
               </div>
 
