@@ -457,8 +457,8 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: '4px', gap: '8px' }}>
-                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '24px', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', gap: '12px' }}>
+                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '64px', objectFit: 'contain' }} />
                 <h3 style={{ margin: '0' }}>ORDER SUMMARY</h3>
               </div>
               
@@ -543,6 +543,8 @@ export default function OrdersManagement() {
           html, body {
             background-color: #ffffff !important;
             color: #000000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
 
           body * {
@@ -560,6 +562,11 @@ export default function OrdersManagement() {
             width: 72mm;
             padding: 0;
             margin: 0;
+          }
+
+          .ticket-print-area img {
+            filter: grayscale(100%) contrast(1000%);
+            -webkit-filter: grayscale(100%) contrast(1000%);
           }
         }
       `}</style>
