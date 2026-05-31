@@ -8,10 +8,13 @@ import {
   Eye,
   Clock,
   X,
+  Printer,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { socket, subscribeToEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
+import { useSettings } from '../contexts/SettingsContext';
+import Modal from '../components/Modal';
 import '../index.css';
 
 const STATUS_OPTIONS = [
@@ -58,10 +61,12 @@ export default function OrdersManagement() {
   const [dateFilter, setDateFilter] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
+  const [printOrderModal, setPrintOrderModal] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const { showToast } = useToast();
+  const { settings } = useSettings();
   const refreshInterval = useRef(null);
 
   const fetchOrders = useCallback(async (reset = false) => {
@@ -147,6 +152,10 @@ export default function OrdersManagement() {
     } catch (err) {
       showToast('Failed to update item status', 'error');
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -320,7 +329,15 @@ export default function OrdersManagement() {
                       <tr className="expanded-row">
                         <td colSpan={8}>
                           <div className="order-items-detail">
-                            <h4>Order Items</h4>
+                            <div className="flex justify-between align-center mb-sm">
+                              <h4>Order Items</h4>
+                              <button 
+                                className="btn btn-secondary btn-sm flex align-center gap-sm" 
+                                onClick={(e) => { e.stopPropagation(); setPrintOrderModal(order); }}
+                              >
+                                <Printer size={16} /> Print Order
+                              </button>
+                            </div>
                             <table className="data-table nested-table">
                               <thead>
                                 <tr>
@@ -424,6 +441,121 @@ export default function OrdersManagement() {
           </button>
         </div>
       )}
+
+      {printOrderModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPrintOrderModal(null)}
+          title={`Print Order #${String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}`}
+        >
+          <div className="flex-col gap-md">
+            <div className="ticket-print-area" style={{ fontFamily: 'monospace' }}>
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <h2 style={{ margin: 0 }}>{settings?.restaurant_name || 'Restaurant'}</h2>
+                <p style={{ margin: '2px 0', fontSize: '12px' }}>{settings?.restaurant_address}</p>
+                <p style={{ margin: '2px 0', fontSize: '12px' }}>Ph: {settings?.restaurant_phone}</p>
+                <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                <h3 style={{ margin: '5px 0' }}>ORDER SUMMARY</h3>
+              </div>
+              
+              <div style={{ fontSize: '12px', marginBottom: '10px' }}>
+                <div><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
+                <div><strong>Date:</strong> {formatDate(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
+                <div><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
+                <div><strong>Customer:</strong> {printOrderModal.customer_name || printOrderModal.customerName || printOrderModal.customer?.name || '—'}</div>
+              </div>
+
+              <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+              <table style={{ width: '100%', fontSize: '12px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style={{ textAlign: 'center' }}>Qty</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(printOrderModal.items || []).map((item, idx) => {
+                    const isCancelled = item.status === 'cancelled' || item.status === 'rejected';
+                    return (
+                      <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
+                        <td style={{ padding: '4px 0' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+              <div style={{ fontSize: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(printOrderModal.subtotal || printOrderModal.items?.reduce((acc, item) => acc + ((item.price_at_order || item.price) * item.quantity), 0) || 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Discount:</span>
+                  <span>{formatCurrency(printOrderModal.discount || 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Tax ({settings?.tax_rate || 0}%):</span>
+                  <span>{formatCurrency(printOrderModal.tax || 0)}</span>
+                </div>
+                <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}>
+                  <span>Total:</span>
+                  <span>{formatCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Status:</span>
+                  <span>{(printOrderModal.status || '').replace(/_/g, ' ').toUpperCase()}</span>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px' }}>
+                <p>Thank you for visiting!</p>
+              </div>
+            </div>
+            
+            <button className="btn btn-primary flex align-center gap-sm" onClick={handlePrint}>
+              <Printer size={18} /> Print Document
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      <style>{`
+        @media print {
+          @page {
+            margin: 0;
+          }
+
+          html, body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          .ticket-print-area, .ticket-print-area * {
+            visibility: visible;
+          }
+
+          .ticket-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            padding: 5mm;
+            margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
