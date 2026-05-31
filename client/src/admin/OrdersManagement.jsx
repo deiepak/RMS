@@ -543,9 +543,9 @@ export default function OrdersManagement() {
                 <div style={{ textAlign: 'center', marginTop: '16px' }}>
                   <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: 'bold' }}>Loved your meal? Scan to share a quick review!</p>
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                    <img src="/boy.svg" alt="Boy" style={{ width: '40px', height: '40px', objectFit: 'contain', filter: 'grayscale(100%) contrast(1000%)' }} />
+                    <img src="/boy.svg" alt="Boy" style={{ width: '80px', height: '80px', objectFit: 'contain', filter: 'grayscale(100%) contrast(1000%)' }} />
                     <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-                    <img src="/girl.svg" alt="Girl" style={{ width: '40px', height: '40px', objectFit: 'contain', filter: 'grayscale(100%) contrast(1000%)' }} />
+                    <img src="/girl.svg" alt="Girl" style={{ width: '80px', height: '80px', objectFit: 'contain', filter: 'grayscale(100%) contrast(1000%)' }} />
                   </div>
                   
                   <div style={{ marginTop: '12px', fontSize: '11px' }}>
