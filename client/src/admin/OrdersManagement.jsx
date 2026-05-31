@@ -457,15 +457,15 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                <h3 style={{ margin: '0' }}>ORDER SUMMARY</h3>
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <div style={{ fontSize: '11px' }}>
-                  <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
-                  <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
-                  <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <h2 style={{ margin: '0 0 2px 0', fontSize: '16px' }}>Happy Hills</h2>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '13px' }}>ORDER SUMMARY</h3>
+                  <div style={{ fontSize: '11px' }}>
+                    <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printOrderModal.id || printOrderModal._id).padStart(5, '0').toUpperCase()}</div>
+                    <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printOrderModal.created_at || printOrderModal.createdAt)} {formatTime(printOrderModal.created_at || printOrderModal.createdAt)}</div>
+                    <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printOrderModal.table_number || printOrderModal.tableNumber || printOrderModal.table?.number || '—'}</div>
+                  </div>
                 </div>
                 <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '48px', objectFit: 'contain', flexShrink: 0, marginLeft: '8px' }} />
               </div>
@@ -481,16 +481,33 @@ export default function OrdersManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(printOrderModal.items || []).map((item, idx) => {
-                    const isCancelled = item.status === 'cancelled' || item.status === 'rejected';
-                    return (
-                      <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
-                        <td style={{ padding: '2px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
-                        <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '2px 0' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '2px 0' }}>{formatReceiptCurrency((item.price_at_order || item.price) * item.quantity)}</td>
-                      </tr>
-                    )
-                  })}
+                  {(() => {
+                    const mergedItems = [];
+                    (printOrderModal.items || []).forEach(item => {
+                      const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
+                      const existing = mergedItems.find(i => 
+                        (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName &&
+                        i.status === item.status &&
+                        (i.price_at_order || i.price) === (item.price_at_order || item.price)
+                      );
+                      if (existing) {
+                        existing.quantity += item.quantity;
+                      } else {
+                        mergedItems.push({ ...item });
+                      }
+                    });
+                    
+                    return mergedItems.map((item, idx) => {
+                      const isCancelled = item.status === 'cancelled' || item.status === 'rejected';
+                      return (
+                        <tr key={idx} style={{ textDecoration: isCancelled ? 'line-through' : 'none', opacity: isCancelled ? 0.6 : 1 }}>
+                          <td style={{ padding: '2px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'top', padding: '2px 0' }}>{item.quantity}</td>
+                          <td style={{ textAlign: 'right', verticalAlign: 'top', padding: '2px 0' }}>{formatReceiptCurrency((item.price_at_order || item.price) * item.quantity)}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
 
@@ -521,6 +538,11 @@ export default function OrdersManagement() {
                   <span style={{ textAlign: 'right', maxWidth: '70%' }}>
                     {numberToWords(Math.round(printOrderModal.totalAmount || printOrderModal.total || 0))}
                   </span>
+                </div>
+                <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold' }}>Scan to leave a Review!</p>
+                  <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                 </div>
               </div>
 
