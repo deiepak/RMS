@@ -540,9 +540,14 @@ export default function OrdersManagement() {
                   </span>
                 </div>
                 <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-                <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 'bold' }}>Scan to leave a Review!</p>
+                <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: 'bold' }}>Loved your meal? Scan to share a quick review!</p>
                   <img src="/google-review-qr.png" alt="Google Review QR" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                  
+                  <div style={{ marginTop: '12px', fontSize: '11px' }}>
+                    <p style={{ margin: '4px 0', fontWeight: 'bold' }}>Thank you for dining with us!</p>
+                    <p style={{ margin: '4px 0', fontStyle: 'italic', fontSize: '10px' }}>Note: This is an order summary. Kindly contact us for the official bill.</p>
+                  </div>
                 </div>
               </div>
 
