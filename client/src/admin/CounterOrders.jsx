@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell } from 'lucide-react';
+import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { useNavigate } from 'react-router-dom';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
@@ -17,6 +17,8 @@ export default function CounterOrders() {
   const [viewOrderDetails, setViewOrderDetails] = useState(null);
   const [tables, setTables] = useState([]);
   const [assignTableId, setAssignTableId] = useState('');
+  const [menuSearch, setMenuSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -161,6 +163,12 @@ export default function CounterOrders() {
     }
   };
 
+  const filteredOrders = orders.filter(o => 
+    o.order_name?.toLowerCase().includes(orderSearch.toLowerCase()) || 
+    o.items?.[0]?.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+    o.id.toString().includes(orderSearch)
+  );
+
   return (
     <div className="admin-page">
       <div className="flex justify-between align-center mb-xl">
@@ -168,9 +176,21 @@ export default function CounterOrders() {
           <h1>Counter Orders</h1>
           <p className="text-secondary">Manage walk-in and takeaway orders</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={18} /> New Counter Order
-        </button>
+        <div className="flex gap-md align-center">
+          <div className="input-with-icon" style={{ width: 250 }}>
+            <Search size={16} />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search orders..."
+              value={orderSearch}
+              onChange={(e) => setOrderSearch(e.target.value)}
+            />
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <Plus size={18} /> New Counter Order
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -181,9 +201,13 @@ export default function CounterOrders() {
           <h3>No Active Counter Orders</h3>
           <p className="text-secondary">Click 'New Counter Order' to create one.</p>
         </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="card text-center p-xl">
+          <p className="text-secondary">No orders match your search.</p>
+        </div>
       ) : (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {orders.map(order => (
+          {filteredOrders.map(order => (
             <div key={order.id} className="card p-lg cursor-pointer" onClick={() => handleViewOrder(order.id)}>
               <div className="flex justify-between align-center mb-md">
                 <h3 style={{ margin: 0 }}>{order.order_name || `Counter Order ${order.id}`}</h3>
@@ -213,31 +237,45 @@ export default function CounterOrders() {
             </div>
             <div className="modal-body flex gap-lg" style={{ height: '60vh' }}>
               <div style={{ flex: 2, overflowY: 'auto' }}>
-                <div className="mb-md">
+                <div className="mb-md flex gap-sm">
                   <input 
                     type="text" 
-                    className="input w-full" 
+                    className="input flex-1" 
                     placeholder="Customer Name (Optional)" 
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                   />
+                  <div className="input-with-icon flex-1">
+                    <Search size={16} />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Search menu..."
+                      value={menuSearch}
+                      onChange={(e) => setMenuSearch(e.target.value)}
+                    />
+                  </div>
                 </div>
-                {categories.map(cat => (
+                {categories.map(cat => {
+                  const filteredItems = menuItems.filter(m => m.category === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
+                  if (filteredItems.length === 0) return null;
+                  return (
                   <div key={cat} className="mb-lg">
                     <h4 className="mb-sm">{cat}</h4>
-                    <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      {menuItems.filter(m => m.category === cat).map(item => (
-                        <div key={item.id} className="card p-sm flex justify-between align-center cursor-pointer" onClick={() => addToCart(item)} style={{ background: 'var(--bg-secondary)' }}>
-                          <div>
-                            <div style={{ fontWeight: 500 }}>{item.name}</div>
-                            <div className="text-secondary" style={{ fontSize: 12 }}>{formatCurrency(item.price)}</div>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                      {filteredItems.map(item => (
+                        <div key={item.id} className="card p-sm flex flex-col justify-between cursor-pointer hover-lift" onClick={() => addToCart(item)} style={{ background: 'var(--bg-secondary)', border: '2px solid transparent' }}>
+                          <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 8 }}>{item.name}</div>
+                          <div className="flex justify-between align-center">
+                            <div className="text-primary" style={{ fontSize: 13, fontWeight: 600 }}>{formatCurrency(item.price)}</div>
+                            <div className="btn btn-icon btn-sm" style={{ background: 'var(--bg-primary)', padding: 4 }}><Plus size={14} /></div>
                           </div>
-                          <Plus size={16} className="text-primary" />
                         </div>
                       ))}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: '20px', display: 'flex', flexDirection: 'column' }}>
                 <h3 className="mb-md">Order Cart</h3>
