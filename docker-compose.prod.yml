@@ -10,8 +10,6 @@ services:
       MYSQL_DATABASE: ${DB_NAME:-rms_db}
       MYSQL_USER: ${DB_USER:-rms_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-rms_pass_2026}
-    ports:
-      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data_prod:/var/lib/mysql
     healthcheck:
@@ -22,13 +20,11 @@ services:
     command: --default-authentication-plugin=mysql_native_password
 
   server:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
     container_name: rms_server_prod
     restart: always
-    ports:
-      - "${PORT:-80}:3001"
     environment:
       DB_HOST: db
       DB_PORT: 3306
@@ -37,11 +33,42 @@ services:
       DB_NAME: ${DB_NAME:-rms_db}
       JWT_SECRET: ${JWT_SECRET:-rms_jwt_secret_2026_change_me}
       NODE_ENV: production
-      API_PORT: 3001
+      PORT: 3001
     depends_on:
       db:
         condition: service_healthy
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+    container_name: rms_client_prod
+    restart: always
+    environment:
+      - VITE_API_URL=https://${DOMAIN_NAME}/api
+      - VITE_SOCKET_URL=https://${DOMAIN_NAME}
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: rms_caddy_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - client
+      - server
+
 volumes:
   mysql_data_prod:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local

@@ -1,0 +1,14 @@
+{$DOMAIN_NAME} {
+    # Proxy API and Socket requests to the Node backend
+    handle /api/* {
+        reverse_proxy server:3001
+    }
+    handle /socket.io/* {
+        reverse_proxy server:3001
+    }
+
+    # Proxy all other requests to the compiled React frontend (Nginx container)
+    handle {
+        reverse_proxy client:80
+    }
+}
