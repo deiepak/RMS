@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, ChefHat, ConciergeBell, Delete, QrCode, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,8 +12,6 @@ const roles = [
     title: 'Admin Portal',
     subtitle: 'Manage everything',
     icon: Shield,
-    gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    glow: 'rgba(124, 58, 237, 0.4)',
     path: '/admin',
   },
   {
@@ -21,8 +19,6 @@ const roles = [
     title: 'Kitchen Portal',
     subtitle: 'Manage orders & menu',
     icon: ChefHat,
-    gradient: 'linear-gradient(135deg, #ea580c, #f59e0b)',
-    glow: 'rgba(234, 88, 12, 0.4)',
     path: '/kitchen',
   },
   {
@@ -30,8 +26,6 @@ const roles = [
     title: 'Waiter Portal',
     subtitle: 'Serve customers',
     icon: ConciergeBell,
-    gradient: 'linear-gradient(135deg, #0284c7, #06b6d4)',
-    glow: 'rgba(2, 132, 199, 0.4)',
     path: '/waiter',
   },
 ];
@@ -52,24 +46,24 @@ const LandingPage = () => {
     setError('');
   };
 
-  const handleKeyPress = (digit) => {
+  const handleKeyPress = useCallback((digit) => {
     if (pin.length < 6) {
       setPin((prev) => prev + digit);
       setError('');
     }
-  };
+  }, [pin]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     setPin((prev) => prev.slice(0, -1));
     setError('');
-  };
+  }, []);
 
   const handleClear = () => {
     setPin('');
     setError('');
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (pin.length < 4) {
       setError('PIN must be at least 4 digits');
       return;
@@ -89,7 +83,28 @@ const LandingPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pin, pinModal, login, navigate, showToast]);
+
+  useEffect(() => {
+    if (!pinModal) return;
+
+    const handleKeyDown = (e) => {
+      if (loading) return;
+      if (e.key >= '0' && e.key <= '9') {
+        handleKeyPress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleBackspace();
+      } else if (e.key === 'Escape') {
+        setPinModal(null);
+      } else if (e.key === 'Enter' && pin.length >= 4) {
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pinModal, loading, pin.length, handleKeyPress, handleBackspace, handleSubmit]);
+
 
   return (
     <div className="landing-page">
@@ -124,8 +139,8 @@ const LandingPage = () => {
                 }}
                 onClick={() => handleRoleClick(role)}
               >
-                <div className="role-icon-wrapper" style={{ background: role.gradient }}>
-                  <Icon size={32} color="white" />
+                <div className="role-icon-wrapper">
+                  <Icon size={32} />
                 </div>
                 <h3 className="role-title">{role.title}</h3>
                 <p className="role-subtitle">{role.subtitle}</p>
@@ -148,11 +163,8 @@ const LandingPage = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pin-modal-header">
-              <div
-                className="pin-role-icon"
-                style={{ background: pinModal.gradient }}
-              >
-                <pinModal.icon size={28} color="white" />
+              <div className="pin-role-icon">
+                <pinModal.icon size={28} />
               </div>
               <h3>{pinModal.title}</h3>
               <p className="text-secondary">Enter your PIN to continue</p>

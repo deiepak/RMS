@@ -999,139 +999,132 @@ a {
 
 /* PIN Keypad System */
 .pin-modal {
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background: rgba(20, 22, 30, 0.85);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.05);
   border-radius: 24px;
-  padding: 32px;
+  padding: 40px 32px;
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   position: relative;
   overflow: hidden;
 }
 
-.pin-modal::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 150px;
-  background: var(--card-glow, rgba(255,255,255,0.05));
-  filter: blur(60px);
-  z-index: 0;
-  pointer-events: none;
+[data-theme='light'] .pin-modal {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.5);
 }
 
 .pin-modal-header {
   position: relative;
   z-index: 1;
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .pin-role-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  box-shadow: 0 10px 25px -5px var(--card-glow, rgba(0,0,0,0.5));
+  margin: 0 auto 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
 }
 
 .pin-dots {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 12px;
+  margin-bottom: 40px;
   position: relative;
   z-index: 1;
 }
 
 .pin-dot {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 2px solid var(--glass-border);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: transparent;
+  border: 1.5px solid var(--text-muted);
+  transition: all 0.2s ease;
 }
 
 .pin-dot.filled {
   background: var(--text-primary);
   border-color: var(--text-primary);
-  transform: scale(1.2);
+  transform: scale(1.1);
 }
 
 .pin-error {
   color: var(--danger);
   text-align: center;
   font-size: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   position: relative;
   z-index: 1;
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 .pin-keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
   position: relative;
   z-index: 1;
-  max-width: 280px;
+  max-width: 260px;
   margin: 0 auto;
 }
 
 .pin-key {
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-primary);
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 24px;
+  font-weight: 400;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   user-select: none;
   font-family: 'Inter', sans-serif;
 }
 
 .pin-key:hover {
-  background: var(--glass-highlight);
+  background: rgba(255,255,255,0.05);
   transform: scale(1.05);
+}
+
+[data-theme='light'] .pin-key:hover {
+  background: rgba(0,0,0,0.03);
 }
 
 .pin-key:active {
   transform: scale(0.95);
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: rgba(255,255,255,0.1);
+}
+
+[data-theme='light'] .pin-key:active {
+  background: rgba(0,0,0,0.08);
 }
 
 .pin-key-action {
-  background: transparent;
-  border: none;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
-.pin-key-action:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-.pin-key-action:active {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
 .pin-key-clear {
-  color: var(--danger);
+  color: var(--text-muted);
 }
 
 @keyframes shake {
@@ -1156,38 +1149,11 @@ a {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   z-index: 0;
-  overflow: hidden;
+  background: radial-gradient(circle at 50% -20%, rgba(100, 110, 140, 0.15) 0%, var(--bg-primary) 60%);
 }
 
-.landing-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.5;
-  animation: float 20s ease-in-out infinite alternate;
-}
-
-.landing-orb-1 {
-  width: 400px; height: 400px;
-  background: #7c3aed;
-  top: -100px; left: -100px;
-}
-.landing-orb-2 {
-  width: 300px; height: 300px;
-  background: #ea580c;
-  bottom: -50px; right: -50px;
-  animation-delay: -5s;
-}
-.landing-orb-3 {
-  width: 250px; height: 250px;
-  background: #0284c7;
-  top: 40%; left: 40%;
-  animation-delay: -10s;
-}
-
-@keyframes float {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(50px, 50px) scale(1.1); }
+[data-theme='light'] .landing-bg {
+  background: radial-gradient(circle at 50% -20%, rgba(200, 210, 240, 0.4) 0%, var(--bg-primary) 60%);
 }
 
 .landing-content {
@@ -1195,7 +1161,7 @@ a {
   z-index: 1;
   width: 100%;
   max-width: 1000px;
-  padding: 40px 20px;
+  padding: 60px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1203,110 +1169,108 @@ a {
 
 .landing-theme-toggle {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 32px;
+  right: 32px;
 }
 
 .landing-header {
   text-align: center;
-  margin-bottom: 64px;
+  margin-bottom: 80px;
 }
 
 .landing-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 64px;
-  font-weight: 800;
-  background: linear-gradient(to right, #fff, #a5b4fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0 0 16px 0;
-  letter-spacing: -1px;
-}
-
-[data-theme='light'] .landing-title {
-  background: linear-gradient(to right, var(--text-primary), var(--accent-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  letter-spacing: -1.5px;
 }
 
 .landing-subtitle {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--text-secondary);
+  font-weight: 400;
+  letter-spacing: 0.5px;
   margin: 0;
 }
 
 .landing-roles {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 64px;
+  margin-bottom: 80px;
   width: 100%;
 }
 
 .landing-role-card {
   flex: 1;
-  min-width: 280px;
-  max-width: 320px;
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 40px 32px;
+  min-width: 260px;
+  max-width: 300px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
-.landing-role-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 4px;
-  background: var(--card-gradient);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+[data-theme='light'] .landing-role-card {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
 .landing-role-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px -10px var(--card-glow);
-  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-4px);
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 12px 30px -10px rgba(0,0,0,0.3);
 }
 
-.landing-role-card:hover::before {
-  opacity: 1;
+[data-theme='light'] .landing-role-card:hover {
+  background: rgba(255,255,255,1);
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 12px 30px -10px rgba(0,0,0,0.08);
 }
 
 .role-icon-wrapper {
-  width: 80px;
-  height: 80px;
-  border-radius: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  transition: transform 0.4s ease;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .landing-role-card:hover .role-icon-wrapper {
-  transform: scale(1.1) rotate(5deg);
+  transform: scale(1.05);
+  background: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .role-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .role-subtitle {
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -1314,10 +1278,9 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 32px;
-  background: var(--bg-secondary);
-  border-radius: 100px;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
-  font-weight: 500;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 400;
 }
