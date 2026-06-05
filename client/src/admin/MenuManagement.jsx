@@ -76,7 +76,8 @@ export default function MenuManagement() {
         showToast('Item deleted', 'success');
         fetchData();
       } catch (error) {
-        showToast('Failed to delete item', 'error');
+        console.error('Failed to delete item:', error);
+        showToast(error.response?.data?.error || 'Failed to delete item', 'error');
       }
     }
   };

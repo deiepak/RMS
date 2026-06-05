@@ -158,6 +158,9 @@ router.delete('/items/:id', verifyToken, requireRole(['admin']), async (req, res
     }
     res.json({ message: 'Menu item deleted.' });
   } catch (err) {
+    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(400).json({ error: 'Cannot delete item because it has been ordered in the past. Please mark it as unavailable instead.' });
+    }
     console.error('Menu item delete error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
