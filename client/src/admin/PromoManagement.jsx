@@ -3,11 +3,13 @@ import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, Edit2, Trash2, Tag, Calendar, Percent, Banknote, Printer } from 'lucide-react';
 import Modal from '../components/Modal';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function PromoManagement() {
   const [promos, setPromos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
+  const { settings } = useSettings();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
@@ -230,22 +232,25 @@ export default function PromoManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>GIFT VOUCHER</h2>
-                <div style={{ fontSize: '12px', fontStyle: 'italic' }}>Happy Hills Restaurant</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <h2 style={{ margin: '0 0 2px 0', fontSize: '16px' }}>Happy Hills</h2>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '13px' }}>GIFT VOUCHER</h3>
+                </div>
+                <img src={settings?.restaurant_logo || '/adventure-logo.svg'} alt="Logo" style={{ height: '72px', maxWidth: '90px', objectFit: 'contain', flexShrink: 0, marginLeft: '8px' }} />
               </div>
-              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+              <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
               
-              <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '28px', letterSpacing: '4px' }}>{printPromo.code}</h3>
                 <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
                   {printPromo.type === 'percent' ? `${printPromo.value}% OFF` : `रू ${printPromo.value} OFF`}
                 </div>
               </div>
 
-              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+              <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-              <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
+              <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
                 {parseFloat(printPromo.min_order) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
                     <span>Min Order:</span>
