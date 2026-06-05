@@ -65,12 +65,25 @@ export default function OrdersManagement() {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
   const [printOrderModal, setPrintOrderModal] = useState(null);
+  const [printKOTModal, setPrintKOTModal] = useState(null);
+  const [selectedForKOT, setSelectedForKOT] = useState({});
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const { showToast } = useToast();
   const { settings } = useSettings();
   const refreshInterval = useRef(null);
+
+  const handleToggleKOTItem = (orderId, itemId) => {
+    setSelectedForKOT(prev => {
+      const orderItems = prev[orderId] || [];
+      if (orderItems.includes(itemId)) {
+        return { ...prev, [orderId]: orderItems.filter(id => id !== itemId) };
+      } else {
+        return { ...prev, [orderId]: [...orderItems, itemId] };
+      }
+    });
+  };
 
   const fetchOrders = useCallback(async (reset = false) => {
     try {
@@ -344,6 +357,19 @@ export default function OrdersManagement() {
                           <div className="order-items-detail">
                             <div className="flex justify-between align-center mb-sm">
                               <h4>Order Items</h4>
+                              {(selectedForKOT[order.id || order._id] || []).length > 0 && (
+                                <button 
+                                  className="btn btn-sm btn-primary flex align-center gap-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const selectedItemIds = selectedForKOT[order.id || order._id] || [];
+                                    const itemsToPrint = (order.items || []).filter(i => selectedItemIds.includes(i.id || i._id));
+                                    setPrintKOTModal({ order, items: itemsToPrint });
+                                  }}
+                                >
+                                  <Printer size={14} /> Print KOT ({(selectedForKOT[order.id || order._id] || []).length})
+                                </button>
+                              )}
                             </div>
                             <table className="data-table nested-table">
                               <thead>
@@ -375,8 +401,18 @@ export default function OrdersManagement() {
                                       </span>
                                     </td>
                                     <td>
-                                      {item.status !== 'served' && item.status !== 'cancelled' && item.status !== 'rejected' && (
-                                        <div className="btn-group">
+                                      <div className="flex align-center gap-sm">
+                                        <input 
+                                          type="checkbox" 
+                                          checked={(selectedForKOT[order.id || order._id] || []).includes(item.id || item._id)}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleKOTItem(order.id || order._id, item.id || item._id);
+                                          }}
+                                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                        />
+                                        {item.status !== 'served' && item.status !== 'cancelled' && item.status !== 'rejected' && (
+                                          <div className="btn-group">
                                           {item.status === 'pending' && (
                                             <button
                                               className="btn btn-sm btn-secondary"
@@ -409,9 +445,10 @@ export default function OrdersManagement() {
                                             >
                                               Served
                                             </button>
-                                          )}
-                                        </div>
-                                      )}
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}
@@ -562,6 +599,62 @@ export default function OrdersManagement() {
             
             <button className="btn btn-primary flex align-center gap-sm" onClick={handlePrint}>
               <Printer size={18} /> Print Document
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {printKOTModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPrintKOTModal(null)}
+          title={`Print KOT / Waiter Ticket`}
+        >
+          <div className="flex-col gap-md">
+            <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
+              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT / WAITER TICKET</h2>
+              </div>
+              <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+                <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
+                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printKOTModal.order.created_at || printKOTModal.order.createdAt)} {formatTime(printKOTModal.order.created_at || printKOTModal.order.createdAt)}</div>
+                <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printKOTModal.order.table_number || printKOTModal.order.tableNumber || printKOTModal.order.table?.number || '—'}</div>
+              </div>
+              <table style={{ width: '100%', fontSize: '14px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px dashed #000' }}>
+                    <th style={{ width: '80%', padding: '4px 0' }}>Item</th>
+                    <th style={{ textAlign: 'center', width: '20%', padding: '4px 0' }}>Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Merge same items to prevent duplicates on the ticket
+                    const mergedItems = [];
+                    printKOTModal.items.forEach(item => {
+                      const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
+                      const existing = mergedItems.find(i => (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName);
+                      if (existing) {
+                        existing.quantity += item.quantity;
+                      } else {
+                        mergedItems.push({ ...item });
+                      }
+                    });
+                    
+                    return mergedItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                        <td style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px 0', fontSize: '16px' }}>{item.quantity}</td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+            </div>
+            
+            <button className="btn btn-primary flex align-center gap-sm" onClick={handlePrint}>
+              <Printer size={18} /> Print KOT
             </button>
           </div>
         </Modal>
