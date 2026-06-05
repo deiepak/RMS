@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, Edit2, Trash2, Tag, Calendar, Percent, Banknote } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tag, Calendar, Percent, Banknote, Printer } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function PromoManagement() {
@@ -11,6 +11,7 @@ export default function PromoManagement() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
+  const [printPromo, setPrintPromo] = useState(null);
   const [form, setForm] = useState({
     code: '', type: 'percent', value: '', min_order: 0, max_uses: 0, expires_at: ''
   });
@@ -150,6 +151,9 @@ export default function PromoManagement() {
                   </td>
                   <td className="text-right">
                     <div className="btn-group justify-end">
+                      <button className="btn btn-icon btn-secondary" onClick={() => setPrintPromo(promo)} title="Print Promo">
+                        <Printer size={16} />
+                      </button>
                       <button className="btn btn-icon btn-secondary" onClick={() => openModal(promo)}>
                         <Edit2 size={16} />
                       </button>
@@ -217,6 +221,78 @@ export default function PromoManagement() {
           </div>
         </div>
       </Modal>
+
+      {printPromo && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPrintPromo(null)}
+          title={`Print Promo Voucher`}
+        >
+          <div className="flex-col gap-md">
+            <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
+              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>GIFT VOUCHER</h2>
+                <div style={{ fontSize: '12px', fontStyle: 'italic' }}>Happy Hills Restaurant</div>
+              </div>
+              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+              
+              <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '28px', letterSpacing: '4px' }}>{printPromo.code}</h3>
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                  {printPromo.type === 'percent' ? `${printPromo.value}% OFF` : `रू ${printPromo.value} OFF`}
+                </div>
+              </div>
+
+              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+
+              <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
+                {parseFloat(printPromo.min_order) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                    <span>Min Order:</span>
+                    <span>रू {printPromo.min_order}</span>
+                  </div>
+                )}
+                {printPromo.max_uses > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                    <span>Max Uses:</span>
+                    <span>{printPromo.max_uses}</span>
+                  </div>
+                )}
+                {printPromo.expires_at && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                    <span>Valid Till:</span>
+                    <span>{new Date(printPromo.expires_at).toLocaleDateString()}</span>
+                  </div>
+                )}
+                <div style={{ textAlign: 'center', marginTop: '16px', fontStyle: 'italic', fontSize: '10px' }}>
+                  Terms and conditions apply. Please present this voucher when placing your order.
+                </div>
+              </div>
+            </div>
+            
+            <button className="btn btn-primary flex align-center gap-sm" onClick={() => window.print()}>
+              <Printer size={18} /> Print Voucher
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      <style>{`
+        @media print {
+          @page { margin: 0; }
+          html, body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          body * { visibility: hidden; }
+          .ticket-print-area, .ticket-print-area * { visibility: visible; }
+          .ticket-print-area {
+            position: absolute; left: 0; top: 0; width: 72mm; padding: 0; margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
