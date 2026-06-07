@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 
 export default function AdventurePOS() {
   const [adventures, setAdventures] = useState([]);
+  const [stats, setStats] = useState({});
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -22,7 +23,17 @@ export default function AdventurePOS() {
 
   useEffect(() => {
     fetchAdventures();
+    fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const res = await api.get('/adventures/stats');
+      setStats(res.data);
+    } catch (e) {
+      console.error('Failed to load stats', e);
+    }
+  };
 
   const fetchAdventures = async () => {
     try {
@@ -83,6 +94,7 @@ export default function AdventurePOS() {
       showToast('Payment successful!', 'success');
       setCart([]);
       setCustomerName('');
+      fetchStats();
       
       // Open the ticket printing modal
       setTicketModal(res.data.tickets);
@@ -107,22 +119,36 @@ export default function AdventurePOS() {
       {/* Left side: Adventures Grid */}
       <div className="flex-2 flex flex-col">
         <h2 className="text-xl font-bold mb-md">Sell Adventures</h2>
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', overflowY: 'auto' }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', overflowY: 'auto', paddingRight: '10px', paddingBottom: '20px' }}>
           {adventures.map(adv => (
             <div 
               key={adv.id} 
               className="card cursor-pointer hover-lift"
               onClick={() => addToCart(adv)}
-              style={{ border: '2px solid transparent' }}
+              style={{ border: '1px solid var(--glass-border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
             >
-              <div className="card-body text-center">
-                <div className="flex-center mb-sm">
-                  <div style={{ width: 60, height: 60, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-secondary)', position: 'relative', flex: 1 }}>
+                 <div style={{ width: 64, height: 64, borderRadius: '16px', backgroundColor: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '16px' }}>
                     <Ticket size={32} className="text-primary" />
-                  </div>
-                </div>
-                <h4 className="font-bold">{adv.name}</h4>
-                <p className="text-primary font-bold mt-xs">रू {Number(adv.price).toLocaleString()}</p>
+                 </div>
+                 <h4 className="font-bold text-center" style={{ fontSize: '18px', lineHeight: 1.2 }}>{adv.name}</h4>
+                 <p className="text-primary font-bold mt-sm" style={{ fontSize: '16px', backgroundColor: 'var(--primary-light)', padding: '4px 12px', borderRadius: '20px', color: 'var(--primary)' }}>रू {Number(adv.price).toLocaleString()}</p>
+              </div>
+              
+              {/* Stats Footer */}
+              <div style={{ padding: '12px 16px', background: 'var(--bg-card)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                 <div className="flex flex-col align-center">
+                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sold</span>
+                   <span className="text-primary" style={{ fontSize: '14px' }}>{stats[adv.id]?.sold || 0}</span>
+                 </div>
+                 <div className="flex flex-col align-center">
+                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Used</span>
+                   <span className="text-success" style={{ fontSize: '14px' }}>{stats[adv.id]?.used || 0}</span>
+                 </div>
+                 <div className="flex flex-col align-center">
+                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unused</span>
+                   <span className="text-warning" style={{ fontSize: '14px' }}>{stats[adv.id]?.unused || 0}</span>
+                 </div>
               </div>
             </div>
           ))}
@@ -249,7 +275,12 @@ export default function AdventurePOS() {
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontSize: 22, lineHeight: 1.1, marginBottom: 5 }}>{ticket.item_name}</div>
                         <div className="ticket-price">RS. {ticket.price}</div>
-                        <div className="ticket-footer" style={{ textAlign: 'left' }}>
+                        {ticket.customer_name && ticket.customer_name !== 'Guest' && (
+                          <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 5, borderTop: '1px dashed #000', paddingTop: 3 }}>
+                            Name: {ticket.customer_name}
+                          </div>
+                        )}
+                        <div className="ticket-footer" style={{ textAlign: 'left', marginTop: 5 }}>
                           <div>TKT #{ticket.id.toString().padStart(6, '0')}</div>
                           <div>{new Date(ticket.purchased_at).toLocaleDateString()}</div>
                           <div>{new Date(ticket.purchased_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>

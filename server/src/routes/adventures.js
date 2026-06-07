@@ -137,6 +137,7 @@ router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
           ticket_code,
           item_name: item.name,
           price: item.price,
+          customer_name: customer_name || 'Guest',
           purchased_at: new Date()
         });
       }
@@ -214,6 +215,32 @@ router.get('/ticket/:code', verifyToken, requireRole(['admin']), async (req, res
     res.json({ success: true, ticket, adventure_name: item?.name });
   } catch (err) {
     console.error('Ticket fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/adventures/stats
+router.get('/stats', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const stats = await db('adventure_tickets')
+      .join('order_items', 'adventure_tickets.order_item_id', 'order_items.id')
+      .select('order_items.menu_item_id as id', 'adventure_tickets.status')
+      .count('* as count')
+      .groupBy('order_items.menu_item_id', 'adventure_tickets.status');
+      
+    const formattedStats = {};
+    for (const stat of stats) {
+      if (!formattedStats[stat.id]) {
+        formattedStats[stat.id] = { sold: 0, used: 0, unused: 0, cancelled: 0 };
+      }
+      const count = parseInt(stat.count, 10);
+      formattedStats[stat.id][stat.status] = count;
+      formattedStats[stat.id].sold += count;
+    }
+    
+    res.json(formattedStats);
+  } catch (err) {
+    console.error('Stats error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

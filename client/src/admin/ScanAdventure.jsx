@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType, Html5Qrcode } from 'html5-qrcode';
 import { CheckCircle, XCircle, Camera, UploadCloud } from 'lucide-react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
@@ -19,6 +19,7 @@ export default function ScanAdventure() {
       fps: 10, 
       supportedFormats: [Html5QrcodeSupportedFormats.QR_CODE],
       rememberLastUsedCamera: true,
+      videoConstraints: { facingMode: "environment" },
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
     
@@ -103,7 +104,7 @@ export default function ScanAdventure() {
     // Ignore frequent scan failures
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -112,65 +113,26 @@ export default function ScanAdventure() {
     }
 
     setIsProcessing(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        
-        // Scale down huge images to 800px max for instant processing
-        const MAX_DIM = 800;
-        let width = img.width;
-        let height = img.height;
-        if (width > height && width > MAX_DIM) {
-          height *= MAX_DIM / width;
-          width = MAX_DIM;
-        } else if (height > MAX_DIM) {
-          width *= MAX_DIM / height;
-          height = MAX_DIM;
-        }
+    
+    try {
+      const html5QrCode = new Html5Qrcode("hidden-reader");
+      const code = await html5QrCode.scanFileV2(file, true);
+      if (code && code.decodedText) {
+        onScanSuccess(code.decodedText, true);
+      }
+    } catch (err) {
+      const audio = new Audio('/error-sound.mp3');
+      audio.play().catch(e => console.log('Audio play failed', e));
 
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Fill background with white in case of transparent images
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // Use jsQR to decode the image
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth",
-        });
-
-        if (code) {
-          onScanSuccess(code.data, true);
-        } else {
-          // Play error sound and show UI
-          const audio = new Audio('/error-sound.mp3');
-          audio.play().catch(err => console.log('Audio play failed', err));
-
-          setScanResult({
-            success: false,
-            message: 'No QR code found in the image. Please ensure the QR code is clearly visible and not blurry.'
-          });
-          setIsProcessing(false);
-          setIsScanning(false);
-        }
-      };
-      img.onerror = () => {
-        showToast('Invalid image file', 'error');
-        setIsProcessing(false);
-        if (scannerRef.current) scannerRef.current.resume();
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-    // Reset input
-    e.target.value = null;
+      setScanResult({
+        success: false,
+        message: 'No QR code found in the image. Please ensure the QR code is clearly visible and not blurry.'
+      });
+      setIsScanning(false);
+    } finally {
+      setIsProcessing(false);
+      e.target.value = null;
+    }
   };
 
   const resetScanner = () => {
@@ -281,6 +243,7 @@ export default function ScanAdventure() {
           )}
         </div>
       </div>
+      <div id="hidden-reader" style={{ display: 'none' }}></div>
     </div>
   );
 }
