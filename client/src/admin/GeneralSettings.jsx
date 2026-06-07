@@ -12,6 +12,8 @@ const GeneralSettings = () => {
     restaurant_address: '',
     restaurant_phone: '',
     restaurant_website: '',
+    restaurant_logo_url: '',
+    restaurant_pan_vat: '',
     currency_symbol: '',
     tip_roundoff_amount: '50',
     date_format: 'AD',
@@ -26,6 +28,8 @@ const GeneralSettings = () => {
         restaurant_address: settings.restaurant_address || '',
         restaurant_phone: settings.restaurant_phone || '',
         restaurant_website: settings.restaurant_website || '',
+        restaurant_logo_url: settings.restaurant_logo_url || '',
+        restaurant_pan_vat: settings.restaurant_pan_vat || '',
         currency_symbol: settings.currency_symbol || '',
         tip_roundoff_amount: settings.tip_roundoff_amount || '50',
         date_format: settings.date_format || 'AD',
@@ -111,6 +115,40 @@ const GeneralSettings = () => {
               placeholder="e.g. 123 Main Street"
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
             />
+          </div>
+
+          <div className="flex gap-md mb-md">
+            <div className="form-group flex-1">
+              <label className="form-label flex align-center gap-sm" style={{ fontWeight: 500, marginBottom: '8px' }}>
+                <Building size={16} className="text-secondary" />
+                PAN / VAT Number
+              </label>
+              <input 
+                type="text" 
+                name="restaurant_pan_vat"
+                className="form-input" 
+                value={formData.restaurant_pan_vat}
+                onChange={handleChange}
+                placeholder="e.g. 123456789"
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+              />
+            </div>
+            
+            <div className="form-group flex-1">
+              <label className="form-label flex align-center gap-sm" style={{ fontWeight: 500, marginBottom: '8px' }}>
+                <Globe size={16} className="text-secondary" />
+                Logo URL
+              </label>
+              <input 
+                type="text" 
+                name="restaurant_logo_url"
+                className="form-input" 
+                value={formData.restaurant_logo_url}
+                onChange={handleChange}
+                placeholder="https://example.com/logo.png"
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+              />
+            </div>
           </div>
 
           <div className="flex gap-md mb-xl">
