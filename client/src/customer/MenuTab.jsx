@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import SearchBar from '../components/SearchBar';
-import { Minus, Plus, ShoppingBag, X, Receipt } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, X, Receipt, Search } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 
 export default function MenuTab({ tableId, customerName, isCheckoutRequested, cart, setCart, goToStatus }) {
@@ -125,43 +125,41 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
 
   return (
     <div>
-      <div className="flex flex-col gap-sm" style={{ padding: '20px 20px 10px' }}>
-        <div className="flex gap-sm">
-          <input 
-            type="text" 
-            className="form-input flex-1" 
-            placeholder="Search menu..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-sm" style={{ overflowX: 'auto', padding: '4px 0', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-
-          <div className={`tab-item ${isVegOnly ? 'active' : ''}`} onClick={() => setIsVegOnly(!isVegOnly)} style={{ borderRadius: 20, border: '1px solid var(--success)', color: isVegOnly ? 'var(--success)' : 'inherit', padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="veg-badge" style={{ transform: 'scale(0.8)', margin: 0 }}></span> Veg Only
+      <div className="customer-hero">
+        <h1>What are you craving?</h1>
+        <div className="customer-search-container">
+          <div className="customer-search-input-wrapper">
+            <Search className="customer-search-icon" size={18} />
+            <input 
+              type="text" 
+              className="customer-search-input" 
+              placeholder="Search our delicious menu..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className={`veg-toggle-pill ${isVegOnly ? 'active' : ''}`} onClick={() => setIsVegOnly(!isVegOnly)}>
+            <span className="veg-badge" style={{ transform: 'scale(0.8)', margin: 0 }}></span> Veg
           </div>
         </div>
       </div>
 
-      <div className="flex align-center gap-sm mb-md" style={{ margin: '0 20px' }}>
+      <div className="category-strip">
         <div 
-          className={`tab-item ${activeCategory === 'all' ? 'active' : ''}`}
+          className={`category-pill ${activeCategory === 'all' ? 'active' : ''}`}
           onClick={() => setActiveCategory('all')}
-          style={{ flexShrink: 0 }}
         >
           All
         </div>
-        <div className="tab-bar flex-1" style={{ margin: 0, padding: 0 }}>
-          {categories.map(cat => (
-            <div 
-              key={cat.id}
-              className={`tab-item ${activeCategory === cat.id ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat.id)}
-            >
-              {cat.name}
-            </div>
-          ))}
-        </div>
+        {categories.map(cat => (
+          <div 
+            key={cat.id}
+            className={`category-pill ${activeCategory === cat.id ? 'active' : ''}`}
+            onClick={() => setActiveCategory(cat.id)}
+          >
+            {cat.name}
+          </div>
+        ))}
       </div>
 
       {isCheckoutRequested && (
@@ -179,34 +177,39 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
         {filteredItems.map(item => {
           const cartItem = cart.find(i => i.id === item.id);
           return (
-            <div key={item.id} className="card menu-card">
-              <img src={item.image_url} alt={item.name} className="menu-card-image" />
-              <div className="menu-card-body">
-                <div className="flex justify-between align-center">
+            <div key={item.id} className="sleek-menu-card">
+              <div className="sleek-menu-image-container">
+                <img src={item.image_url} alt={item.name} className="sleek-menu-image" />
+                <div className="sleek-menu-gradient"></div>
+                <div className="sleek-badge-container">
                   <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'}></div>
-                  <div className="menu-card-price">{formatCurrency(item.price)}</div>
                 </div>
+                {!cartItem && !isCheckoutRequested && (
+                  <button className="sleek-add-btn" onClick={() => addToCart(item)}>
+                    <Plus size={18} />
+                  </button>
+                )}
+              </div>
+              
+              <div className="sleek-menu-body">
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 16 }}>{item.name}</div>
-                  {item.name_np && <div className="text-secondary" style={{ fontSize: 13 }}>{item.name_np}</div>}
+                  <div className="sleek-menu-title">{item.name}</div>
+                  {item.name_np && <div className="sleek-menu-subtitle">{item.name_np}</div>}
                 </div>
-                <p className="text-secondary truncate" style={{ fontSize: 13 }}>{item.description}</p>
+                <div className="sleek-menu-desc">{item.description}</div>
                 
-                <div className="mt-sm">
-                  {cartItem ? (
-                    <div className="flex align-center justify-between bg-secondary" style={{ borderRadius: 'var(--radius)', padding: 4 }}>
-                      <button className="btn btn-icon" style={{ background: 'transparent' }} onClick={() => updateCartQty(item.id, -1)}>
-                        <Minus size={18} />
+                <div className="sleek-menu-footer">
+                  <div className="sleek-menu-price">{formatCurrency(item.price)}</div>
+                  {cartItem && (
+                    <div className="sleek-qty-stepper">
+                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}>
+                        <Minus size={14} />
                       </button>
-                      <span style={{ fontWeight: 600, padding: '0 12px' }}>{cartItem.quantity}</span>
-                      <button className="btn btn-icon" style={{ background: 'transparent' }} onClick={() => updateCartQty(item.id, 1)}>
-                        <Plus size={18} />
+                      <span className="sleek-qty-val">{cartItem.quantity}</span>
+                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}>
+                        <Plus size={14} />
                       </button>
                     </div>
-                  ) : (
-                    <button className="btn btn-secondary w-full" onClick={() => addToCart(item)} disabled={isCheckoutRequested}>
-                      Add to Cart
-                    </button>
                   )}
                 </div>
               </div>
@@ -216,39 +219,37 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
       </div>
 
       {/* Cart Summary Bar */}
-      {cart.length > 0 && !isCheckoutRequested && (
-        <div className="cart-bar animate-slideUp">
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 16 }}>{cartItemsCount} items</div>
-            <div style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>Total: {formatCurrency(cartTotal)}</div>
-          </div>
-          <button className="btn btn-primary" onClick={() => setIsCartOpen(true)}>
-            <ShoppingBag size={18} /> View Cart
-          </button>
+      <div className={`sleek-cart-bar ${cart.length === 0 || isCheckoutRequested ? 'hidden' : ''}`}>
+        <div className="sleek-cart-info">
+          <h4>Your Order ({cartItemsCount} items)</h4>
+          <div className="total">{formatCurrency(cartTotal)}</div>
         </div>
-      )}
+        <button className="btn btn-primary" style={{ padding: '10px 20px', borderRadius: '100px' }} onClick={() => setIsCartOpen(true)}>
+          <ShoppingBag size={18} /> View Cart
+        </button>
+      </div>
 
       {/* Cart Drawer */}
-      <div className={`cart-drawer ${isCartOpen ? 'open' : ''}`}>
-        <div className="card-header" style={{ borderBottom: '1px solid var(--glass-border)' }}>
-          <h3>Your Order</h3>
-          <button className="btn btn-icon btn-secondary" onClick={() => setIsCartOpen(false)}>
+      <div className={`sleek-cart-drawer ${isCartOpen ? 'open' : ''}`}>
+        <div className="sleek-drawer-header">
+          <h2>Your Order</h2>
+          <button className="btn btn-icon btn-secondary" style={{ borderRadius: '50%' }} onClick={() => setIsCartOpen(false)}>
             <X size={20} />
           </button>
         </div>
         
-        <div className="card-body" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="card-body" style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
           {cart.map(item => (
-            <div key={item.id} className="flex-col gap-sm" style={{ padding: '16px 0', borderBottom: '1px solid var(--glass-border)' }}>
+            <div key={item.id} className="sleek-cart-item">
               <div className="flex justify-between">
-                <div style={{ fontWeight: 600 }}>{item.name}</div>
-                <div style={{ fontWeight: 600 }}>{formatCurrency(item.price * item.quantity)}</div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
+                <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(item.price * item.quantity)}</div>
               </div>
               <div className="flex justify-between align-center mt-sm">
-                <div className="flex align-center bg-secondary" style={{ borderRadius: 'var(--radius-sm)', padding: 2 }}>
-                  <button className="btn btn-icon" style={{ background: 'transparent', width: 28, height: 28 }} onClick={() => updateCartQty(item.id, -1)}><Minus size={14} /></button>
-                  <span style={{ fontWeight: 600, width: 24, textAlign: 'center', fontSize: 14 }}>{item.quantity}</span>
-                  <button className="btn btn-icon" style={{ background: 'transparent', width: 28, height: 28 }} onClick={() => updateCartQty(item.id, 1)}><Plus size={14} /></button>
+                <div className="sleek-qty-stepper">
+                  <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}><Minus size={14} /></button>
+                  <span className="sleek-qty-val">{item.quantity}</span>
+                  <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}><Plus size={14} /></button>
                 </div>
                 <button className="btn" style={{ padding: '4px 8px', fontSize: 12, color: 'var(--danger)', background: 'transparent' }} onClick={() => updateCartQty(item.id, -item.quantity)}>
                   Remove
@@ -257,7 +258,7 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
               <input 
                 type="text" 
                 className="form-input mt-sm" 
-                style={{ padding: '8px 12px', fontSize: 13 }}
+                style={{ padding: '10px 14px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
                 placeholder="Special instructions (e.g. Less spicy)"
                 value={item.notes}
                 onChange={e => updateItemNotes(item.id, e.target.value)}
@@ -266,13 +267,13 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
           ))}
         </div>
 
-        <div style={{ padding: 20, borderTop: '1px solid var(--glass-border)', background: 'var(--bg-card)' }}>
+        <div className="sleek-drawer-footer">
           <div className="flex justify-between mb-md" style={{ fontSize: 18, fontWeight: 700 }}>
-            <span>Total</span>
-            <span style={{ color: 'var(--accent-primary)' }}>{formatCurrency(cartTotal)}</span>
+            <span>Total to Pay</span>
+            <span style={{ color: 'var(--accent-primary)', fontSize: 22 }}>{formatCurrency(cartTotal)}</span>
           </div>
-          <button className="btn btn-primary w-full" style={{ padding: 16, fontSize: 16 }} onClick={submitOrder} disabled={isSubmitting}>
-            {isSubmitting ? 'Sending Order...' : 'Place Order'}
+          <button className="btn btn-primary w-full" style={{ padding: 16, fontSize: 16, borderRadius: '12px' }} onClick={submitOrder} disabled={isSubmitting}>
+            {isSubmitting ? 'Sending Order...' : 'Place Order Now'}
           </button>
         </div>
       </div>
