@@ -1202,6 +1202,25 @@ a {
   animation: expandCollapse 10s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.input-with-icon .form-input,
+.input-with-icon .input {
+  padding-left: 38px;
+  width: 100%;
+}
+
 .seek-assistance-btn svg {
   flex-shrink: 0;
 }

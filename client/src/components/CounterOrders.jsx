@@ -174,14 +174,14 @@ export default function CounterOrders() {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div className="flex justify-between align-center mb-xl">
+      <div className="flex justify-between mb-xl" style={{ flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
         <div>
-          <h1>Counter Orders</h1>
-          <p className="text-secondary">Manage walk-in and takeaway orders</p>
+          <h1 style={{ margin: 0 }}>Counter Orders</h1>
+          <p className="text-secondary" style={{ margin: 0, marginTop: 4 }}>Manage walk-in and takeaway orders</p>
         </div>
-        <div className="flex gap-md align-center">
-          <div className="input-with-icon" style={{ width: 250 }}>
-            <Search size={16} />
+        <div className="flex gap-md" style={{ flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+          <div className="input-with-icon" style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={18} />
             <input
               type="text"
               className="form-input"
@@ -190,8 +190,8 @@ export default function CounterOrders() {
               onChange={(e) => setOrderSearch(e.target.value)}
             />
           </div>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Plus size={18} /> New Counter Order
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} style={{ whiteSpace: 'nowrap' }}>
+            <Plus size={18} /> New Order
           </button>
         </div>
       </div>
