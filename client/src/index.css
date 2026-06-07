@@ -398,11 +398,16 @@ a {
   width: 100%;
   background-color: var(--bg-card);
   border-top: 1px solid var(--glass-border);
-  padding: 12px 16px;
+  padding: 12px 8px;
   display: flex;
   justify-content: space-around;
   z-index: 100;
   backdrop-filter: blur(10px);
+}
+
+.bottom-tabs .btn {
+  padding: 6px 4px !important;
+  min-width: 0;
 }
 
 /* Sidebar Layout */

@@ -260,7 +260,7 @@ export default function CounterOrders() {
             </div>
             <div className="modal-body flex gap-lg" style={{ maxHeight: '75vh', overflowY: 'auto', flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 350px', minWidth: 0 }}>
-                <div className="mb-md flex gap-sm">
+                <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
                   <input 
                     type="text" 
                     className="form-input flex-1" 
