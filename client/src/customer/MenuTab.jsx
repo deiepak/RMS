@@ -179,17 +179,18 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
           return (
             <div key={item.id} className="sleek-menu-card">
               <div className="sleek-menu-image-container">
-                <img src={item.image_url} alt={item.name} className="sleek-menu-image" />
+                {item.image_url && <img src={item.image_url} alt={item.name} className="sleek-menu-image" onError={(e) => { e.target.style.display = 'none'; }} />}
                 <div className="sleek-menu-gradient"></div>
                 <div className="sleek-badge-container">
                   <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'}></div>
                 </div>
-                {!cartItem && !isCheckoutRequested && (
-                  <button className="sleek-add-btn" onClick={() => addToCart(item)}>
-                    <Plus size={18} />
-                  </button>
-                )}
               </div>
+              
+              {!cartItem && !isCheckoutRequested && (
+                <button className="sleek-add-btn" onClick={() => addToCart(item)}>
+                  <Plus size={18} />
+                </button>
+              )}
               
               <div className="sleek-menu-body">
                 <div>
