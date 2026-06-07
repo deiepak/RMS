@@ -280,15 +280,20 @@ export default function CounterOrders() {
                       </option>
                     ))}
                   </select>
-                  <div className="input-with-icon flex-1">
-                    <Search size={16} />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Search menu..."
-                      value={menuSearch}
-                      onChange={(e) => setMenuSearch(e.target.value)}
-                    />
+                  <div className="flex flex-1 gap-sm">
+                    <div className="input-with-icon flex-1">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Search menu..."
+                        value={menuSearch}
+                        onChange={(e) => setMenuSearch(e.target.value)}
+                      />
+                    </div>
+                    <button className="btn btn-secondary btn-icon" style={{ borderRadius: '8px', flexShrink: 0 }} title="Search">
+                      <Search size={16} />
+                    </button>
                   </div>
                 </div>
                 {categories.map(cat => {
@@ -316,7 +321,14 @@ export default function CounterOrders() {
                 })}
               </div>
               <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px' }}>
-                <h3 className="mb-md">Order Cart</h3>
+                <div className="flex justify-between align-center mb-md">
+                  <h3 style={{ margin: 0 }}>Order Cart</h3>
+                  {cart.length > 0 && (
+                    <span className="badge badge-primary" style={{ fontSize: 12 }}>
+                      {cart.reduce((s, i) => s + i.quantity, 0)} Items
+                    </span>
+                  )}
+                </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {cart.length === 0 ? (
                     <div className="text-secondary text-center p-md">Cart is empty</div>
