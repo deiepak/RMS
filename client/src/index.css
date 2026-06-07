@@ -349,6 +349,11 @@ a {
   padding: 4px;
   gap: 4px;
   overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-item {
@@ -363,6 +368,7 @@ a {
   color: var(--text-secondary);
   font-weight: 500;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-item.active {

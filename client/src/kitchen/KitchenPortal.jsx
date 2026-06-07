@@ -170,8 +170,8 @@ export default function KitchenPortal() {
       </div>
 
       {/* Top Tabs */}
-      <div className="bg-card" style={{ padding: '12px 24px', borderBottom: '1px solid var(--glass-border)' }}>
-        <div className="tab-bar" style={{ maxWidth: 600, margin: '0 auto' }}>
+      <div className="bg-card" style={{ padding: '12px 0', borderBottom: '1px solid var(--glass-border)' }}>
+        <div className="tab-bar" style={{ maxWidth: '100%', margin: '0 16px' }}>
           <div 
             className={`tab-item flex-1 justify-center ${activeTab === 'pending' ? 'active' : ''}`}
             onClick={() => setActiveTab('pending')}
