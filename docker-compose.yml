@@ -48,6 +48,8 @@ services:
     build: ./client
     container_name: rms_client
     restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://server:3001
     volumes:
       - ./client/src:/app/src
       - ./client/public:/app/public
