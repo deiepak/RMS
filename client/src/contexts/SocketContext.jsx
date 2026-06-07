@@ -21,7 +21,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Join appropriate room based on role
-      socket.emit('join', { role: user.role, userId: user.id, name: user.name });
+      socket.emit('join', { room: user.role, role: user.role, userId: user.id, name: user.name });
     }
   }, [isAuthenticated, user]);
 
