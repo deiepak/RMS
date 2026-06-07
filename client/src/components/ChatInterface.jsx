@@ -160,9 +160,9 @@ export default function ChatInterface({ fullHeight = true }) {
                 setTargetStations([]);
               }}>
                 <option value="Everyone">Everyone (All Portals)</option>
-                {user?.role !== 'kitchen' && <option value="All Kitchen Staff">Kitchen Staff</option>}
-                {user?.role !== 'waiter' && <option value="All Waiters">Waiters</option>}
-                {user?.role !== 'admin' && <option value="Admin">Admin</option>}
+                <option value="All Kitchen Staff">Kitchen Staff</option>
+                <option value="All Waiters">Waiters</option>
+                <option value="Admin">Admin</option>
               </select>
             </div>
 
