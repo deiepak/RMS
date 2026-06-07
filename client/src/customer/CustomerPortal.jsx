@@ -159,6 +159,7 @@ export default function CustomerPortal() {
       {/* Floating Seek Assistance Button */}
       <button className="seek-assistance-btn" onClick={requestAssistance} title="Call Waiter">
         <Headphones size={24} />
+        <span className="seek-assistance-text">Seek Assistance</span>
       </button>
 
       {/* Bottom Navigation */}

@@ -1188,17 +1188,36 @@ a {
   right: 20px;
   background: var(--accent-gradient);
   color: white;
-  width: 56px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: 28px;
   box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding: 0 16px;
   z-index: 30;
   border: none;
   cursor: pointer;
-  animation: pulse 2s infinite;
+  overflow: hidden;
+  animation: expandCollapse 10s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.seek-assistance-btn svg {
+  flex-shrink: 0;
+}
+
+.seek-assistance-text {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  margin-left: 12px;
+  opacity: 1;
+}
+
+@keyframes expandCollapse {
+  0%, 15% { width: 56px; }
+  25%, 75% { width: 175px; }
+  85%, 100% { width: 56px; }
 }
 
 /* Kitchen & Waiter Portals Specific */
