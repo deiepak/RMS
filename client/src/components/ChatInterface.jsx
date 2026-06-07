@@ -212,6 +212,12 @@ export default function ChatInterface({ fullHeight = true }) {
                     placeholder="Type your announcement here, OR use the microphone below for a voice broadcast."
                     value={content}
                     onChange={e => setContent(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
                   ></textarea>
                   
                   <button 
