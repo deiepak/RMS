@@ -246,11 +246,11 @@ export default function ChatInterface({ fullHeight = true }) {
         </div>
       </div>
 
-      <div className="card flex-1 flex-col" style={{ minWidth: 300, maxHeight: fullHeight ? 'none' : '500px' }}>
+      <div className="card flex-1 flex-col" style={{ minWidth: 300, maxHeight: fullHeight ? 'none' : '500px', overflow: 'hidden', display: 'flex' }}>
         <div className="card-header">
           <h3 style={{ fontSize: 16 }}>Broadcast History</h3>
         </div>
-        <div className="card-body flex-col gap-md" style={{ overflowY: 'auto' }}>
+        <div className="card-body flex-col gap-md" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
           {messages.length === 0 ? (
             <div className="flex-center text-muted" style={{ height: '100%' }}>
               No messages sent yet
@@ -258,32 +258,58 @@ export default function ChatInterface({ fullHeight = true }) {
           ) : (
             messages.map(msg => (
               <div key={msg.id} style={{ 
-                padding: 16, 
-                backgroundColor: 'var(--bg-secondary)', 
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--glass-border)'
+                padding: '16px', 
+                backgroundColor: 'var(--bg-primary)', 
+                borderRadius: '12px',
+                border: '1px solid var(--glass-border)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
               }}>
-                <div className="flex justify-between align-center mb-sm">
+                <div className="flex justify-between align-start mb-xs">
                   <div className="flex align-center gap-sm">
-                    <span className="badge" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: getTargetColor(msg.target_role) }}>
-                      {getTargetIcon(msg.target_role)} To: {msg.target_role}
-                      {msg.target_stations && msg.target_stations.length > 0 && ' (Specific Stations)'}
-                    </span>
+                    <div style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: '50%',
+                      backgroundColor: 'var(--bg-secondary)', 
+                      color: getTargetColor(msg.target_role)
+                    }}>
+                      {getTargetIcon(msg.target_role)}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>To: {msg.target_role}</div>
+                      {msg.target_stations && msg.target_stations.length > 0 && (
+                        <div className="text-secondary" style={{ fontSize: 11 }}>Specific Stations</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex align-center gap-sm text-secondary" style={{ fontSize: 12 }}>
+                  <div className="flex align-center gap-xs text-secondary" style={{ fontSize: 12 }}>
                     <Clock size={12} /> {timeAgo(new Date(msg.created_at))}
                   </div>
                 </div>
-                <div style={{ padding: '8px 0', lineHeight: 1.5 }}>
-                  {msg.content}
-                  {msg.audio_data && (
-                    <div className="mt-sm">
-                      <audio src={msg.audio_data} controls style={{ width: '100%', height: '36px' }} />
-                    </div>
-                  )}
-                </div>
-                <div className="text-secondary mt-sm text-right" style={{ fontSize: 12 }}>
-                  Sent by: {msg.sender_name} ({msg.sender_role})
+                
+                {msg.content && (
+                  <div style={{ 
+                    padding: '12px', 
+                    backgroundColor: 'var(--bg-secondary)', 
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontSize: 14,
+                    lineHeight: 1.5
+                  }}>
+                    {msg.content}
+                  </div>
+                )}
+                
+                {msg.audio_data && (
+                  <div className="mt-sm">
+                    <audio src={msg.audio_data} controls style={{ width: '100%', height: '36px' }} />
+                  </div>
+                )}
+                
+                <div className="text-secondary text-right mt-xs" style={{ fontSize: 11 }}>
+                  Sent by: <span style={{ fontWeight: 500 }}>{msg.sender_name}</span> ({msg.sender_role})
                 </div>
               </div>
             ))
