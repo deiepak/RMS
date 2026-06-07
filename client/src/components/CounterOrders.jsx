@@ -71,7 +71,7 @@ export default function CounterOrders() {
   const fetchTables = async () => {
     try {
       const res = await api.get('/tables');
-      setTables(res.data.filter(t => t.status !== 'occupied'));
+      setTables(res.data);
     } catch (error) {
       console.error(error);
     }
@@ -103,6 +103,26 @@ export default function CounterOrders() {
         quantity: i.quantity,
         notes: i.notes
       }));
+
+      if (selectedTableId) {
+        const table = tables.find(t => t.id === parseInt(selectedTableId));
+        if (table && table.status === 'occupied') {
+          // Add to existing order
+          const activeRes = await api.get(`/orders/table/${selectedTableId}/active`);
+          const activeOrder = activeRes.data;
+          if (activeOrder) {
+            await api.post(`/orders/${activeOrder.id}/items`, { items, customer_name: customerName });
+            showToast('Items added to existing table order', 'success');
+            setShowAddModal(false);
+            setCart([]);
+            setCustomerName('');
+            setSelectedTableId('');
+            fetchOrders();
+            return;
+          }
+        }
+      }
+
       await api.post('/orders', { 
         order_type: 'counter',
         table_id: selectedTableId || null,
@@ -238,8 +258,8 @@ export default function CounterOrders() {
               <h2>New Counter Order</h2>
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
-            <div className="modal-body flex gap-lg" style={{ height: '65vh' }}>
-              <div style={{ flex: 2, overflowY: 'auto' }}>
+            <div className="modal-body flex gap-lg" style={{ maxHeight: '75vh', overflowY: 'auto', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 350px', minWidth: 0 }}>
                 <div className="mb-md flex gap-sm">
                   <input 
                     type="text" 
@@ -254,7 +274,11 @@ export default function CounterOrders() {
                     onChange={e => setSelectedTableId(e.target.value)}
                   >
                     <option value="">Table No (Optional)</option>
-                    {tables.map(t => <option key={t.id} value={t.id}>Table {t.number}</option>)}
+                    {tables.map(t => (
+                      <option key={t.id} value={t.id}>
+                        Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}
+                      </option>
+                    ))}
                   </select>
                   <div className="input-with-icon flex-1">
                     <Search size={16} />
@@ -273,22 +297,16 @@ export default function CounterOrders() {
                   return (
                   <div key={cat} className="mb-lg">
                     <h4 className="mb-sm text-secondary">{cat}</h4>
-                    <div className="menu-grid" style={{ padding: 0 }}>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
                       {filteredItems.map(item => (
-                        <div key={item.id} className="sleek-menu-card">
-                          <div className="sleek-menu-image-container">
-                            {item.image_url && <img src={item.image_url} alt={item.name} className="sleek-menu-image" onError={(e) => { e.target.style.display = 'none'; }} />}
-                            <div className="sleek-menu-gradient"></div>
-                            <div className="sleek-badge-container">
-                              <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'}></div>
-                            </div>
+                        <div key={item.id} className="card p-sm flex flex-col justify-between hover-lift" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                          <div className="flex align-start justify-between mb-sm gap-sm">
+                            <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>{item.name}</div>
+                            <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'} style={{ width: 10, height: 10, flexShrink: 0, position: 'static' }}></div>
                           </div>
-                          <button className="sleek-add-btn" onClick={() => addToCart(item)}>
-                            <Plus size={18} />
-                          </button>
-                          <div className="sleek-menu-body">
-                            <div className="sleek-menu-title">{item.name}</div>
-                            <div className="text-primary mt-auto" style={{ fontWeight: 800 }}>{formatCurrency(item.price)}</div>
+                          <div className="flex justify-between align-center mt-auto pt-sm" style={{ borderTop: '1px dashed var(--border)' }}>
+                            <div className="text-primary" style={{ fontSize: 14, fontWeight: 800 }}>{formatCurrency(item.price)}</div>
+                            <button className="btn btn-icon btn-primary btn-sm" onClick={() => addToCart(item)} style={{ width: 28, height: 28, borderRadius: '8px' }}><Plus size={16} /></button>
                           </div>
                         </div>
                       ))}
@@ -297,7 +315,7 @@ export default function CounterOrders() {
                   );
                 })}
               </div>
-              <div style={{ flex: 1, borderLeft: '1px solid var(--border)', paddingLeft: '20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px' }}>
                 <h3 className="mb-md">Order Cart</h3>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {cart.length === 0 ? (
@@ -332,7 +350,9 @@ export default function CounterOrders() {
                     <span>{formatCurrency(cart.reduce((s, i) => s + (i.price * i.quantity), 0))}</span>
                   </div>
                   <button className="btn btn-primary w-full" onClick={handleCreateOrder} disabled={cart.length === 0}>
-                    Place Counter Order
+                    {selectedTableId && tables.find(t => t.id === parseInt(selectedTableId))?.status === 'occupied' 
+                      ? 'Add to Existing Order' 
+                      : 'Place Counter Order'}
                   </button>
                 </div>
               </div>
