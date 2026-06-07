@@ -1293,9 +1293,7 @@ a {
   .admin-content {
     padding: 16px;
   }
-  .menu-grid {
-    grid-template-columns: 1fr;
-  }
+  /* .menu-grid override removed to respect main 2-column layout */
   .stats-grid {
     grid-template-columns: 1fr 1fr;
   }
