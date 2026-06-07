@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { DollarSign, CreditCard, Smartphone, CheckCircle, Clock } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -21,6 +22,7 @@ export default function AcceptPayment() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { showToast } = useToast();
   const location = useLocation();
 
@@ -130,6 +132,12 @@ export default function AcceptPayment() {
   const totalBill = Math.max(0, (selectedOrder ? parseFloat(selectedOrder.total) : 0) - md);
   const remainingSum = Math.max(0, totalBill - currentSum);
   const isMatch = Math.abs(currentSum - totalBill) < 0.01;
+  
+  const maxPercent = parseFloat(settings?.max_discount_percent || '100');
+  const subtotal = parseFloat(selectedOrder?.subtotal || 0);
+  const currentDiscount = parseFloat(selectedOrder?.discount || 0);
+  const maxAllowedDiscount = (subtotal * maxPercent) / 100;
+  const isDiscountValid = (currentDiscount + md) <= maxAllowedDiscount;
 
   // Helper to calculate total paid for an order locally if needed,
   // but we can also just fetch it if we attached payments to the GET /orders route.
@@ -197,7 +205,7 @@ export default function AcceptPayment() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setPaymentModalOpen(false)} disabled={isProcessing}>Cancel</button>
-            <button className="btn btn-success" onClick={handleConfirmPayment} disabled={!isMatch || isProcessing}>
+            <button className="btn btn-success" onClick={handleConfirmPayment} disabled={!isMatch || !isDiscountValid || isProcessing}>
               {isProcessing ? 'Processing...' : 'Settle Bill'}
             </button>
           </>
@@ -227,6 +235,11 @@ export default function AcceptPayment() {
               min="0"
               step="0.01"
             />
+            {!isDiscountValid && (
+              <div className="text-danger mt-sm" style={{ fontSize: 13 }}>
+                Exceeds maximum allowed discount ({maxPercent}% of subtotal: {formatCurrency(maxAllowedDiscount)})
+              </div>
+            )}
           </div>
           {parseFloat(manualDiscount) > 0 && (
             <div className="form-group mb-0 mt-sm">

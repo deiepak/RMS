@@ -14,7 +14,8 @@ const GeneralSettings = () => {
     restaurant_website: '',
     currency_symbol: '',
     tip_roundoff_amount: '50',
-    date_format: 'AD'
+    date_format: 'AD',
+    max_discount_percent: '100'
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -27,7 +28,8 @@ const GeneralSettings = () => {
         restaurant_website: settings.restaurant_website || '',
         currency_symbol: settings.currency_symbol || '',
         tip_roundoff_amount: settings.tip_roundoff_amount || '50',
-        date_format: settings.date_format || 'AD'
+        date_format: settings.date_format || 'AD',
+        max_discount_percent: settings.max_discount_percent || '100'
       });
     }
   }, [settings]);
@@ -181,6 +183,25 @@ const GeneralSettings = () => {
                 style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
               />
               <small className="text-secondary" style={{ display: 'block', marginTop: '4px' }}>Rounds customer bill to next multiple (e.g. 50, 100). Set to 0 to disable.</small>
+            </div>
+            
+            <div className="form-group flex-1">
+              <label className="form-label flex align-center gap-sm" style={{ fontWeight: 500, marginBottom: '8px' }}>
+                <Percent size={16} className="text-secondary" />
+                Max Discount Limit (%)
+              </label>
+              <input 
+                type="number" 
+                name="max_discount_percent"
+                className="form-input" 
+                value={formData.max_discount_percent}
+                onChange={handleChange}
+                placeholder="e.g. 15"
+                max="100"
+                min="0"
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+              />
+              <small className="text-secondary" style={{ display: 'block', marginTop: '4px' }}>Maximum allowed total discount per bill.</small>
             </div>
           </div>
           

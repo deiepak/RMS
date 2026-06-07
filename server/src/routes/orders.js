@@ -548,6 +548,17 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
     
     const md = parseFloat(manual_discount || 0);
     if (md > 0) {
+      // Check max discount limit
+      const settingsRow = await db('settings').where({ setting_key: 'max_discount_percent' }).first();
+      const maxPercent = settingsRow && settingsRow.setting_value ? parseFloat(settingsRow.setting_value) : 100;
+      
+      const subtotal = parseFloat(order.subtotal || 0);
+      const maxAllowed = (subtotal * maxPercent) / 100;
+      
+      if ((totalDiscount + md) > maxAllowed) {
+        return res.status(400).json({ error: `Total discount cannot exceed ${maxPercent}% of subtotal (Max Allowed: ${maxAllowed.toFixed(2)}).` });
+      }
+
       finalTotal = Math.max(0, finalTotal - md);
       totalDiscount += md;
     }
