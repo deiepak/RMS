@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
     const fullItems = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
       .where('order_items.order_id', orderId)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
 
     // Emit to kitchen
     const io = req.app.get('io');
@@ -160,7 +160,7 @@ router.get('/', async (req, res) => {
       order.items = await db('order_items')
         .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
         .where('order_items.order_id', order.id)
-        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id');
+        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
     }
 
     res.json(orders);
@@ -187,7 +187,7 @@ router.get('/:id', async (req, res) => {
     order.items = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
       .where('order_items.order_id', order.id)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
 
     res.json(order);
   } catch (err) {
@@ -226,7 +226,7 @@ router.get('/table/:tableId/active', async (req, res) => {
     order.items = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
       .where('order_items.order_id', order.id)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
 
     res.json(order);
   } catch (err) {
@@ -267,7 +267,7 @@ router.post('/:id/items', async (req, res) => {
     const fullItems = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
       .where('order_items.order_id', orderId)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
 
     const updatedOrder = await db('orders').where({ id: orderId }).first();
 
@@ -340,7 +340,7 @@ router.patch('/items/:itemId/status', async (req, res) => {
     const updatedItem = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
       .where('order_items.id', itemId)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_id')
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids')
       .first();
 
     const order = await db('orders').where({ id: item.order_id }).first();

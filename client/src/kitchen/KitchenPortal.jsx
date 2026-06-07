@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import Modal from '../components/Modal';
 import { Clock, CheckCircle, List, Bell, LogOut, Volume2, PackagePlus, LogIn, LogOut as LogOutIcon, MessageSquare } from 'lucide-react';
 import { api } from '../api/client';
+import { checkStationMatch } from '../utils/helpers';
 
 import PendingOrders from './PendingOrders';
 import AcceptedOrders from './AcceptedOrders';
@@ -37,7 +38,7 @@ export default function KitchenPortal() {
       let itemsToSpeak = data.items || [];
       if (user?.station_id) {
         // If assigned to a station, only speak items for this station or items with no specific station
-        itemsToSpeak = itemsToSpeak.filter(i => i.station_id === user.station_id || !i.station_id);
+        itemsToSpeak = itemsToSpeak.filter(i => checkStationMatch(i.station_ids, user.station_id));
       }
 
       if (itemsToSpeak.length > 0) {
@@ -67,7 +68,7 @@ export default function KitchenPortal() {
 
     const handleItemStatus = (updatedItem) => {
       if (updatedItem.status === 'rejected' || updatedItem.status === 'cancelled') {
-        const stationMatch = user?.station_id ? (updatedItem.station_id === user.station_id || !updatedItem.station_id) : true;
+        const stationMatch = checkStationMatch(updatedItem.station_ids, user?.station_id);
         if (stationMatch) {
           showToast(`Item cancelled: ${updatedItem.item_name}`, 'warning');
           speak(`Attention! The item ${updatedItem.item_name} has been cancelled.`);

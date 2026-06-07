@@ -21,7 +21,7 @@ export default function MenuManagement() {
 
   const [itemForm, setItemForm] = useState({
     name: '', name_np: '', description: '', description_np: '',
-    category_id: '', station_id: '', price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
+    category_id: '', station_ids: [], price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
   });
 
   const [catForm, setCatForm] = useState({ name: '', name_np: '', sort_order: 0 });
@@ -100,7 +100,7 @@ export default function MenuManagement() {
       setEditingItem(null);
       setItemForm({
         name: '', name_np: '', description: '', description_np: '',
-        category_id: categories[0]?.id || '', station_id: '', price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
+        category_id: categories[0]?.id || '', station_ids: [], price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
       });
     }
     setIsItemModalOpen(true);
@@ -408,16 +408,32 @@ export default function MenuManagement() {
             </select>
           </div>
           <div className="form-group flex-1">
-            <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Station</label>
-            <select 
-              className="form-select"
-              value={itemForm.station_id || ''}
-              onChange={(e) => setItemForm({...itemForm, station_id: e.target.value})}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-            >
-              <option value="">No Station (All)</option>
-              {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Stations</label>
+            <div className="flex gap-sm flex-wrap" style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', maxHeight: '100px', overflowY: 'auto' }}>
+              {stations.length === 0 ? (
+                <span className="text-muted" style={{ fontSize: 13 }}>No stations available</span>
+              ) : (
+                stations.map(s => (
+                  <label key={s.id} className="flex align-center gap-xs" style={{ cursor: 'pointer', fontSize: 14 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={Array.isArray(itemForm.station_ids) && itemForm.station_ids.includes(s.id)}
+                      onChange={(e) => {
+                        const ids = Array.isArray(itemForm.station_ids) ? [...itemForm.station_ids] : [];
+                        if (e.target.checked) ids.push(s.id);
+                        else {
+                          const idx = ids.indexOf(s.id);
+                          if (idx > -1) ids.splice(idx, 1);
+                        }
+                        setItemForm({...itemForm, station_ids: ids});
+                      }}
+                      style={{ accentColor: 'var(--accent-primary)' }}
+                    />
+                    {s.name}
+                  </label>
+                ))
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-md mb-md">

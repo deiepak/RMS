@@ -149,3 +149,17 @@ export const numberToWords = (num) => {
     str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
     return str.trim() + ' Only';
 };
+
+/**
+ * Check if an item belongs to a specific station
+ */
+export const checkStationMatch = (stationIds, userStationId) => {
+  if (!userStationId) return true;
+  if (!stationIds) return true;
+  let arr = stationIds;
+  if (typeof arr === 'string') {
+    try { arr = JSON.parse(arr); } catch (e) { arr = []; }
+  }
+  if (!Array.isArray(arr) || arr.length === 0) return true;
+  return arr.includes(userStationId) || arr.includes(Number(userStationId)) || arr.includes(String(userStationId));
+};

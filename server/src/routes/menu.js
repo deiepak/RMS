@@ -106,7 +106,7 @@ router.delete('/categories/:id', verifyToken, requireRole(['admin']), async (req
 // POST /api/menu/items - create item (admin)
 router.post('/items', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { category_id, name, name_np, description, description_np, price, image_url, is_veg, is_available, sort_order, station_id } = req.body;
+    const { category_id, name, name_np, description, description_np, price, image_url, is_veg, is_available, sort_order, station_ids } = req.body;
     if (!category_id || !name || price === undefined) {
       return res.status(400).json({ error: 'category_id, name, and price are required.' });
     }
@@ -116,7 +116,7 @@ router.post('/items', verifyToken, requireRole(['admin']), async (req, res) => {
       price, image_url, is_veg: is_veg || false,
       is_available: is_available !== undefined ? is_available : true,
       sort_order: sort_order || 0,
-      station_id: station_id || null,
+      station_ids: station_ids ? JSON.stringify(station_ids) : '[]',
     });
 
     const item = await db('menu_items').where({ id }).first();
@@ -134,6 +134,9 @@ router.put('/items/:id', verifyToken, requireRole(['admin']), async (req, res) =
     const updates = req.body;
     delete updates.id;
     delete updates.created_at;
+    if (updates.station_ids !== undefined) {
+      updates.station_ids = updates.station_ids ? JSON.stringify(updates.station_ids) : '[]';
+    }
     updates.updated_at = db.fn.now();
 
     const count = await db('menu_items').where({ id }).update(updates);

@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { UtensilsCrossed, Clock, Check, X } from 'lucide-react';
-import { formatDateTime } from '../utils/helpers';
+import { formatDateTime, checkStationMatch } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function TableWiseOrders() {
@@ -51,7 +51,7 @@ export default function TableWiseOrders() {
         }
         
         const validItems = order.items.filter(i => {
-          const isStationMatch = user?.station_id ? (i.station_id === user.station_id || !i.station_id) : true;
+          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
           return isStationMatch;
         });
         

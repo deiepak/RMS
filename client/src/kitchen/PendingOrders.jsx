@@ -5,6 +5,7 @@ import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { Check, X } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../contexts/AuthContext';
+import { checkStationMatch } from '../utils/helpers';
 
 export default function PendingOrders({ updateCounts }) {
   const { user } = useAuth();
@@ -44,7 +45,7 @@ export default function PendingOrders({ updateCounts }) {
       // Filter to only get orders that have pending items for this station
       const pendingOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
-          const isStationMatch = user?.station_id ? (i.station_id === user.station_id || !i.station_id) : true;
+          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
           return isStationMatch && (i.status === 'pending' || i.status === 'rejected');
         }) || [];
         return { ...order, items: filteredItems };

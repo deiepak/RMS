@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { checkStationMatch } from '../utils/helpers';
 
 export default function AcceptedOrders({ updateCounts }) {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ export default function AcceptedOrders({ updateCounts }) {
       
       const acceptedOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
-          const isStationMatch = user?.station_id ? (i.station_id === user.station_id || !i.station_id) : true;
+          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
           return isStationMatch && (i.status === 'accepted' || i.status === 'preparing' || i.status === 'rejected');
         }) || [];
         return { ...order, items: filteredItems };
