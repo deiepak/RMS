@@ -17,7 +17,7 @@ import Dashboard from './admin/Dashboard';
 import OrdersManagement from './admin/OrdersManagement';
 import AcceptPayment from './admin/AcceptPayment';
 import TableManagement from './admin/TableManagement';
-import CounterOrders from './admin/CounterOrders';
+import CounterOrders from './components/CounterOrders';
 import Packages from './admin/Packages';
 import MenuManagement from './admin/MenuManagement';
 import StockManagement from './admin/StockManagement';

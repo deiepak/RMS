@@ -4,13 +4,14 @@ import { useToast } from '../contexts/ToastContext';
 import { socket, subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import useSpeech from '../hooks/useSpeech';
 import ThemeToggle from '../components/ThemeToggle';
-import { UtensilsCrossed, CreditCard, Bell, LogOut, Volume2, LogIn, LogOut as LogOutIcon, MessageSquare } from 'lucide-react';
+import { UtensilsCrossed, CreditCard, Bell, LogOut, Volume2, LogIn, LogOut as LogOutIcon, MessageSquare, ShoppingBag } from 'lucide-react';
 import { api } from '../api/client';
 
 import PickupTab from './PickupTab';
 import CheckoutTab from './CheckoutTab';
 import AssistanceTab from './AssistanceTab';
 import ChatInterface from '../components/ChatInterface';
+import CounterOrders from '../components/CounterOrders';
 
 export default function WaiterPortal() {
   const { user, logout } = useAuth();
@@ -136,6 +137,7 @@ export default function WaiterPortal() {
         {activeTab === 'pickup' && <PickupTab updateCounts={(c) => setCounts(prev => ({...prev, pickup: c}))} />}
         {activeTab === 'checkout' && <CheckoutTab updateCounts={(c) => setCounts(prev => ({...prev, checkout: c}))} />}
         {activeTab === 'assistance' && <AssistanceTab updateCounts={(c) => setCounts(prev => ({...prev, assistance: c}))} />}
+        {activeTab === 'counter' && <CounterOrders />}
         {activeTab === 'chat' && <ChatInterface fullHeight={false} />}
       </div>
 
@@ -167,6 +169,14 @@ export default function WaiterPortal() {
           <Bell size={24} />
           <span style={{ fontSize: 12 }}>Assistance</span>
           {counts.assistance > 0 && <span className="tab-badge">{counts.assistance}</span>}
+        </button>
+        <button 
+          className="btn" 
+          style={{ flex: 1, flexDirection: 'column', gap: 4, background: 'transparent', color: activeTab === 'counter' ? 'var(--info)' : 'var(--text-secondary)', position: 'relative' }}
+          onClick={() => setActiveTab('counter')}
+        >
+          <ShoppingBag size={24} />
+          <span style={{ fontSize: 12 }}>Counter</span>
         </button>
         <button 
           className="btn" 
