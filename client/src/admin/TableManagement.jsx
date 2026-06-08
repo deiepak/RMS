@@ -459,7 +459,7 @@ export default function TableManagement() {
             </div>
             <div className="modal-body text-center" ref={qrRef}>
               <QRCodeSVG
-                value={`http://happyhills.lan/customer?table=${qrTable.number}`}
+                value={`${window.location.origin}/customer?table=${qrTable.number}`}
                 size={220}
                 level="H"
                 includeMargin
