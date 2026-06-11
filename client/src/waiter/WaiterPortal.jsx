@@ -20,10 +20,7 @@ export default function WaiterPortal() {
   const [activeTab, setActiveTab] = useState('pickup');
   const [counts, setCounts] = useState({ pickup: 0, checkout: 0, assistance: 0 });
 
-  const [isClockedIn, setIsClockedIn] = useState(false);
-
   useEffect(() => {
-    checkShiftStatus();
     socket.connect();
     socket.emit('join', { room: 'waiter' });
 
@@ -72,39 +69,6 @@ export default function WaiterPortal() {
     };
   }, [user]);
 
-  const checkShiftStatus = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await api.get(`/employees/${user.id}/hr-data`);
-      const att = res.data.attendance;
-      if (att && att.length > 0 && !att[0].clock_out) {
-        setIsClockedIn(true);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleClockIn = async () => {
-    try {
-      await api.post(`/employees/${user.id}/clock-in`);
-      setIsClockedIn(true);
-      showToast('Clocked in successfully', 'success');
-    } catch (e) {
-      showToast('Failed to clock in', 'error');
-    }
-  };
-
-  const handleClockOut = async () => {
-    try {
-      await api.post(`/employees/${user.id}/clock-out`);
-      setIsClockedIn(false);
-      showToast('Clocked out successfully', 'success');
-    } catch (e) {
-      showToast(e.response?.data?.error || 'Failed to clock out', 'error');
-    }
-  };
-
   return (
     <div className="waiter-layout">
       {/* Header */}
@@ -113,15 +77,6 @@ export default function WaiterPortal() {
           <h2 style={{ fontFamily: 'Outfit', margin: 0, color: 'var(--info)' }}>{user?.name || 'Waiter'}</h2>
         </div>
         <div className="flex align-center gap-md">
-          {!isClockedIn ? (
-            <button className="btn btn-success flex align-center gap-sm btn-sm" onClick={handleClockIn}>
-              <LogIn size={16} /> Clock In
-            </button>
-          ) : (
-            <button className="btn btn-warning flex align-center gap-sm btn-sm" onClick={handleClockOut}>
-              <LogOutIcon size={16} /> Clock Out
-            </button>
-          )}
           <button className="btn btn-icon btn-secondary" onClick={() => speak('Audio notifications enabled.')} title="Enable Audio">
             <Volume2 size={18} />
           </button>

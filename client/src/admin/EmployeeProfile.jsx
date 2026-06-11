@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { ArrowLeft, Phone, Calendar, Briefcase, DollarSign, Plus, Check, X, MapPin, AlertCircle, Clock, FileText } from 'lucide-react';
+import { ArrowLeft, Phone, Calendar, Briefcase, DollarSign, Plus, Check, X, MapPin, AlertCircle, Clock, FileText, LogIn, LogOut as LogOutIcon } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import Modal from '../components/Modal';
 
@@ -124,6 +124,28 @@ export default function EmployeeProfile() {
     }
   };
 
+  const isClockedIn = hrData.attendance && hrData.attendance.length > 0 && !hrData.attendance[0].clock_out;
+
+  const handleClockIn = async () => {
+    try {
+      await api.post(`/employees/${id}/clock-in`);
+      showToast('Clocked in successfully', 'success');
+      fetchData();
+    } catch (e) {
+      showToast('Failed to clock in', 'error');
+    }
+  };
+
+  const handleClockOut = async () => {
+    try {
+      await api.post(`/employees/${id}/clock-out`);
+      showToast('Clocked out successfully', 'success');
+      fetchData();
+    } catch (e) {
+      showToast(e.response?.data?.error || 'Failed to clock out', 'error');
+    }
+  };
+
   if (isLoading && !employee) {
     return <div className="admin-content"><p>Loading...</p></div>;
   }
@@ -148,10 +170,23 @@ export default function EmployeeProfile() {
       {/* Header Card */}
       <div className="card mb-lg" style={{ padding: '24px' }}>
         <div className="flex justify-between align-center mb-md">
-          <h2 style={{ fontSize: 24, margin: 0 }}>{employee.name}</h2>
-          <span className={`badge ${employee.is_active ? 'badge-success' : 'badge-danger'}`}>
-            {employee.is_active ? 'Active' : 'Inactive'}
-          </span>
+          <div className="flex align-center gap-md">
+            <h2 style={{ fontSize: 24, margin: 0 }}>{employee.name}</h2>
+            <span className={`badge ${employee.is_active ? 'badge-success' : 'badge-danger'}`}>
+              {employee.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          <div>
+            {!isClockedIn ? (
+              <button className="btn btn-success flex align-center gap-sm" onClick={handleClockIn}>
+                <LogIn size={16} /> Clock In
+              </button>
+            ) : (
+              <button className="btn btn-warning flex align-center gap-sm" onClick={handleClockOut}>
+                <LogOutIcon size={16} /> Clock Out
+              </button>
+            )}
+          </div>
         </div>
         
         <div className="flex gap-lg flex-wrap text-secondary">

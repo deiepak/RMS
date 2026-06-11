@@ -27,10 +27,7 @@ export default function KitchenPortal() {
   const [requestForm, setRequestForm] = useState({ item_name: '', quantity: '', notes: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [isClockedIn, setIsClockedIn] = useState(false);
-
   useEffect(() => {
-    checkShiftStatus();
     socket.connect();
     socket.emit('join', { room: 'kitchen' });
 
@@ -101,39 +98,6 @@ export default function KitchenPortal() {
     };
   }, [user]);
 
-  const checkShiftStatus = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await api.get(`/employees/${user.id}/hr-data`);
-      const att = res.data.attendance;
-      if (att && att.length > 0 && !att[0].clock_out) {
-        setIsClockedIn(true);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleClockIn = async () => {
-    try {
-      await api.post(`/employees/${user.id}/clock-in`);
-      setIsClockedIn(true);
-      showToast('Clocked in successfully', 'success');
-    } catch (e) {
-      showToast('Failed to clock in', 'error');
-    }
-  };
-
-  const handleClockOut = async () => {
-    try {
-      await api.post(`/employees/${user.id}/clock-out`);
-      setIsClockedIn(false);
-      showToast('Clocked out successfully', 'success');
-    } catch (e) {
-      showToast(e.response?.data?.error || 'Failed to clock out', 'error');
-    }
-  };
-
   return (
     <div className="kitchen-layout">
       {/* Header */}
@@ -143,15 +107,6 @@ export default function KitchenPortal() {
           {user?.station_id && <span className="badge badge-warning">Station Assigned</span>}
         </div>
         <div className="flex align-center gap-md">
-          {!isClockedIn ? (
-            <button className="btn btn-success flex align-center gap-sm btn-sm" onClick={handleClockIn}>
-              <LogIn size={16} /> Clock In
-            </button>
-          ) : (
-            <button className="btn btn-warning flex align-center gap-sm btn-sm" onClick={handleClockOut}>
-              <LogOutIcon size={16} /> Clock Out
-            </button>
-          )}
           <button className="btn btn-primary flex align-center gap-sm btn-sm" onClick={() => setIsRequestModalOpen(true)}>
             <PackagePlus size={16} /> Request Stock
           </button>
