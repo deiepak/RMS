@@ -25,8 +25,12 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
         api.get('/menu?available=true'),
         api.get('/menu/categories')
       ]);
-      setMenuItems(itemsRes.data);
-      setCategories(catsRes.data);
+      
+      const filteredCats = catsRes.data.filter(c => c.name.toLowerCase() !== 'adventures');
+      const filteredItems = itemsRes.data.filter(i => i.category_name?.toLowerCase() !== 'adventures');
+
+      setMenuItems(filteredItems);
+      setCategories(filteredCats);
     } catch (error) {
       showToast('Failed to load menu', 'error');
     }

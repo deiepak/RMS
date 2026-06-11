@@ -9,6 +9,7 @@ import {
   Users,
   Grid3X3,
   ArrowRightLeft,
+  Banknote,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
@@ -143,6 +144,23 @@ export default function TableManagement() {
       showToast('Failed to load active order', 'error');
     } finally {
       setLoadingOrder(false);
+    }
+  };
+
+  const handleQuickCheckout = async (e, table) => {
+    e.stopPropagation();
+    try {
+      setSaving(true);
+      const res = await api.get(`/orders/table/${table.id}/active`);
+      const activeOrder = res.data;
+      if (activeOrder && activeOrder.status !== 'checkout_requested') {
+        await api.patch(`/orders/${activeOrder.id}/status`, { status: 'checkout_requested' });
+      }
+      navigate('/admin/payments');
+    } catch (err) {
+      showToast('Failed to checkout table', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -291,13 +309,23 @@ export default function TableManagement() {
               </div>
               <div className="table-card-actions">
                 {table.status === 'occupied' && (
-                  <button
-                    className="btn btn-icon btn-sm btn-primary"
-                    onClick={() => openShift(table)}
-                    title="Shift Table"
-                  >
-                    <ArrowRightLeft size={16} />
-                  </button>
+                  <>
+                    <button
+                      className="btn btn-icon btn-sm btn-success"
+                      onClick={(e) => handleQuickCheckout(e, table)}
+                      title="Checkout"
+                      disabled={saving}
+                    >
+                      <Banknote size={16} />
+                    </button>
+                    <button
+                      className="btn btn-icon btn-sm btn-primary"
+                      onClick={() => openShift(table)}
+                      title="Shift Table"
+                    >
+                      <ArrowRightLeft size={16} />
+                    </button>
+                  </>
                 )}
                 <button
                   className="btn btn-icon btn-sm"

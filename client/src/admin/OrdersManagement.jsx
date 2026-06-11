@@ -62,6 +62,7 @@ export default function OrdersManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [showAdventureOnly, setShowAdventureOnly] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
   const [printOrderModal, setPrintOrderModal] = useState(null);
@@ -174,7 +175,38 @@ export default function OrdersManagement() {
     window.print();
   };
 
+  const handlePrintKOT = (order) => {
+    const unprintedItems = (order.items || []).filter(i => !i.is_printed && i.status !== 'rejected' && i.status !== 'cancelled');
+    if (unprintedItems.length === 0) {
+      showToast('All items have already been printed for KOT.', 'info');
+      return;
+    }
+    setPrintKOTModal({ order, items: unprintedItems, markPrinted: true });
+  };
+
+  const handleConfirmPrintKOT = async () => {
+    window.print();
+    if (printKOTModal.markPrinted) {
+      try {
+        const itemIds = printKOTModal.items.map(i => i.id || i._id);
+        await api.patch('/orders/items/mark-printed', { itemIds });
+        showToast('Items marked as printed.', 'success');
+        fetchOrders(true);
+      } catch (err) {
+        showToast('Failed to mark items as printed.', 'error');
+      }
+    }
+    setPrintKOTModal(null);
+  };
+
   const filteredOrders = orders.filter((o) => {
+    const isAdventureOrder = 
+      (o.items || []).some(i => i.category_name?.toLowerCase() === 'adventures') ||
+      (o.order_name && o.order_name.toLowerCase().includes('adventure'));
+      
+    if (showAdventureOnly && !isAdventureOrder) return false;
+    if (!showAdventureOnly && isAdventureOrder) return false;
+
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       const tableNum = String(o.table_number || o.tableNumber || o.table?.number || '');
@@ -253,6 +285,19 @@ export default function OrdersManagement() {
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             />
+          </div>
+
+          <div className="form-group flex align-center gap-sm" style={{ paddingLeft: '12px' }}>
+            <input 
+              type="checkbox" 
+              id="adventureToggle"
+              checked={showAdventureOnly}
+              onChange={(e) => setShowAdventureOnly(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <label htmlFor="adventureToggle" style={{ margin: 0, cursor: 'pointer', userSelect: 'none', fontWeight: 600 }}>
+              Adventures Only
+            </label>
           </div>
 
           <button
@@ -342,13 +387,22 @@ export default function OrdersManagement() {
                         </span>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          className="btn btn-secondary btn-sm flex align-center gap-sm" 
-                          onClick={() => setPrintOrderModal(order)}
-                          title="Print Receipt"
-                        >
-                          <Printer size={14} /> Print
-                        </button>
+                        <div className="flex gap-sm">
+                          <button 
+                            className="btn btn-secondary btn-sm flex align-center gap-sm" 
+                            onClick={() => setPrintOrderModal(order)}
+                            title="Print Bill"
+                          >
+                            <Printer size={14} /> Bill
+                          </button>
+                          <button 
+                            className="btn btn-secondary btn-sm flex align-center gap-sm" 
+                            onClick={() => handlePrintKOT(order)}
+                            title="Print unprinted items to KOT"
+                          >
+                            <Printer size={14} /> KOT
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedOrder === (order.id || order._id) && (
@@ -653,7 +707,7 @@ export default function OrdersManagement() {
               <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
             </div>
             
-            <button className="btn btn-primary flex align-center gap-sm" onClick={handlePrint}>
+            <button className="btn btn-primary flex align-center gap-sm" onClick={handleConfirmPrintKOT}>
               <Printer size={18} /> Print KOT
             </button>
           </div>

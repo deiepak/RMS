@@ -113,12 +113,25 @@ router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
     }
 
     // Create payment record
-    await db('payments').insert({
-      order_id: orderId,
-      amount: total,
-      method: payment_method || 'cash',
-      collected_by: req.user?.username || 'Admin'
-    });
+    if (req.body.payments && Array.isArray(req.body.payments)) {
+      for (const p of req.body.payments) {
+        if (p.amount > 0) {
+          await db('payments').insert({
+            order_id: orderId,
+            amount: p.amount,
+            method: p.method,
+            collected_by: req.user?.username || 'Admin'
+          });
+        }
+      }
+    } else {
+      await db('payments').insert({
+        order_id: orderId,
+        amount: total,
+        method: payment_method || 'cash',
+        collected_by: req.user?.username || 'Admin'
+      });
+    }
 
     // Generate adventure tickets for EACH quantity of EACH item
     const tickets = [];

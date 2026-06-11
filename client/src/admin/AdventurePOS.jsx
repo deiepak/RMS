@@ -12,7 +12,7 @@ export default function AdventurePOS() {
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('');
   const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentAmounts, setPaymentAmounts] = useState({ cash: '', online: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ticketModal, setTicketModal] = useState(null);
@@ -79,11 +79,21 @@ export default function AdventurePOS() {
   const handleCheckout = async () => {
     if (cart.length === 0) return showToast('Cart is empty', 'warning');
     
+    const cashAmt = parseFloat(paymentAmounts.cash) || 0;
+    const onlineAmt = parseFloat(paymentAmounts.online) || 0;
+    const currentSum = cashAmt + onlineAmt;
+    if (Math.abs(currentSum - total) > 0.01) {
+      return showToast(`Payment sum (रू ${currentSum}) must match the total (रू ${total}).`, 'warning');
+    }
+
     try {
       setIsProcessing(true);
       const res = await api.post('/adventures/sell', {
         items: cart,
-        payment_method: paymentMethod,
+        payments: [
+          { method: 'cash', amount: cashAmt },
+          { method: 'online', amount: onlineAmt }
+        ],
         customer_name: customerName,
         subtotal,
         discount,
@@ -94,6 +104,7 @@ export default function AdventurePOS() {
       showToast('Payment successful!', 'success');
       setCart([]);
       setCustomerName('');
+      setPaymentAmounts({ cash: '', online: '' });
       fetchStats();
       
       // Open the ticket printing modal
@@ -115,39 +126,91 @@ export default function AdventurePOS() {
   if (isLoading) return <div className="p-lg">Loading adventures...</div>;
 
   return (
-    <div className="p-lg animate-fade-in flex gap-lg" style={{ height: 'calc(100vh - 60px)' }}>
+    <div className="p-lg animate-fade-in flex gap-xl" style={{ height: 'calc(100vh - 60px)' }}>
       {/* Left side: Adventures Grid */}
       <div className="flex-2 flex flex-col">
-        <h2 className="text-xl font-bold mb-md">Sell Adventures</h2>
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', overflowY: 'auto', paddingRight: '10px', paddingBottom: '20px' }}>
+        <div className="flex justify-between align-center mb-lg">
+          <div>
+            <h2 className="text-2xl font-bold m-0" style={{ letterSpacing: '-0.5px' }}>Adventure Passes</h2>
+            <p className="text-secondary m-0 mt-xs">Select passes to add to the customer's cart.</p>
+          </div>
+        </div>
+        
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '24px', overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
           {adventures.map(adv => (
             <div 
               key={adv.id} 
-              className="card cursor-pointer hover-lift"
+              className="card cursor-pointer"
               onClick={() => addToCart(adv)}
-              style={{ border: '1px solid var(--glass-border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+              style={{ 
+                border: '1px solid var(--glass-border)', 
+                borderRadius: '24px',
+                overflow: 'hidden', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                boxShadow: '0 12px 32px rgba(0,0,0,0.06)',
+                background: 'var(--bg-card)',
+                transform: 'translateY(0)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.boxShadow = '0 24px 48px rgba(0,0,0,0.12)';
+                e.currentTarget.style.borderColor = 'var(--primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.06)';
+                e.currentTarget.style.borderColor = 'var(--glass-border)';
+              }}
             >
-              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-secondary)', position: 'relative', flex: 1 }}>
-                 <div style={{ width: 64, height: 64, borderRadius: '16px', backgroundColor: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '16px' }}>
-                    <Ticket size={32} className="text-primary" />
+              <div style={{ padding: '36px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', flex: 1 }}>
+                 <div style={{ 
+                   width: 80, height: 80, 
+                   borderRadius: '50%', 
+                   background: 'linear-gradient(135deg, var(--primary-light), var(--bg-card))',
+                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                   boxShadow: '0 8px 24px rgba(0,0,0,0.08)', 
+                   marginBottom: '24px' 
+                 }}>
+                    <Ticket size={40} style={{ color: 'var(--primary)' }} />
                  </div>
-                 <h4 className="font-bold text-center" style={{ fontSize: '18px', lineHeight: 1.2 }}>{adv.name}</h4>
-                 <p className="text-primary font-bold mt-sm" style={{ fontSize: '16px', backgroundColor: 'var(--primary-light)', padding: '4px 12px', borderRadius: '20px', color: 'var(--primary)' }}>रू {Number(adv.price).toLocaleString()}</p>
+                 <h4 style={{ fontSize: '22px', fontWeight: 800, lineHeight: 1.2, marginBottom: '16px', textAlign: 'center', letterSpacing: '-0.5px' }}>{adv.name}</h4>
+                 <div style={{
+                   fontSize: '18px', 
+                   fontWeight: 800,
+                   color: 'var(--primary)',
+                   padding: '6px 20px', 
+                   borderRadius: '30px', 
+                   backgroundColor: 'var(--primary-light)',
+                   border: '1px solid rgba(255,255,255,0.1)'
+                 }}>
+                   रू {Number(adv.price).toLocaleString()}
+                 </div>
               </div>
               
               {/* Stats Footer */}
-              <div style={{ padding: '12px 16px', background: 'var(--bg-card)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                 <div className="flex flex-col align-center">
-                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sold</span>
-                   <span className="text-primary" style={{ fontSize: '14px' }}>{stats[adv.id]?.sold || 0}</span>
+              <div style={{ 
+                padding: '16px', 
+                background: 'var(--bg-secondary)', 
+                borderTop: '1px solid var(--glass-border)', 
+                display: 'flex', 
+                justifyContent: 'space-around', 
+                alignItems: 'center'
+              }}>
+                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
+                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Sold</span>
+                   <span style={{ fontSize: '16px', fontWeight: 800 }}>{stats[adv.id]?.sold || 0}</span>
                  </div>
-                 <div className="flex flex-col align-center">
-                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Used</span>
-                   <span className="text-success" style={{ fontSize: '14px' }}>{stats[adv.id]?.used || 0}</span>
+                 <div style={{ width: '1px', height: '30px', backgroundColor: 'var(--glass-border)' }}></div>
+                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
+                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Used</span>
+                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--success)' }}>{stats[adv.id]?.used || 0}</span>
                  </div>
-                 <div className="flex flex-col align-center">
-                   <span className="text-secondary" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unused</span>
-                   <span className="text-warning" style={{ fontSize: '14px' }}>{stats[adv.id]?.unused || 0}</span>
+                 <div style={{ width: '1px', height: '30px', backgroundColor: 'var(--glass-border)' }}></div>
+                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
+                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Left</span>
+                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--warning)' }}>{stats[adv.id]?.unused || 0}</span>
                  </div>
               </div>
             </div>
@@ -156,27 +219,32 @@ export default function AdventurePOS() {
       </div>
 
       {/* Right side: Cart */}
-      <div className="flex-1 card flex flex-col" style={{ minWidth: 350 }}>
-        <div className="card-header border-bottom">
-          <h3 className="flex align-center gap-sm">
-            <ShoppingCart size={20} /> Checkout
+      <div className="card flex flex-col" style={{ flex: '0 0 420px', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--glass-border)' }}>
+          <h3 className="flex align-center gap-sm m-0" style={{ fontSize: '20px', fontWeight: 800 }}>
+            <ShoppingCart size={24} style={{ color: 'var(--primary)' }} /> Order Summary
           </h3>
         </div>
-        <div className="card-body flex-1 overflow-y-auto">
+        
+        <div className="card-body flex-1 overflow-y-auto" style={{ padding: '24px' }}>
           {cart.length === 0 ? (
-            <div className="flex-center h-full text-secondary">Cart is empty</div>
+            <div className="flex-center h-full flex-col text-secondary opacity-50" style={{ gap: '16px' }}>
+              <ShoppingCart size={64} />
+              <div style={{ fontSize: '18px', fontWeight: 600 }}>Cart is empty</div>
+              <div style={{ fontSize: '14px' }}>Add adventures from the left to begin.</div>
+            </div>
           ) : (
-            <div className="flex flex-col gap-sm">
+            <div className="flex flex-col gap-md">
               {cart.map(item => (
-                <div key={item.menu_item_id} className="flex justify-between align-center p-sm" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                <div key={item.menu_item_id} className="flex justify-between align-center" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px', border: '1px solid var(--glass-border)' }}>
                   <div>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-secondary" style={{ fontSize: 13 }}>रू {item.price} x {item.quantity}</div>
+                    <div className="font-bold" style={{ fontSize: '16px', marginBottom: '4px' }}>{item.name}</div>
+                    <div className="text-primary font-bold" style={{ fontSize: 14 }}>रू {item.price}</div>
                   </div>
-                  <div className="flex align-center gap-sm">
-                    <button className="btn btn-icon btn-sm" onClick={() => updateQuantity(item.menu_item_id, -1)}>-</button>
-                    <span style={{ width: 20, textAlign: 'center' }}>{item.quantity}</span>
-                    <button className="btn btn-icon btn-sm" onClick={() => updateQuantity(item.menu_item_id, 1)}>+</button>
+                  <div className="flex align-center gap-md" style={{ background: 'var(--bg-card)', padding: '6px', borderRadius: '30px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                    <button className="btn btn-icon" style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-secondary)' }} onClick={() => updateQuantity(item.menu_item_id, -1)}>-</button>
+                    <span style={{ width: 24, textAlign: 'center', fontWeight: 800 }}>{item.quantity}</span>
+                    <button className="btn btn-icon" style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: '#fff' }} onClick={() => updateQuantity(item.menu_item_id, 1)}>+</button>
                   </div>
                 </div>
               ))}
@@ -184,66 +252,90 @@ export default function AdventurePOS() {
           )}
         </div>
         
-        <div className="card-body border-top" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          <div className="form-group mb-md">
-            <div className="flex align-center gap-sm mb-xs">
-              <User size={16} /> <label className="form-label mb-0">Customer Name (Optional)</label>
+        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderTop: '1px solid var(--glass-border)', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+          <div className="form-group mb-lg">
+            <div className="flex align-center gap-sm mb-sm text-secondary font-bold" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <User size={14} /> Customer Details
             </div>
             <input 
               type="text" 
               className="form-input" 
-              placeholder="e.g. John Doe"
+              style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)' }}
+              placeholder="Enter customer name (optional)"
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
             />
           </div>
 
-          <div className="flex justify-between mb-sm text-secondary">
+          <div className="flex justify-between mb-sm text-secondary font-medium">
             <span>Subtotal</span>
             <span>रू {subtotal.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between mb-sm text-secondary">
-            <span>Discount</span>
+          <div className="flex justify-between mb-sm text-secondary font-medium align-center">
+            <span>Discount Amount</span>
             <input 
               type="number" 
               className="form-input" 
-              style={{ width: '100px', padding: '4px', textAlign: 'right' }}
+              style={{ width: '100px', padding: '6px 12px', textAlign: 'right', borderRadius: '8px', border: '1px solid var(--glass-border)' }}
               value={discount || ''}
               onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
               placeholder="0"
             />
           </div>
-          <div className="flex justify-between mb-md text-secondary">
+          <div className="flex justify-between mb-lg text-secondary font-medium">
             <span>Tax ({taxRate}%)</span>
             <span>रू {tax.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between mb-lg font-bold text-lg">
-            <span>Total</span>
-            <span>रू {total.toLocaleString()}</span>
+          
+          <div className="flex justify-between align-center mb-xl" style={{ borderTop: '2px dashed var(--glass-border)', paddingTop: '16px' }}>
+            <span className="font-bold" style={{ fontSize: '18px' }}>Total Amount</span>
+            <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>रू {total.toLocaleString()}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-sm mb-md">
-            <button 
-              className={`btn ${paymentMethod === 'cash' ? 'btn-primary' : 'btn-secondary'} flex-center gap-xs`}
-              onClick={() => setPaymentMethod('cash')}
-            >
-              <Banknote size={18} /> Cash
-            </button>
-            <button 
-              className={`btn ${paymentMethod === 'card' ? 'btn-primary' : 'btn-secondary'} flex-center gap-xs`}
-              onClick={() => setPaymentMethod('card')}
-            >
-              <CreditCard size={18} /> Card / QR
-            </button>
+          <div className="flex-col gap-sm mb-lg">
+            <div className="flex justify-between align-center mb-sm text-secondary font-bold" style={{ fontSize: '14px' }}>
+              <span className="flex align-center gap-sm"><Banknote size={16} /> Cash</span>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ width: '120px', padding: '8px 12px', textAlign: 'right', borderRadius: '8px', border: '1px solid var(--glass-border)' }}
+                placeholder="0"
+                value={paymentAmounts.cash}
+                onChange={(e) => setPaymentAmounts({ ...paymentAmounts, cash: e.target.value })}
+              />
+            </div>
+            <div className="flex justify-between align-center text-secondary font-bold" style={{ fontSize: '14px' }}>
+              <span className="flex align-center gap-sm"><CreditCard size={16} /> Online / Card</span>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ width: '120px', padding: '8px 12px', textAlign: 'right', borderRadius: '8px', border: '1px solid var(--glass-border)' }}
+                placeholder="0"
+                value={paymentAmounts.online}
+                onChange={(e) => setPaymentAmounts({ ...paymentAmounts, online: e.target.value })}
+              />
+            </div>
           </div>
 
           <button 
-            className="btn btn-primary w-full py-md" 
-            style={{ fontSize: 16 }}
+            className="btn btn-primary w-full flex-center justify-center gap-sm" 
+            style={{ 
+              padding: '20px', 
+              fontSize: '18px', 
+              fontWeight: 800, 
+              borderRadius: '16px',
+              boxShadow: '0 8px 24px rgba(var(--primary-rgb), 0.3)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}
             disabled={cart.length === 0 || isProcessing}
             onClick={handleCheckout}
           >
-            {isProcessing ? 'Processing...' : `Pay रू ${total.toLocaleString()}`}
+            {isProcessing ? 'Processing...' : (
+              <>
+                Process Payment <ShoppingCart size={20} />
+              </>
+            )}
           </button>
         </div>
       </div>

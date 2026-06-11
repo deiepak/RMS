@@ -159,8 +159,9 @@ router.get('/', async (req, res) => {
     for (const order of orders) {
       order.items = await db('order_items')
         .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+        .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
         .where('order_items.order_id', order.id)
-        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
+        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.name as category_name');
     }
 
     res.json(orders);
@@ -186,8 +187,9 @@ router.get('/:id', async (req, res) => {
 
     order.items = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('order_items.order_id', order.id)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.name as category_name');
 
     res.json(order);
   } catch (err) {
@@ -282,6 +284,21 @@ router.post('/:id/items', async (req, res) => {
     res.json({ order: updatedOrder, items: fullItems });
   } catch (err) {
     console.error('Add items error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// PATCH /api/orders/items/mark-printed
+router.patch('/items/mark-printed', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { itemIds } = req.body;
+    if (!itemIds || !Array.isArray(itemIds)) {
+      return res.status(400).json({ error: 'itemIds array is required.' });
+    }
+    await db('order_items').whereIn('id', itemIds).update({ is_printed: true });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark printed error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
