@@ -19,6 +19,12 @@ export default function CustomerPortal() {
   const [tableNum, setTableNum] = useState(null);
   const { showToast } = useToast();
   const { settings } = useSettings();
+  const { setTheme } = useTheme();
+
+  // Force light theme on mount for the customer portal
+  useEffect(() => {
+    setTheme('light');
+  }, [setTheme]);
 
   const [customerName, setCustomerName] = useState(sessionStorage.getItem('customerName') || '');
   const [isNameModalOpen, setIsNameModalOpen] = useState(!customerName);
@@ -143,7 +149,7 @@ export default function CustomerPortal() {
       )}
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div id="customer-scroll-container" style={{ flex: 1, overflowY: 'auto' }}>
         {activeTab === 'menu' && (
           <MenuTab 
             tableId={tableId} 

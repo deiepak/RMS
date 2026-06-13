@@ -129,33 +129,43 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
   // Handle smooth scroll to category
   const scrollToCategory = (catId) => {
     setActiveCategory(catId);
+    const container = document.getElementById('customer-scroll-container');
+    if (!container) return;
+
     if (catId === 'all') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      container.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       const el = document.getElementById(`category-${catId}`);
       if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 140; // offset for sticky pill header
-        window.scrollTo({ top: y, behavior: 'smooth' });
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const scrollTop = container.scrollTop;
+        const targetY = (elRect.top - containerRect.top) + scrollTop - 60; // offset for sticky pill header
+        container.scrollTo({ top: targetY, behavior: 'smooth' });
       }
     }
   };
 
   // ScrollSpy effect
   useEffect(() => {
+    const container = document.getElementById('customer-scroll-container');
+    if (!container) return;
+
     const handleScroll = () => {
       // Find which section is currently at the top
-      const scrollPos = window.scrollY;
+      const scrollPos = container.scrollTop;
       if (scrollPos < 100) {
         setActiveCategory('all');
         return;
       }
       
+      const containerRect = container.getBoundingClientRect();
       let currentActive = 'all';
       for (let i = categories.length - 1; i >= 0; i--) {
         const sec = document.getElementById(`category-${categories[i].id}`);
         if (sec) {
           const rect = sec.getBoundingClientRect();
-          if (rect.top <= 160) { // When section title touches sticky header
+          if (rect.top - containerRect.top <= 120) { // When section title touches sticky header
             currentActive = categories[i].id;
             break;
           }
@@ -164,8 +174,8 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
       setActiveCategory(prev => prev !== currentActive ? currentActive : prev);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
   }, [categories]);
 
   return (
