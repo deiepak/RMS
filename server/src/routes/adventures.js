@@ -86,7 +86,7 @@ router.delete('/items/:id', verifyToken, requireRole(['admin']), async (req, res
 // POST /api/adventures/sell
 router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { items, payment_method, customer_name, subtotal, discount, tax, total } = req.body;
+    const { items, payment_method, customer_name, subtotal, discount, tax, total, video_phone } = req.body;
     
     // Create the order
     const [orderId] = await db('orders').insert({
@@ -154,6 +154,16 @@ router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
           purchased_at: new Date()
         });
       }
+    }
+
+    // Insert video tracking if phone provided
+    if (video_phone && video_phone.trim().length === 10) {
+      await db('adventure_videos').insert({
+        order_id: orderId,
+        phone_number: video_phone.trim(),
+        is_sent: false,
+        created_at: db.fn.now()
+      });
     }
 
     res.json({ success: true, orderId, tickets });
@@ -254,6 +264,44 @@ router.get('/stats', verifyToken, requireRole(['admin']), async (req, res) => {
     res.json(formattedStats);
   } catch (err) {
     console.error('Stats error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/adventures/videos
+router.get('/videos', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const videos = await db('adventure_videos')
+      .join('orders', 'adventure_videos.order_id', 'orders.id')
+      .select(
+        'adventure_videos.*',
+        'orders.order_name as customer_name',
+        'orders.total as order_total'
+      )
+      .orderBy('adventure_videos.is_sent', 'asc') // Unsent first
+      .orderBy('adventure_videos.created_at', 'desc');
+    res.json(videos);
+  } catch (err) {
+    console.error('Fetch videos error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH /api/adventures/videos/:id/send
+router.patch('/videos/:id/send', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { is_sent } = req.body;
+    await db('adventure_videos')
+      .where({ id: req.params.id })
+      .update({ 
+        is_sent, 
+        sent_at: is_sent ? db.fn.now() : null 
+      });
+    
+    const updated = await db('adventure_videos').where({ id: req.params.id }).first();
+    res.json(updated);
+  } catch (err) {
+    console.error('Update video error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

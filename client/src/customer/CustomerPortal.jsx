@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { UtensilsCrossed, Clock, Receipt, Headphones } from 'lucide-react';
 import { api } from '../api/client';
@@ -15,7 +15,8 @@ import BillTab from './BillTab';
 export default function CustomerPortal() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const tableNum = searchParams.get('table');
+  const token = searchParams.get('token');
+  const [tableNum, setTableNum] = useState(null);
   const { showToast } = useToast();
   const { settings } = useSettings();
 
@@ -25,35 +26,32 @@ export default function CustomerPortal() {
   const [activeTab, setActiveTab] = useState('menu');
   const [isCheckoutRequested, setIsCheckoutRequested] = useState(false);
   const [tableId, setTableId] = useState(null);
+  const joinRoomRef = useRef(null);
   
   // Cart state stored at portal level so it persists across tabs
   const [cart, setCart] = useState([]);
 
   useEffect(() => {
-    if (!tableNum) {
-      showToast('No table number specified in URL', 'error');
-      // Redirect or show error
+    if (!token) {
+      showToast('No valid QR token found in URL', 'error');
       return;
     }
 
-    // Connect to socket room for this table
-    const joinRoom = () => {
-      socket.emit('join', { room: `table-${tableNum}` });
-    };
-
-    if (socket.connected) {
-      joinRoom();
-    } else {
-      socket.connect();
-    }
-    socket.on('connect', joinRoom);
-
-    api.get('/tables').then(res => {
-      const table = res.data.find(t => String(t.number) === String(tableNum));
+    api.get(`/tables/by-token/${token}`).then(res => {
+      const table = res.data;
       if (table) {
         setTableId(table.id);
+        setTableNum(table.number);
         checkActiveOrder(table.id);
+
+        joinRoomRef.current = () => socket.emit('join', { room: `table-${table.number}` });
+        if (socket.connected) joinRoomRef.current();
+        else socket.connect();
+        
+        socket.on('connect', joinRoomRef.current);
       }
+    }).catch(err => {
+      showToast('Invalid or expired QR code', 'error');
     });
 
     const handleCheckoutRequested = () => {
@@ -68,9 +66,13 @@ export default function CustomerPortal() {
     };
 
     const handleTableShifted = (data) => {
-      if (data.from_table_number === parseInt(tableNum)) {
+      if (tableNum && data.from_table_number === parseInt(tableNum)) {
         showToast(`Your table has been shifted to Table ${data.to_table_number}`, 'info');
-        window.location.href = `?table=${data.to_table_number}`;
+        // We shouldn't redirect directly with ?table= anymore.
+        // The admin might give them a new QR or we can fetch the new token.
+        // For now, we will just reload if needed, but ideally we get the new token.
+        // Since we don't have the new token, we just tell them to scan the new table's QR.
+        window.location.href = `/customer`;
       }
     };
 
@@ -82,9 +84,9 @@ export default function CustomerPortal() {
       unsubscribeFromEvent('order:checkout-requested', handleCheckoutRequested);
       unsubscribeFromEvent('order:payment-collected', handlePaymentCollected);
       unsubscribeFromEvent('table:shifted', handleTableShifted);
-      socket.off('connect', joinRoom);
+      if (joinRoomRef.current) socket.off('connect', joinRoomRef.current);
     };
-  }, [tableNum]);
+  }, [token, tableNum]);
 
   const checkActiveOrder = async (tId) => {
     try {
@@ -116,8 +118,8 @@ export default function CustomerPortal() {
     }
   };
 
-  if (!tableNum) {
-    return <div className="customer-layout flex-center"><h1>Please scan the QR code on your table.</h1></div>;
+  if (!token || !tableNum) {
+    return <div className="customer-layout flex-center"><h1>Please scan the secure QR code on your table.</h1></div>;
   }
 
   return (

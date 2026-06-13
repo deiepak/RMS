@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 
 export default function CounterOrders() {
@@ -22,6 +22,7 @@ export default function CounterOrders() {
   const [orderSearch, setOrderSearch] = useState('');
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     fetchOrders();
@@ -42,6 +43,15 @@ export default function CounterOrders() {
       unsubscribeFromEvent('order:status-update', handleUpdate);
     };
   }, []);
+
+  useEffect(() => {
+    if (location.state?.autoOpenTableId) {
+      setSelectedTableId(location.state.autoOpenTableId.toString());
+      setCustomerName('Admin');
+      setShowAddModal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const fetchOrders = async () => {
     try {
@@ -258,9 +268,10 @@ export default function CounterOrders() {
               <h2>New Counter Order</h2>
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
-            <div className="modal-body flex gap-lg" style={{ maxHeight: '75vh', overflowY: 'auto', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 350px', minWidth: 0 }}>
-                <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
+            <div className="modal-body flex gap-lg" style={{ height: '75vh', overflow: 'hidden' }}>
+              <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ flexShrink: 0 }}>
+                  <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
                   <input 
                     type="text" 
                     className="form-input flex-1" 
@@ -296,7 +307,9 @@ export default function CounterOrders() {
                     </button>
                   </div>
                 </div>
-                {categories.map(cat => {
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+              {categories.map(cat => {
                   const filteredItems = menuItems.filter(m => m.category === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
                   if (filteredItems.length === 0) return null;
                   return (
@@ -319,8 +332,9 @@ export default function CounterOrders() {
                   </div>
                   );
                 })}
+                </div>
               </div>
-              <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px' }}>
+              <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px', height: '100%' }}>
                 <div className="flex justify-between align-center mb-md">
                   <h3 style={{ margin: 0 }}>Order Cart</h3>
                   {cart.length > 0 && (

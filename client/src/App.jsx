@@ -39,6 +39,7 @@ import GeneralSettings from './admin/GeneralSettings';
 import AdventureManagement from './admin/AdventureManagement';
 import AdventurePOS from './admin/AdventurePOS';
 import ScanAdventure from './admin/ScanAdventure';
+import VideoManagement from './admin/VideoManagement';
 
 const App = () => {
   return (
@@ -103,6 +104,7 @@ const App = () => {
                   <Route path="adventures/manage" element={<AdventureManagement />} />
                   <Route path="adventures/sell" element={<AdventurePOS />} />
                   <Route path="adventures/scan" element={<ScanAdventure />} />
+                  <Route path="adventures/videos" element={<VideoManagement />} />
                 </Route>
               </Routes>
             </SocketProvider>

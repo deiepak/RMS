@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
+import Modal from '../components/Modal';
 import '../index.css';
 
 const CHART_COLORS = ['#e94560', '#f5a623', '#00d2ff', '#22c55e', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showData, setShowData] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const { showToast } = useToast();
 
   const fetchData = async () => {
@@ -77,13 +79,16 @@ export default function Dashboard() {
         api.get('/analytics/revenue'),
         api.get('/analytics/popular-items'),
         api.get('/tables'),
-        api.get('/orders?limit=5'),
+        api.get('/orders?status=active,checkout_requested'),
       ]);
       if (ovRes.status === 'fulfilled') setOverview(ovRes.value.data);
-      if (revRes.status === 'fulfilled') setRevenue(revRes.value.data?.data || revRes.value.data || []);
+      if (revRes.status === 'fulfilled') {
+        const revData = revRes.value.data?.data || revRes.value.data || [];
+        setRevenue(revData.map(d => ({ ...d, revenue: Number(d.revenue || 0) })));
+      }
       if (popRes.status === 'fulfilled') setPopular(popRes.value.data?.data || popRes.value.data || []);
       if (tblRes.status === 'fulfilled') setTables(tblRes.value.data?.data || tblRes.value.data || []);
-      if (ordRes.status === 'fulfilled') setOrders((ordRes.value.data?.data || ordRes.value.data || []).slice(0, 5));
+      if (ordRes.status === 'fulfilled') setOrders((ordRes.value.data?.data || ordRes.value.data || []));
     } catch (err) {
       showToast('Failed to load dashboard data', 'error');
     } finally {
@@ -96,6 +101,8 @@ export default function Dashboard() {
   }, []);
 
   const ov = overview?.data || overview || {};
+  const occupiedTables = tables.filter(t => t.status === 'occupied').length;
+  const totalTables = tables.length;
 
   const getStatusClass = (status) => {
     switch (status?.toLowerCase()) {
@@ -131,13 +138,24 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="stats-grid">
-        <StatCard
-          icon={DollarSign}
-          label="Today's Revenue"
-          value={showData ? formatCurrency(ov.todayRevenue || ov.totalRevenue || 0) : '***'}
-          color="#22c55e"
-          loading={loading}
-        />
+        <div className="stat-card" style={{ '--accent': '#22c55e', flexDirection: 'column', alignItems: 'flex-start', padding: '16px' }}>
+          <div className="flex align-center gap-sm" style={{ width: '100%' }}>
+            <div className="stat-icon" style={{ background: `#22c55e20`, color: '#22c55e' }}>
+              <DollarSign size={24} />
+            </div>
+            <div>
+              <div className="stat-value">{loading ? '—' : (showData ? formatCurrency(ov.todayRevenue || ov.totalRevenue || 0) : '***')}</div>
+              <div className="stat-label">Today's Revenue</div>
+            </div>
+          </div>
+          {showData && ov.revenueBreakdown && (
+            <div className="flex gap-md" style={{ marginTop: '16px', fontSize: '13px', width: '100%', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+              <div><span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Cash:</span> {formatCurrency(ov.revenueBreakdown.cash)}</div>
+              <div><span style={{ color: 'var(--info)', fontWeight: 'bold' }}>Online:</span> {formatCurrency(ov.revenueBreakdown.online)}</div>
+              <div><span style={{ color: 'var(--warning)', fontWeight: 'bold' }}>Card:</span> {formatCurrency(ov.revenueBreakdown.card)}</div>
+            </div>
+          )}
+        </div>
         <StatCard
           icon={ShoppingBag}
           label="Active Orders"
@@ -167,7 +185,7 @@ export default function Dashboard() {
         {/* Quadrant 1: Table Status Grid */}
         <div className="card">
           <div className="card-header">
-            <h3><Grid3X3 size={18} /> Table Status</h3>
+            <h3><Grid3X3 size={18} /> Table Status ({occupiedTables}/{totalTables} Occupied)</h3>
           </div>
           <div className="card-body">
             {loading ? (
@@ -225,7 +243,13 @@ export default function Dashboard() {
                     {orders.map((o) => (
                       <tr key={o.id || o._id}>
                         <td>#{String(o.id || o._id || '').padStart(5, '0').toUpperCase()}</td>
-                        <td>{o.table_number || o.tableNumber || o.table?.number || '—'}</td>
+                        <td 
+                          className="text-primary" 
+                          style={{ cursor: 'pointer', textDecoration: 'underline' }} 
+                          onClick={() => setSelectedOrder(o)}
+                        >
+                          {o.table_number || o.tableNumber || o.table?.number || '—'}
+                        </td>
                         <td>{showData ? formatCurrency(o.totalAmount || o.total) : '***'}</td>
                         <td>
                           <span className={getOrderBadge(o.status)}>
@@ -298,7 +322,7 @@ export default function Dashboard() {
               <SkeletonChart />
             ) : revenue.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={revenue}>
+                <LineChart data={revenue} margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis 
                     dataKey="date" 
@@ -310,6 +334,7 @@ export default function Dashboard() {
                     tick={{ fontSize: 12 }} 
                     stroke="var(--text-secondary)" 
                     hide={!showData} 
+                    domain={[0, dataMax => Math.max(Math.ceil(dataMax * 1.1), 100)]}
                   />
                   {showData && (
                     <Tooltip
@@ -329,6 +354,7 @@ export default function Dashboard() {
                     strokeWidth={3}
                     dot={{ r: 4, fill: CHART_COLORS[0] }}
                     activeDot={{ r: 6 }}
+                    connectNulls={true}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -338,6 +364,42 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <Modal title={`Order Details (Table ${selectedOrder.table_number || '—'})`} onClose={() => setSelectedOrder(null)}>
+          <div className="flex-col gap-md p-md">
+            <h4 style={{ margin: 0 }}>Items for Order #{selectedOrder.id}</h4>
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedOrder.items || []).map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item.item_name || item.name || 'Item'}</td>
+                      <td>{item.quantity}</td>
+                      <td>
+                        <span className={`badge ${item.status === 'delivered' || item.status === 'prepared' ? 'badge-success' : 'badge-warning'}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {(!selectedOrder.items || selectedOrder.items.length === 0) && (
+                <div className="text-center text-muted p-md">No items found</div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

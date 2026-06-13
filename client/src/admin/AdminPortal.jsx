@@ -50,6 +50,7 @@ const NAV_CATEGORIES = [
       { to: '/admin/adventures/sell', icon: Compass, label: 'Sell Adventure' },
       { to: '/admin/adventures/scan', icon: Compass, label: 'Scan Adventure' },
       { to: '/admin/adventures/manage', icon: Compass, label: 'Manage Adventures' },
+      { to: '/admin/adventures/videos', icon: Compass, label: 'Video Requests' },
     ]
   },
   {
@@ -101,6 +102,7 @@ const SECTION_TITLES = {
   '/admin/communication': 'Communication',
   '/admin/counter': 'Counter Orders',
   '/admin/packages': 'Packages',
+  '/admin/adventures/videos': 'Video Requests',
 };
 
 export default function AdminPortal() {

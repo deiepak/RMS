@@ -19,6 +19,9 @@ app.set('io', io);
 app.use(cors());
 app.use(express.json());
 
+// Serve uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Socket handlers
 require('./socket/handlers')(io);
 

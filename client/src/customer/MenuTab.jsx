@@ -106,9 +106,8 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
   // Filtering & Sorting
   let filteredItems = [...menuItems];
   
-  if (activeCategory !== 'all') {
-    filteredItems = filteredItems.filter(i => i.category_id === activeCategory);
-  }
+  // We no longer filter by activeCategory because we use scroll spy
+  // if (activeCategory !== 'all') { ... }
   
   if (isVegOnly) {
     filteredItems = filteredItems.filter(i => i.is_veg);
@@ -126,6 +125,48 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
 
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Handle smooth scroll to category
+  const scrollToCategory = (catId) => {
+    setActiveCategory(catId);
+    if (catId === 'all') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const el = document.getElementById(`category-${catId}`);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 140; // offset for sticky pill header
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // ScrollSpy effect
+  useEffect(() => {
+    const handleScroll = () => {
+      // Find which section is currently at the top
+      const scrollPos = window.scrollY;
+      if (scrollPos < 100) {
+        setActiveCategory('all');
+        return;
+      }
+      
+      let currentActive = 'all';
+      for (let i = categories.length - 1; i >= 0; i--) {
+        const sec = document.getElementById(`category-${categories[i].id}`);
+        if (sec) {
+          const rect = sec.getBoundingClientRect();
+          if (rect.top <= 160) { // When section title touches sticky header
+            currentActive = categories[i].id;
+            break;
+          }
+        }
+      }
+      setActiveCategory(prev => prev !== currentActive ? currentActive : prev);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categories]);
 
   return (
     <div>
@@ -148,22 +189,27 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
         </div>
       </div>
 
-      <div className="category-strip">
+      <div className="category-strip" style={{ position: 'sticky', top: '0px', zIndex: 50 }}>
         <div 
           className={`category-pill ${activeCategory === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveCategory('all')}
+          onClick={() => scrollToCategory('all')}
         >
           All
         </div>
-        {categories.map(cat => (
-          <div 
-            key={cat.id}
-            className={`category-pill ${activeCategory === cat.id ? 'active' : ''}`}
-            onClick={() => setActiveCategory(cat.id)}
-          >
-            {cat.name}
-          </div>
-        ))}
+        {categories.map(cat => {
+          // only show pills for categories that have items matching the current search/veg filter
+          const hasItems = filteredItems.some(i => i.category_id === cat.id);
+          if (!hasItems) return null;
+          return (
+            <div 
+              key={cat.id}
+              className={`category-pill ${activeCategory === cat.id ? 'active' : ''}`}
+              onClick={() => scrollToCategory(cat.id)}
+            >
+              {cat.name}
+            </div>
+          );
+        })}
       </div>
 
       {isCheckoutRequested && (
@@ -177,50 +223,84 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
         </div>
       )}
 
-      <div className="menu-grid">
-        {filteredItems.map(item => {
-          const cartItem = cart.find(i => i.id === item.id);
-          return (
-            <div key={item.id} className="sleek-menu-card">
-              <div className="sleek-menu-image-container">
-                {item.image_url && <img src={item.image_url} alt={item.name} className="sleek-menu-image" onError={(e) => { e.target.style.display = 'none'; }} />}
-                <div className="sleek-menu-gradient"></div>
-                <div className="sleek-badge-container">
-                  <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'}></div>
+      <div className="menu-sections">
+        {(() => {
+          const catsToRender = categories.filter(c => filteredItems.some(i => i.category_id === c.id));
+          
+          if (catsToRender.length === 0) {
+            return (
+              <div className="text-center text-secondary p-xl" style={{ marginTop: '40px' }}>
+                No items found
+              </div>
+            );
+          }
+
+          return catsToRender.map(cat => {
+            const itemsInCat = filteredItems.filter(i => i.category_id === cat.id);
+            return (
+              <div key={cat.id} className="menu-category-section" id={`category-${cat.id}`} style={{ scrollMarginTop: '160px', paddingBottom: '20px' }}>
+                <h2 className="sticky-category-header" style={{
+                  position: 'sticky',
+                  top: '55px',
+                  zIndex: 40,
+                  background: 'var(--bg-primary)',
+                  padding: '16px 20px',
+                  margin: '0 -20px 20px -20px',
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  borderBottom: '1px solid var(--border)'
+                }}>
+                  {cat.name}
+                </h2>
+                <div className="menu-grid">
+                  {itemsInCat.map(item => {
+                    const cartItem = cart.find(i => i.id === item.id);
+                    return (
+                      <div key={item.id} className="sleek-menu-card">
+                        <div className="sleek-menu-image-container">
+                          {item.image_url && <img src={item.image_url} alt={item.name} className="sleek-menu-image" onError={(e) => { e.target.style.display = 'none'; }} />}
+                          <div className="sleek-menu-gradient"></div>
+                          <div className="sleek-badge-container">
+                            <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'}></div>
+                          </div>
+                        </div>
+                        
+                        {!cartItem && !isCheckoutRequested && (
+                          <button className="sleek-add-btn" onClick={() => addToCart(item)}>
+                            <Plus size={18} />
+                          </button>
+                        )}
+                        
+                        <div className="sleek-menu-body">
+                          <div>
+                            <div className="sleek-menu-title">{item.name}</div>
+                            {item.name_np && <div className="sleek-menu-subtitle">{item.name_np}</div>}
+                          </div>
+                          <div className="sleek-menu-desc">{item.description}</div>
+                          
+                          <div className="sleek-menu-footer">
+                            <div className="sleek-menu-price">{formatCurrency(item.price)}</div>
+                            {cartItem && (
+                              <div className="sleek-qty-stepper">
+                                <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}>
+                                  <Minus size={14} />
+                                </button>
+                                <span className="sleek-qty-val">{cartItem.quantity}</span>
+                                <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}>
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              
-              {!cartItem && !isCheckoutRequested && (
-                <button className="sleek-add-btn" onClick={() => addToCart(item)}>
-                  <Plus size={18} />
-                </button>
-              )}
-              
-              <div className="sleek-menu-body">
-                <div>
-                  <div className="sleek-menu-title">{item.name}</div>
-                  {item.name_np && <div className="sleek-menu-subtitle">{item.name_np}</div>}
-                </div>
-                <div className="sleek-menu-desc">{item.description}</div>
-                
-                <div className="sleek-menu-footer">
-                  <div className="sleek-menu-price">{formatCurrency(item.price)}</div>
-                  {cartItem && (
-                    <div className="sleek-qty-stepper">
-                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}>
-                        <Minus size={14} />
-                      </button>
-                      <span className="sleek-qty-val">{cartItem.quantity}</span>
-                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
       </div>
 
       {/* Cart Summary Bar */}

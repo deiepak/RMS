@@ -15,6 +15,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/tables/by-token/:token
+router.get('/by-token/:token', async (req, res) => {
+  try {
+    const table = await db('restaurant_tables').where({ qr_token: req.params.token }).first();
+    if (!table) {
+      return res.status(404).json({ error: 'Invalid or expired QR code.' });
+    }
+    res.json(table);
+  } catch (err) {
+    console.error('Table by-token error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // POST /api/tables (admin)
 router.post('/', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
@@ -23,8 +37,11 @@ router.post('/', verifyToken, requireRole(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'Table number is required.' });
     }
 
+    const crypto = require('crypto');
+    const qr_token = crypto.randomUUID();
+
     const [id] = await db('restaurant_tables').insert({
-      number, capacity: capacity || 4, section: section || null,
+      number, capacity: capacity || 4, section: section || null, qr_token
     });
 
     const table = await db('restaurant_tables').where({ id }).first();
@@ -55,6 +72,25 @@ router.put('/:id', verifyToken, requireRole(['admin']), async (req, res) => {
     res.json(table);
   } catch (err) {
     console.error('Table update error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// PATCH /api/tables/:id/refresh-token (admin)
+router.patch('/:id/refresh-token', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const qr_token = crypto.randomUUID();
+    
+    const count = await db('restaurant_tables').where({ id: req.params.id }).update({ qr_token, updated_at: db.fn.now() });
+    if (count === 0) {
+      return res.status(404).json({ error: 'Table not found.' });
+    }
+    
+    const table = await db('restaurant_tables').where({ id: req.params.id }).first();
+    res.json(table);
+  } catch (err) {
+    console.error('Table refresh-token error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

@@ -1,6 +1,20 @@
 const express = require('express');
 const db = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../../uploads/menu'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
@@ -104,19 +118,30 @@ router.delete('/categories/:id', verifyToken, requireRole(['admin']), async (req
 });
 
 // POST /api/menu/items - create item (admin)
-router.post('/items', verifyToken, requireRole(['admin']), async (req, res) => {
+router.post('/items', verifyToken, requireRole(['admin']), upload.single('image'), async (req, res) => {
   try {
-    const { category_id, name, name_np, description, description_np, price, image_url, is_veg, is_available, sort_order, station_ids } = req.body;
-    if (!category_id || !name || price === undefined) {
-      return res.status(400).json({ error: 'category_id, name, and price are required.' });
+    const { category_id, name, name_np, description, description_np, price, is_veg, is_available, sort_order, station_ids } = req.body;
+    
+    const _price = parseFloat(price);
+    const _is_veg = is_veg === 'true' || is_veg === true;
+    const _is_available = is_available === 'false' ? false : true;
+    const _sort_order = parseInt(sort_order) || 0;
+
+    let image_url = req.body.image_url || null;
+    if (req.file) {
+      image_url = `/uploads/menu/${req.file.filename}`;
+    }
+
+    if (!category_id || !name || isNaN(_price)) {
+      return res.status(400).json({ error: 'category_id, name, and valid price are required.' });
     }
 
     const [id] = await db('menu_items').insert({
       category_id, name, name_np, description, description_np,
-      price, image_url, is_veg: is_veg || false,
-      is_available: is_available !== undefined ? is_available : true,
-      sort_order: sort_order || 0,
-      station_ids: station_ids ? JSON.stringify(station_ids) : '[]',
+      price: _price, image_url, is_veg: _is_veg,
+      is_available: _is_available,
+      sort_order: _sort_order,
+      station_ids: station_ids ? (typeof station_ids === 'string' ? station_ids : JSON.stringify(station_ids)) : '[]',
     });
 
     const item = await db('menu_items').where({ id }).first();
@@ -128,15 +153,31 @@ router.post('/items', verifyToken, requireRole(['admin']), async (req, res) => {
 });
 
 // PUT /api/menu/items/:id - update item (admin)
-router.put('/items/:id', verifyToken, requireRole(['admin']), async (req, res) => {
+router.put('/items/:id', verifyToken, requireRole(['admin']), upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-    delete updates.id;
-    delete updates.created_at;
-    if (updates.station_ids !== undefined) {
-      updates.station_ids = updates.station_ids ? JSON.stringify(updates.station_ids) : '[]';
+    
+    const validColumns = ['category_id', 'name', 'name_np', 'description', 'description_np', 'price', 'is_veg', 'is_available', 'sort_order'];
+    const updates = {};
+    for (const key of validColumns) {
+      if (req.body[key] !== undefined) {
+        if (key === 'price') updates[key] = parseFloat(req.body[key]);
+        else if (key === 'is_veg' || key === 'is_available') updates[key] = (req.body[key] === 'true' || req.body[key] === true);
+        else if (key === 'sort_order') updates[key] = parseInt(req.body[key]) || 0;
+        else updates[key] = req.body[key];
+      }
     }
+
+    if (req.body.station_ids !== undefined) {
+      updates.station_ids = typeof req.body.station_ids === 'string' ? req.body.station_ids : JSON.stringify(req.body.station_ids);
+    }
+
+    if (req.file) {
+      updates.image_url = `/uploads/menu/${req.file.filename}`;
+    } else if (req.body.image_url !== undefined && req.body.image_url !== 'null' && req.body.image_url !== '') {
+      updates.image_url = req.body.image_url;
+    }
+
     updates.updated_at = db.fn.now();
 
     const count = await db('menu_items').where({ id }).update(updates);

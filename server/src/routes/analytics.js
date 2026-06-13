@@ -11,9 +11,20 @@ router.get('/overview', async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [revenue] = await db('payments')
+    const revenueMethods = await db('payments')
       .where('created_at', '>=', today)
-      .sum('amount as total');
+      .select('method')
+      .sum('amount as total')
+      .groupBy('method');
+
+    const revenueBreakdown = { cash: 0, online: 0, card: 0, total: 0 };
+    revenueMethods.forEach(r => {
+      const amt = parseFloat(r.total || 0);
+      if (r.method === 'online') revenueBreakdown.online += amt;
+      else if (r.method === 'card') revenueBreakdown.card += amt;
+      else revenueBreakdown.cash += amt;
+      revenueBreakdown.total += amt;
+    });
 
     const [orders] = await db('orders')
       .where('created_at', '>=', today)
@@ -28,7 +39,8 @@ router.get('/overview', async (req, res) => {
       .sum('quantity as count');
 
     res.json({
-      todayRevenue: revenue.total || 0,
+      todayRevenue: revenueBreakdown.total || 0,
+      revenueBreakdown,
       activeOrders: orders.count || 0,
       tablesOccupied: tables.count || 0,
       itemsServed: items.count || 0

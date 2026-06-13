@@ -173,7 +173,7 @@ export default function BillTab({ tableId, setIsCheckoutRequested }) {
                   }}>
                     <td style={{ padding: '12px 0' }}>
                       <div className="flex align-center gap-xs">
-                        <span style={{ fontWeight: 500 }}>{item.menu_item_name}</span>
+                        <span style={{ fontWeight: 500 }}>{item.item_name || item.name || 'Item'}</span>
                         {isCancelled && <span className="badge badge-danger" style={{ fontSize: 10, padding: '2px 4px' }}>CANCELLED</span>}
                       </div>
                       <div className="text-secondary" style={{ fontSize: 12 }}>{item.customer_name}</div>

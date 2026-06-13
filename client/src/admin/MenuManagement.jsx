@@ -21,7 +21,7 @@ export default function MenuManagement() {
 
   const [itemForm, setItemForm] = useState({
     name: '', name_np: '', description: '', description_np: '',
-    category_id: '', station_ids: [], price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
+    category_id: '', station_ids: [], price: '', image_url: '', image_file: null, is_veg: true, is_available: true, sort_order: 0
   });
 
   const [catForm, setCatForm] = useState({ name: '', name_np: '', sort_order: 0 });
@@ -54,12 +54,31 @@ export default function MenuManagement() {
       showToast('Name, Category, and Price are required', 'error');
       return;
     }
+    
+    const formData = new FormData();
+    formData.append('name', itemForm.name);
+    formData.append('name_np', itemForm.name_np || '');
+    formData.append('description', itemForm.description || '');
+    formData.append('description_np', itemForm.description_np || '');
+    formData.append('category_id', itemForm.category_id);
+    formData.append('price', itemForm.price);
+    formData.append('is_veg', itemForm.is_veg);
+    formData.append('is_available', itemForm.is_available);
+    formData.append('sort_order', itemForm.sort_order);
+    if (itemForm.station_ids) formData.append('station_ids', JSON.stringify(itemForm.station_ids));
+    
+    if (itemForm.image_file) {
+      formData.append('image', itemForm.image_file);
+    } else if (itemForm.image_url) {
+      formData.append('image_url', itemForm.image_url);
+    }
+
     try {
       if (editingItem) {
-        await api.put(`/menu/items/${editingItem.id}`, itemForm);
+        await api.put(`/menu/items/${editingItem.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
         showToast('Item updated successfully', 'success');
       } else {
-        await api.post('/menu/items', itemForm);
+        await api.post('/menu/items', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
         showToast('Item created successfully', 'success');
       }
       setIsItemModalOpen(false);
@@ -95,12 +114,12 @@ export default function MenuManagement() {
   const openItemModal = (item = null) => {
     if (item) {
       setEditingItem(item);
-      setItemForm(item);
+      setItemForm({ ...item, image_file: null });
     } else {
       setEditingItem(null);
       setItemForm({
         name: '', name_np: '', description: '', description_np: '',
-        category_id: categories[0]?.id || '', station_ids: [], price: '', image_url: '', is_veg: true, is_available: true, sort_order: 0
+        category_id: categories[0]?.id || '', station_ids: [], price: '', image_url: '', image_file: null, is_veg: true, is_available: true, sort_order: 0
       });
     }
     setIsItemModalOpen(true);
@@ -216,7 +235,7 @@ export default function MenuManagement() {
                   <td style={{ padding: '16px 20px' }}>
                     <div className="flex align-center gap-md">
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                        <img src={item.image_url.startsWith('http') ? item.image_url : `http://localhost:3001${item.image_url}`} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                       ) : (
                         <div className="stat-icon flex justify-center align-center bg-tertiary text-secondary" style={{ width: 48, height: 48, borderRadius: 10 }}>
                           <ImageIcon size={24} />
@@ -506,15 +525,23 @@ export default function MenuManagement() {
           </div>
         </div>
         <div className="form-group mb-md">
-          <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Image URL</label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="https://example.com/image.jpg"
-            value={itemForm.image_url} 
-            onChange={e => setItemForm({...itemForm, image_url: e.target.value})} 
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-          />
+          <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Upload Image</label>
+          <div className="flex align-center gap-md">
+            {(itemForm.image_file || itemForm.image_url) && (
+              <img 
+                src={itemForm.image_file ? URL.createObjectURL(itemForm.image_file) : itemForm.image_url.startsWith('http') ? itemForm.image_url : `http://localhost:3001${itemForm.image_url}`} 
+                alt="Preview" 
+                style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover' }} 
+              />
+            )}
+            <input 
+              type="file" 
+              accept="image/*"
+              className="form-input flex-1" 
+              onChange={e => setItemForm({...itemForm, image_file: e.target.files[0]})} 
+              style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+            />
+          </div>
         </div>
         <div className="flex gap-lg mt-md" style={{ padding: '15px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <label className="flex align-center gap-sm" style={{ cursor: 'pointer', fontWeight: 500 }}>

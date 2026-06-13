@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, User, Ticket, CreditCard, Banknote, Printer } from 'lucide-react';
+import { ShoppingCart, User, Ticket, CreditCard, Banknote, Printer, Plus } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
@@ -11,6 +11,7 @@ export default function AdventurePOS() {
   const [stats, setStats] = useState({});
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('');
+  const [videoPhone, setVideoPhone] = useState('');
   const [discount, setDiscount] = useState(0);
   const [paymentAmounts, setPaymentAmounts] = useState({ cash: '', online: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +87,10 @@ export default function AdventurePOS() {
       return showToast(`Payment sum (रू ${currentSum}) must match the total (रू ${total}).`, 'warning');
     }
 
+    if (videoPhone && videoPhone.trim().length !== 10) {
+      return showToast('Phone number for video must be exactly 10 digits.', 'warning');
+    }
+
     try {
       setIsProcessing(true);
       const res = await api.post('/adventures/sell', {
@@ -95,6 +100,7 @@ export default function AdventurePOS() {
           { method: 'online', amount: onlineAmt }
         ],
         customer_name: customerName,
+        video_phone: videoPhone,
         subtotal,
         discount,
         tax,
@@ -104,6 +110,8 @@ export default function AdventurePOS() {
       showToast('Payment successful!', 'success');
       setCart([]);
       setCustomerName('');
+      setVideoPhone('');
+      setDiscount(0);
       setPaymentAmounts({ cash: '', online: '' });
       fetchStats();
       
@@ -136,82 +144,68 @@ export default function AdventurePOS() {
           </div>
         </div>
         
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '24px', overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
+        <div className="flex flex-col gap-sm" style={{ overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
           {adventures.map(adv => (
             <div 
               key={adv.id} 
-              className="card cursor-pointer"
+              className="card cursor-pointer flex align-center justify-between"
               onClick={() => addToCart(adv)}
               style={{ 
+                padding: '12px 16px',
                 border: '1px solid var(--glass-border)', 
-                borderRadius: '24px',
-                overflow: 'hidden', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                boxShadow: '0 12px 32px rgba(0,0,0,0.06)',
+                borderRadius: '16px',
+                transition: 'all 0.2s', 
                 background: 'var(--bg-card)',
-                transform: 'translateY(0)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-6px)';
-                e.currentTarget.style.boxShadow = '0 24px 48px rgba(0,0,0,0.12)';
                 e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.style.background = 'var(--bg-secondary)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.06)';
                 e.currentTarget.style.borderColor = 'var(--glass-border)';
+                e.currentTarget.style.background = 'var(--bg-card)';
               }}
             >
-              <div style={{ padding: '36px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', flex: 1 }}>
-                 <div style={{ 
-                   width: 80, height: 80, 
-                   borderRadius: '50%', 
-                   background: 'linear-gradient(135deg, var(--primary-light), var(--bg-card))',
-                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                   boxShadow: '0 8px 24px rgba(0,0,0,0.08)', 
-                   marginBottom: '24px' 
-                 }}>
-                    <Ticket size={40} style={{ color: 'var(--primary)' }} />
-                 </div>
-                 <h4 style={{ fontSize: '22px', fontWeight: 800, lineHeight: 1.2, marginBottom: '16px', textAlign: 'center', letterSpacing: '-0.5px' }}>{adv.name}</h4>
-                 <div style={{
-                   fontSize: '18px', 
-                   fontWeight: 800,
-                   color: 'var(--primary)',
-                   padding: '6px 20px', 
-                   borderRadius: '30px', 
-                   backgroundColor: 'var(--primary-light)',
-                   border: '1px solid rgba(255,255,255,0.1)'
-                 }}>
-                   रू {Number(adv.price).toLocaleString()}
-                 </div>
+              <div className="flex align-center gap-md" style={{ flex: '1 1 40%' }}>
+                <div style={{ 
+                  width: 40, height: 40, 
+                  borderRadius: '10px', 
+                  background: 'var(--primary-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                }}>
+                  <Ticket size={20} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.3px' }}>{adv.name}</div>
+                  <div style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: 700 }}>रू {Number(adv.price).toLocaleString()}</div>
+                </div>
               </div>
-              
-              {/* Stats Footer */}
-              <div style={{ 
-                padding: '16px', 
-                background: 'var(--bg-secondary)', 
-                borderTop: '1px solid var(--glass-border)', 
-                display: 'flex', 
-                justifyContent: 'space-around', 
-                alignItems: 'center'
-              }}>
-                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
-                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Sold</span>
-                   <span style={{ fontSize: '16px', fontWeight: 800 }}>{stats[adv.id]?.sold || 0}</span>
-                 </div>
-                 <div style={{ width: '1px', height: '30px', backgroundColor: 'var(--glass-border)' }}></div>
-                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
-                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Used</span>
-                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--success)' }}>{stats[adv.id]?.used || 0}</span>
-                 </div>
-                 <div style={{ width: '1px', height: '30px', backgroundColor: 'var(--glass-border)' }}></div>
-                 <div className="flex flex-col align-center" style={{ flex: 1 }}>
-                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>Left</span>
-                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--warning)' }}>{stats[adv.id]?.unused || 0}</span>
-                 </div>
+
+              <div className="flex align-center gap-lg justify-center" style={{ flex: '1 1 40%' }}>
+                <div className="flex flex-col align-center">
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>Sold</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800 }}>{stats[adv.id]?.sold || 0}</span>
+                </div>
+                <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
+                <div className="flex flex-col align-center">
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>Used</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--success)' }}>{stats[adv.id]?.used || 0}</span>
+                </div>
+                <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
+                <div className="flex flex-col align-center">
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>Left</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--warning)' }}>{stats[adv.id]?.unused || 0}</span>
+                </div>
+              </div>
+
+              <div style={{ flex: '0 0 auto', paddingLeft: '16px' }}>
+                <div style={{ 
+                  width: 32, height: 32, borderRadius: '50%', 
+                  background: 'var(--primary)', color: '#fff', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                }}>
+                  <Plus size={16} />
+                </div>
               </div>
             </div>
           ))}
@@ -260,10 +254,18 @@ export default function AdventurePOS() {
             <input 
               type="text" 
               className="form-input" 
-              style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)' }}
+              style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)', marginBottom: '10px' }}
               placeholder="Enter customer name (optional)"
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
+            />
+            <input 
+              type="text" 
+              className="form-input" 
+              style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)' }}
+              placeholder="Optional Phone (For Video)"
+              value={videoPhone}
+              onChange={e => setVideoPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
             />
           </div>
 

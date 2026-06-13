@@ -10,6 +10,7 @@ import {
   Grid3X3,
   ArrowRightLeft,
   Banknote,
+  RefreshCw,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
@@ -90,6 +91,23 @@ export default function TableManagement() {
       fetchTables();
     } catch (err) {
       showToast('Failed to delete table', 'error');
+    }
+  };
+
+  const handleRefreshQrToken = async (tableId) => {
+    try {
+      setSaving(true);
+      const res = await api.patch(`/tables/${tableId}/refresh-token`);
+      showToast('QR Token refreshed securely', 'success');
+      // Update qrTable if open
+      if (qrTable && qrTable.id === tableId) {
+        setQrTable({ ...qrTable, qr_token: res.data.qr_token });
+      }
+      fetchTables();
+    } catch (err) {
+      showToast('Failed to refresh QR token', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -307,6 +325,22 @@ export default function TableManagement() {
                   <span>{table.section || 'Main Hall'}</span>
                 </div>
               </div>
+              <div className="table-card-admin-actions p-sm flex gap-sm" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)', borderRadius: '0 0 var(--radius) var(--radius)' }}>
+                <button 
+                  className="btn btn-primary btn-sm flex-1" 
+                  onClick={(e) => { e.stopPropagation(); navigate('/admin/counter', { state: { autoOpenTableId: table.id } }) }}
+                >
+                  Order by Admin
+                </button>
+                {table.status === 'occupied' && (
+                  <button 
+                    className="btn btn-success btn-sm flex-1" 
+                    onClick={(e) => handleQuickCheckout(e, table)}
+                  >
+                    Proceed to Payment
+                  </button>
+                )}
+              </div>
               <div className="table-card-actions">
                 {table.status === 'occupied' && (
                   <>
@@ -487,7 +521,7 @@ export default function TableManagement() {
             </div>
             <div className="modal-body text-center" ref={qrRef}>
               <QRCodeSVG
-                value={`${window.location.origin}/customer?table=${qrTable.number}`}
+                value={`${window.location.origin}/customer?token=${qrTable.qr_token}`}
                 size={220}
                 level="H"
                 includeMargin
@@ -498,8 +532,16 @@ export default function TableManagement() {
                 {qrTable.number}
               </p>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Scan to order from this table
+                Scan to order securely from this table
               </p>
+              <button 
+                className="btn btn-sm" 
+                style={{ marginTop: '1rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}
+                onClick={() => handleRefreshQrToken(qrTable.id)}
+                disabled={saving}
+              >
+                <RefreshCw size={14} /> Regenerate QR Token
+              </button>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setQrTable(null)}>Close</button>

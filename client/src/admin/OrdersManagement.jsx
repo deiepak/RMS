@@ -666,45 +666,89 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT / WAITER TICKET</h2>
+              {/* KOT Copy 1 (Kitchen) */}
+              <div style={{ pageBreakAfter: 'always', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (KITCHEN)</h2>
+                </div>
+                <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+                  <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printKOTModal.order.created_at || printKOTModal.order.createdAt)} {formatTime(printKOTModal.order.created_at || printKOTModal.order.createdAt)}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printKOTModal.order.table_number || printKOTModal.order.tableNumber || printKOTModal.order.table?.number || '—'}</div>
+                </div>
+                <table style={{ width: '100%', fontSize: '14px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px dashed #000' }}>
+                      <th style={{ width: '80%', padding: '4px 0' }}>Item</th>
+                      <th style={{ textAlign: 'center', width: '20%', padding: '4px 0' }}>Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const mergedItems = [];
+                      printKOTModal.items.forEach(item => {
+                        const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
+                        const existing = mergedItems.find(i => (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName);
+                        if (existing) {
+                          existing.quantity += item.quantity;
+                        } else {
+                          mergedItems.push({ ...item });
+                        }
+                      });
+                      
+                      return mergedItems.map((item, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px 0', fontSize: '16px' }}>{item.quantity}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+                <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
               </div>
-              <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
-                <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
-                <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printKOTModal.order.created_at || printKOTModal.order.createdAt)} {formatTime(printKOTModal.order.created_at || printKOTModal.order.createdAt)}</div>
-                <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printKOTModal.order.table_number || printKOTModal.order.tableNumber || printKOTModal.order.table?.number || '—'}</div>
+
+              {/* KOT Copy 2 (Admin) */}
+              <div style={{ pageBreakAfter: 'auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (ADMIN)</h2>
+                </div>
+                <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+                  <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printKOTModal.order.created_at || printKOTModal.order.createdAt)} {formatTime(printKOTModal.order.created_at || printKOTModal.order.createdAt)}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printKOTModal.order.table_number || printKOTModal.order.tableNumber || printKOTModal.order.table?.number || '—'}</div>
+                </div>
+                <table style={{ width: '100%', fontSize: '14px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px dashed #000' }}>
+                      <th style={{ width: '80%', padding: '4px 0' }}>Item</th>
+                      <th style={{ textAlign: 'center', width: '20%', padding: '4px 0' }}>Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const mergedItems = [];
+                      printKOTModal.items.forEach(item => {
+                        const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
+                        const existing = mergedItems.find(i => (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName);
+                        if (existing) {
+                          existing.quantity += item.quantity;
+                        } else {
+                          mergedItems.push({ ...item });
+                        }
+                      });
+                      
+                      return mergedItems.map((item, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px 0', fontSize: '16px' }}>{item.quantity}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+                <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
               </div>
-              <table style={{ width: '100%', fontSize: '14px', textAlign: 'left', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px dashed #000' }}>
-                    <th style={{ width: '80%', padding: '4px 0' }}>Item</th>
-                    <th style={{ textAlign: 'center', width: '20%', padding: '4px 0' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    // Merge same items to prevent duplicates on the ticket
-                    const mergedItems = [];
-                    printKOTModal.items.forEach(item => {
-                      const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
-                      const existing = mergedItems.find(i => (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName);
-                      if (existing) {
-                        existing.quantity += item.quantity;
-                      } else {
-                        mergedItems.push({ ...item });
-                      }
-                    });
-                    
-                    return mergedItems.map((item, idx) => (
-                      <tr key={idx}>
-                        <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px 0', fontSize: '16px' }}>{item.quantity}</td>
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-              <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
             </div>
             
             <button className="btn btn-primary flex align-center gap-sm" onClick={handleConfirmPrintKOT}>
