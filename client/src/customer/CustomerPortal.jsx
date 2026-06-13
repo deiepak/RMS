@@ -150,7 +150,7 @@ export default function CustomerPortal() {
       )}
 
       {/* Main Content Area */}
-      <div id="customer-scroll-container" style={{ flex: 1, overflowY: 'auto' }}>
+      <div id="customer-scroll-container" style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
         {activeTab === 'menu' && (
           <MenuTab 
             tableId={tableId} 

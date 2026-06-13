@@ -745,11 +745,12 @@ a {
 
 /* Customer Portal Specific */
 .customer-layout {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
-  padding-bottom: 80px; /* Space for bottom tabs */
 }
 
 .customer-header {
