@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { socket, subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useTheme } from '../contexts/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 import Modal from '../components/Modal';
 
