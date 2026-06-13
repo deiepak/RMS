@@ -21,6 +21,7 @@ echo "Pulling latest code..."
 # git pull origin main
 
 echo "Building and starting Docker containers..."
+docker-compose -f docker-compose.prod.yml down || true
 docker-compose -f docker-compose.prod.yml up -d --build
 
 echo "Waiting for database to be ready..."
