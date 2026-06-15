@@ -7,6 +7,7 @@ export default function TVContentManagement() {
   const [contentList, setContentList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { showToast } = useToast();
 
   const fileInputRef = useRef(null);
@@ -64,23 +65,44 @@ export default function TVContentManagement() {
     }
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('media', form.file);
-    formData.append('type', form.type);
-    formData.append('occurrences_per_hour', form.occurrences_per_hour);
-    formData.append('display_order', form.display_order);
+    setUploadProgress(0);
+
+    const file = form.file;
+    const chunkSize = 5 * 1024 * 1024; // 5MB chunks to bypass Cloudflare proxy limits
+    const totalChunks = Math.ceil(file.size / chunkSize);
+    const uploadId = Date.now() + '-' + Math.round(Math.random() * 1E9);
     
-    // If it's video, use calculated duration. Else use form duration.
-    formData.append('duration_seconds', form.type === 'video' ? videoDuration : form.duration_seconds);
+    const durationToSave = form.type === 'video' ? videoDuration : form.duration_seconds;
 
     try {
-      await api.post('/tv/content', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        const chunk = file.slice(start, end);
+        
+        const formData = new FormData();
+        formData.append('chunk', chunk, file.name);
+        formData.append('uploadId', uploadId);
+        formData.append('chunkIndex', i);
+        formData.append('totalChunks', totalChunks);
+        formData.append('fileName', file.name);
+        formData.append('type', form.type);
+        formData.append('occurrences_per_hour', form.occurrences_per_hour);
+        formData.append('display_order', form.display_order);
+        formData.append('duration_seconds', durationToSave);
+
+        await api.post('/tv/upload-chunk', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
+      }
+      
       showToast('Content uploaded successfully', 'success');
       setForm({ type: 'photo', file: null, duration_seconds: 10, occurrences_per_hour: 1, display_order: 0 });
       if (fileInputRef.current) fileInputRef.current.value = '';
       setVideoDuration(0);
+      setUploadProgress(0);
       fetchContent();
     } catch (err) {
       showToast(err.response?.data?.error || 'Upload failed', 'error');
@@ -173,9 +195,18 @@ export default function TVContentManagement() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary mt-sm" disabled={isUploading || !form.file}>
-              {isUploading ? 'Uploading...' : 'Upload Content'}
-            </button>
+            <div className="flex align-center gap-md mt-sm">
+              <button type="submit" className="btn btn-primary" disabled={isUploading || !form.file}>
+                {isUploading ? 'Uploading...' : 'Upload Content'}
+              </button>
+              
+              {isUploading && (
+                <div className="flex-1" style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--primary)', transition: 'width 0.3s' }}></div>
+                </div>
+              )}
+              {isUploading && <span className="text-secondary text-sm">{uploadProgress}%</span>}
+            </div>
           </form>
         </div>
 

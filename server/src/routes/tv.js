@@ -59,6 +59,48 @@ router.post('/content', verifyToken, requireRole(['admin']), upload.single('medi
   }
 });
 
+// POST /api/tv/upload-chunk - chunked upload to bypass cloudflare proxy size limits
+router.post('/upload-chunk', verifyToken, requireRole(['admin']), upload.single('chunk'), async (req, res) => {
+  try {
+    const { uploadId, chunkIndex, totalChunks, type, occurrences_per_hour, display_order, duration_seconds, fileName } = req.body;
+    
+    if (!req.file) return res.status(400).json({ error: 'No chunk uploaded' });
+
+    const chunkPath = req.file.path;
+    const finalDir = path.join(__dirname, '../../uploads/tv');
+    const tempFilePath = path.join(finalDir, `${uploadId}.tmp`);
+
+    // Append this chunk to the temp file
+    fs.appendFileSync(tempFilePath, fs.readFileSync(chunkPath));
+    fs.unlinkSync(chunkPath); // Clean up the temp chunk from disk
+
+    // If it's the last chunk, finalize and insert to DB
+    if (parseInt(chunkIndex) === parseInt(totalChunks) - 1) {
+      const ext = path.extname(fileName);
+      const finalFileName = `${uploadId}${ext}`;
+      const finalPath = path.join(finalDir, finalFileName);
+      
+      fs.renameSync(tempFilePath, finalPath);
+      
+      const file_url = `/uploads/tv/${finalFileName}`;
+      const [id] = await db('tv_content').insert({
+        type: type || 'photo',
+        file_url,
+        duration_seconds: duration_seconds ? parseInt(duration_seconds) : 0,
+        occurrences_per_hour: occurrences_per_hour ? parseInt(occurrences_per_hour) : 1,
+        display_order: display_order ? parseInt(display_order) : 0
+      });
+      
+      return res.status(201).json({ id, file_url, message: 'Upload completed' });
+    } else {
+      return res.json({ message: `Chunk ${chunkIndex} received` });
+    }
+  } catch (err) {
+    console.error('TV chunk upload error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // DELETE /api/tv/content/:id - delete tv media (Admin only)
 router.delete('/content/:id', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
