@@ -22,6 +22,7 @@ export default function PendingOrders({ updateCounts }) {
 
     const handleNewOrder = () => fetchPending();
     subscribeToEvent('order:new', handleNewOrder);
+    subscribeToEvent('order:item-status', handleNewOrder);
     subscribeToEvent('order:hold', handleNewOrder);
     subscribeToEvent('order:unhold', handleNewOrder);
     
@@ -32,6 +33,7 @@ export default function PendingOrders({ updateCounts }) {
 
     return () => {
       unsubscribeFromEvent('order:new', handleNewOrder);
+      unsubscribeFromEvent('order:item-status', handleNewOrder);
       unsubscribeFromEvent('order:hold', handleNewOrder);
       unsubscribeFromEvent('order:unhold', handleNewOrder);
       clearInterval(interval);

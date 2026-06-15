@@ -16,6 +16,8 @@ export default function AcceptedOrders({ updateCounts }) {
     fetchAccepted();
 
     const handleUpdate = () => fetchAccepted();
+    subscribeToEvent('order:new', handleUpdate);
+    subscribeToEvent('order:item-status', handleUpdate);
     subscribeToEvent('order:hold', handleUpdate);
     subscribeToEvent('order:unhold', handleUpdate);
 
@@ -25,6 +27,8 @@ export default function AcceptedOrders({ updateCounts }) {
     }, 60000);
 
     return () => {
+      unsubscribeFromEvent('order:new', handleUpdate);
+      unsubscribeFromEvent('order:item-status', handleUpdate);
       unsubscribeFromEvent('order:hold', handleUpdate);
       unsubscribeFromEvent('order:unhold', handleUpdate);
       clearInterval(interval);
