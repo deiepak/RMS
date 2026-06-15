@@ -1621,3 +1621,38 @@ a {
   font-size: 14px;
   font-weight: 400;
 }
+
+/* Counter Orders Modal Responsive Layout */
+.counter-modal-body {
+  display: flex;
+}
+.counter-menu-panel {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.counter-cart-panel {
+  flex: 0 0 350px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 16px;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .counter-modal-body {
+    flex-direction: column;
+  }
+  .counter-menu-panel {
+    flex: 1; /* take top half */
+    margin-bottom: 16px;
+  }
+  .counter-cart-panel {
+    flex: 1; /* take bottom half */
+    width: 100%; /* overwrite 350px width */
+  }
+}

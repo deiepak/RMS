@@ -268,8 +268,8 @@ export default function CounterOrders() {
               <h2>New Counter Order</h2>
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
-            <div className="modal-body flex gap-lg" style={{ height: '75vh', overflow: 'hidden' }}>
-              <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="modal-body counter-modal-body gap-lg" style={{ height: '75vh', overflow: 'hidden' }}>
+              <div className="counter-menu-panel">
                 <div style={{ flexShrink: 0 }}>
                   <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
                   <input 
@@ -334,7 +334,7 @@ export default function CounterOrders() {
                 })}
                 </div>
               </div>
-              <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: '16px', padding: '16px', height: '100%' }}>
+              <div className="counter-cart-panel">
                 <div className="flex justify-between align-center mb-md">
                   <h3 style={{ margin: 0 }}>Order Cart</h3>
                   {cart.length > 0 && (
