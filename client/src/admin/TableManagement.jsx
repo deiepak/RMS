@@ -11,6 +11,7 @@ import {
   ArrowRightLeft,
   Banknote,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
