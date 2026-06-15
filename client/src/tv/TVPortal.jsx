@@ -104,7 +104,7 @@ export default function TVPortal() {
             key={idx}
             src={frameData}
             alt="Live feed"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
           />
         ))}
       </div>
@@ -129,7 +129,7 @@ export default function TVPortal() {
           <img 
             src={currentMedia.file_url} 
             alt="tv-content" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
         ) : (
           <video 
@@ -138,7 +138,7 @@ export default function TVPortal() {
             ref={mediaRef}
             src={currentMedia.file_url} 
             onEnded={handleVideoEnded}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
         )
       ) : (
