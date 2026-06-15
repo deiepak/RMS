@@ -185,27 +185,18 @@ export default function OrdersManagement() {
   };
 
   const handleConfirmPrintKOT = async () => {
-    // Print 1: For Kitchen
-    alert("First Print: Please print this for the KITCHEN.");
     window.print();
-    
-    // Print 2: For Admin
-    setTimeout(async () => {
-      alert("Second Print: Please print this for the ADMIN.");
-      window.print();
-
-      if (printKOTModal.markPrinted) {
-        try {
-          const itemIds = printKOTModal.items.map(i => i.id || i._id);
-          await api.patch('/orders/items/mark-printed', { itemIds });
-          showToast('Items marked as printed.', 'success');
-          fetchOrders();
-        } catch (error) {
-          showToast('Failed to mark items as printed.', 'error');
-        }
+    if (printKOTModal.markPrinted) {
+      try {
+        const itemIds = printKOTModal.items.map(i => i.id || i._id);
+        await api.patch('/orders/items/mark-printed', { itemIds });
+        showToast('Items marked as printed.', 'success');
+        fetchOrders(true);
+      } catch (err) {
+        showToast('Failed to mark items as printed.', 'error');
       }
-      setPrintKOTModal(null);
-    }, 500);
+    }
+    setPrintKOTModal(null);
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -675,10 +666,52 @@ export default function OrdersManagement() {
         >
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
-              {/* KOT Copy (Single format for both) */}
-              <div>
+              {/* KOT Copy 1 (Kitchen) */}
+              <div style={{ pageBreakAfter: 'always', breakAfter: 'page', marginBottom: '20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                  <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KITCHEN ORDER TICKET (KOT)</h2>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (KITCHEN)</h2>
+                </div>
+                <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+                  <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Date:</strong> {formatToBS(printKOTModal.order.created_at || printKOTModal.order.createdAt)} {formatTime(printKOTModal.order.created_at || printKOTModal.order.createdAt)}</div>
+                  <div style={{ margin: '2px 0' }}><strong>Table:</strong> {printKOTModal.order.table_number || printKOTModal.order.tableNumber || printKOTModal.order.table?.number || '—'}</div>
+                </div>
+                <table style={{ width: '100%', fontSize: '14px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px dashed #000' }}>
+                      <th style={{ width: '80%', padding: '4px 0' }}>Item</th>
+                      <th style={{ textAlign: 'center', width: '20%', padding: '4px 0' }}>Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const mergedItems = [];
+                      printKOTModal.items.forEach(item => {
+                        const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
+                        const existing = mergedItems.find(i => (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName);
+                        if (existing) {
+                          existing.quantity += item.quantity;
+                        } else {
+                          mergedItems.push({ ...item });
+                        }
+                      });
+                      
+                      return mergedItems.map((item, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '4px 0', wordWrap: 'break-word' }}>{item.item_name || item.name || item.menuItem?.name || 'Item'}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', padding: '4px 0', fontSize: '16px' }}>{item.quantity}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+                <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+              </div>
+
+              {/* KOT Copy 2 (Admin) */}
+              <div style={{ pageBreakAfter: 'auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (ADMIN)</h2>
                 </div>
                 <div style={{ fontSize: '12px', borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
                   <div style={{ margin: '2px 0' }}><strong>Order #:</strong> {String(printKOTModal.order.id || printKOTModal.order._id).padStart(5, '0').toUpperCase()}</div>
