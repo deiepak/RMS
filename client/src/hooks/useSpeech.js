@@ -32,7 +32,10 @@ export default function useSpeech() {
       }
     }
 
+    let timeoutId = null;
+
     const onFinish = () => {
+      if (timeoutId) clearTimeout(timeoutId);
       speakingRef.current = false;
       setSpeaking(false);
       // Process next item in queue
@@ -45,7 +48,16 @@ export default function useSpeech() {
     // Prevent garbage collection bug in Chrome
     window._currentUtterance = utterance;
 
+    // Cancel any stuck utterances before speaking
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+
+    // Fallback: If onend doesn't fire after a reasonable time (15 seconds), reset.
+    // This fixes the infamous Chrome speech synthesis bug where it gets permanently stuck.
+    timeoutId = setTimeout(() => {
+      window.speechSynthesis.cancel();
+      onFinish();
+    }, 15000);
   }, [supported]);
 
   const speak = useCallback((message, options = {}) => {

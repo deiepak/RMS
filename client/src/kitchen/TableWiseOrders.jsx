@@ -142,22 +142,22 @@ export default function TableWiseOrders() {
                             <div className="flex gap-xs">
                               <button className="btn btn-sm btn-secondary" style={{ padding: '4px' }} title="Reject" onClick={() => {
                                 const reason = prompt('Reason for rejection:');
-                                if (reason !== null) updateItemStatus(order.id, item.id, 'rejected', reason);
+                                if (reason !== null && reason.trim() !== '') updateItemStatus(order.id, item.id, 'rejected', reason);
                               }}>
                                 <X size={16} className="text-danger" />
                               </button>
-                              <button className="btn btn-sm btn-info" style={{ padding: '4px' }} title="Accept" onClick={() => updateItemStatus(order.id, item.id, 'preparing')}>
+                              <button className="btn btn-sm btn-info" style={{ padding: '4px' }} title="Accept" onClick={() => updateItemStatus(order.id, item.id, 'accepted')}>
                                 <Check size={16} />
                               </button>
                             </div>
                           )}
-                          {item.status === 'preparing' && (
+                          {(item.status === 'accepted' || item.status === 'preparing') && (
                             <button className="btn btn-sm btn-success" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Prepared</button>
                           )}
                           {isRejected && (
                             <div className="badge badge-danger" style={{ fontSize: 10 }}>Cancelled</div>
                           )}
-                          {!['pending', 'preparing'].includes(item.status) && !isRejected && (
+                          {!['pending', 'accepted', 'preparing'].includes(item.status) && !isRejected && (
                             <div className="badge" style={{ backgroundColor: getStatusColor(item.status), color: '#fff', fontSize: 10 }}>
                               {item.status.replace('_', ' ').toUpperCase()}
                             </div>
