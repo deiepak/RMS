@@ -15,6 +15,7 @@ export default function CameramanPortal() {
   const [selectedTv, setSelectedTv] = useState('all');
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState('');
+  const [aspectRatio, setAspectRatio] = useState('landscape');
   
   const [isLive, setIsLive] = useState(false);
   const localVideoRef = useRef(null);
@@ -114,7 +115,7 @@ export default function CameramanPortal() {
         
         if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
-        const targetAspectRatio = 16 / 9;
+        const targetAspectRatio = aspectRatio === 'landscape' ? 16 / 9 : 9 / 16;
         const videoAspectRatio = video.videoWidth / video.videoHeight;
         
         let sx = 0, sy = 0, sWidth = video.videoWidth, sHeight = video.videoHeight;
@@ -198,9 +199,22 @@ export default function CameramanPortal() {
                 ))}
               </select>
             </div>
+
+            <div className="form-group flex-1">
+              <label className="form-label">Orientation</label>
+              <select 
+                className="form-select" 
+                value={aspectRatio} 
+                onChange={e => setAspectRatio(e.target.value)}
+                disabled={isLive}
+              >
+                <option value="landscape">Landscape (16:9)</option>
+                <option value="portrait">Portrait (9:16)</option>
+              </select>
+            </div>
           </div>
 
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: aspectRatio === 'landscape' ? '16/9' : '9/16', background: '#000', borderRadius: 12, overflow: 'hidden', margin: '0 auto', maxWidth: aspectRatio === 'portrait' ? '400px' : '100%' }}>
             <video 
               ref={localVideoRef} 
               autoPlay 
