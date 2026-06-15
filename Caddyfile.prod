@@ -7,6 +7,9 @@
     handle /socket.io/* {
         reverse_proxy server:3001
     }
+    handle /uploads/* {
+        reverse_proxy server:3001
+    }
 
     # Proxy all other requests to the compiled React frontend (Nginx container)
     handle {

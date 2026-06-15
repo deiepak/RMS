@@ -19,6 +19,7 @@ export default function CounterOrders() {
   const [assignTableId, setAssignTableId] = useState('');
   const [selectedTableId, setSelectedTableId] = useState('');
   const [menuSearch, setMenuSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [orderSearch, setOrderSearch] = useState('');
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -291,6 +292,16 @@ export default function CounterOrders() {
                       </option>
                     ))}
                   </select>
+                  <select
+                    className="form-select flex-1"
+                    value={selectedCategory}
+                    onChange={e => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="All">All Categories</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                   <div className="flex flex-1 gap-sm">
                     <div className="input-with-icon flex-1">
                       <Search size={16} />
@@ -310,6 +321,7 @@ export default function CounterOrders() {
               </div>
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
               {categories.map(cat => {
+                  if (selectedCategory !== 'All' && selectedCategory !== cat) return null;
                   const filteredItems = menuItems.filter(m => m.category === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
                   if (filteredItems.length === 0) return null;
                   return (

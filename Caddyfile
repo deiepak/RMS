@@ -2,6 +2,7 @@
     # Proxy API and Socket requests to the Node backend
     reverse_proxy /api/* server:3001
     reverse_proxy /socket.io/* server:3001
+    reverse_proxy /uploads/* server:3001
 
     # Proxy all other requests to the Vite frontend
     reverse_proxy client:5173

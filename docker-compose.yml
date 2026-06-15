@@ -42,6 +42,7 @@ services:
     volumes:
       - ./server/src:/app/src
       - ./server/seeds:/app/seeds
+      - ./server/uploads:/app/uploads
     command: npm run dev
 
   client:
