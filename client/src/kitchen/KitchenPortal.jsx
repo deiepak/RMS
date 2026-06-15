@@ -22,6 +22,7 @@ export default function KitchenPortal() {
   const { speak } = useSpeech();
   const [activeTab, setActiveTab] = useState('pending');
   const [counts, setCounts] = useState({ pending: 0, accepted: 0 });
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({ item_name: '', quantity: '', notes: '' });
@@ -110,7 +111,14 @@ export default function KitchenPortal() {
           <button className="btn btn-primary flex align-center gap-sm btn-sm" onClick={() => setIsRequestModalOpen(true)}>
             <PackagePlus size={16} /> Request Stock
           </button>
-          <button className="btn btn-icon btn-secondary" onClick={() => speak('Audio notifications enabled.')} title="Enable Audio">
+          <button 
+            className={`btn btn-icon ${audioEnabled ? 'btn-secondary' : 'btn-danger'}`} 
+            onClick={() => {
+              speak('Audio notifications enabled.');
+              setAudioEnabled(true);
+            }} 
+            title="Enable Audio"
+          >
             <Volume2 size={18} />
           </button>
           <div className="btn-icon bg-secondary" style={{ position: 'relative' }}>
@@ -123,6 +131,15 @@ export default function KitchenPortal() {
           </button>
         </div>
       </div>
+
+      {!audioEnabled && (
+        <div style={{ background: 'var(--danger)', color: '#fff', padding: '12px 16px', textAlign: 'center', cursor: 'pointer' }} onClick={() => {
+          speak('Audio notifications enabled.');
+          setAudioEnabled(true);
+        }}>
+          <h4 style={{ margin: 0 }}><Volume2 size={18} style={{ verticalAlign: 'middle', marginRight: 8 }}/> Click here to enable voice announcements for incoming orders!</h4>
+        </div>
+      )}
 
       {/* Top Tabs */}
       <div className="bg-card" style={{ padding: '12px 0', borderBottom: '1px solid var(--glass-border)' }}>

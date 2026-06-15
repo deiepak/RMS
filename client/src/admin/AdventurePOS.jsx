@@ -441,7 +441,10 @@ export default function AdventurePOS() {
           }
 
           /* Force white background for the whole page */
-          html, body {
+          html, body, #root, .modal-backdrop, .modal, .card, .kitchen-layout {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
             background-color: #ffffff !important;
             color: #000000 !important;
           }

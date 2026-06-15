@@ -42,6 +42,9 @@ export default function useSpeech() {
     utterance.onend = onFinish;
     utterance.onerror = onFinish;
 
+    // Prevent garbage collection bug in Chrome
+    window._currentUtterance = utterance;
+
     window.speechSynthesis.speak(utterance);
   }, [supported]);
 
