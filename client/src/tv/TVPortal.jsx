@@ -158,7 +158,7 @@ export default function TVPortal() {
       ) : playlist.length > 0 && currentMedia ? (
         currentMedia.type === 'photo' ? (
           <img 
-            src={`${import.meta.env.VITE_API_URL}${currentMedia.file_url}`} 
+            src={currentMedia.file_url} 
             alt="tv-content" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />
@@ -167,7 +167,7 @@ export default function TVPortal() {
             autoPlay 
             muted 
             ref={mediaRef}
-            src={`${import.meta.env.VITE_API_URL}${currentMedia.file_url}`} 
+            src={currentMedia.file_url} 
             onEnded={handleVideoEnded}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />

@@ -235,7 +235,7 @@ export default function MenuManagement() {
                   <td style={{ padding: '16px 20px' }}>
                     <div className="flex align-center gap-md">
                       {item.image_url ? (
-                        <img src={item.image_url.startsWith('http') ? item.image_url : `http://localhost:3001${item.image_url}`} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                        <img src={item.image_url} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                       ) : (
                         <div className="stat-icon flex justify-center align-center bg-tertiary text-secondary" style={{ width: 48, height: 48, borderRadius: 10 }}>
                           <ImageIcon size={24} />
@@ -529,7 +529,7 @@ export default function MenuManagement() {
           <div className="flex align-center gap-md">
             {(itemForm.image_file || itemForm.image_url) && (
               <img 
-                src={itemForm.image_file ? URL.createObjectURL(itemForm.image_file) : itemForm.image_url.startsWith('http') ? itemForm.image_url : `http://localhost:3001${itemForm.image_url}`} 
+                src={itemForm.image_file ? URL.createObjectURL(itemForm.image_file) : itemForm.image_url} 
                 alt="Preview" 
                 style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover' }} 
               />

@@ -213,7 +213,7 @@ export default function TVContentManagement() {
                     <td>
                       {item.type === 'photo' ? (
                         <div style={{ width: 60, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                          <img src={`${import.meta.env.VITE_API_URL}${item.file_url}`} alt="media" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={item.file_url} alt="media" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       ) : (
                         <div className="flex-center" style={{ width: 60, height: 40, borderRadius: 8, background: '#000', color: '#fff' }}>
