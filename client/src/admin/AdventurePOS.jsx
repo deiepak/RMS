@@ -144,18 +144,20 @@ export default function AdventurePOS() {
           </div>
         </div>
         
-        <div className="flex flex-col gap-sm" style={{ overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
+        <div className="grid gap-md" style={{ gridTemplateColumns: 'repeat(2, 1fr)', overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
           {adventures.map(adv => (
             <div 
               key={adv.id} 
-              className="card cursor-pointer flex align-center justify-between"
+              className="card cursor-pointer flex flex-col justify-between gap-md hover-lift"
               onClick={() => addToCart(adv)}
               style={{ 
-                padding: '12px 16px',
+                padding: '16px',
                 border: '1px solid var(--glass-border)', 
                 borderRadius: '16px',
                 transition: 'all 0.2s', 
                 background: 'var(--bg-card)',
+                height: '100%',
+                minHeight: '140px'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--primary)';
@@ -166,22 +168,22 @@ export default function AdventurePOS() {
                 e.currentTarget.style.background = 'var(--bg-card)';
               }}
             >
-              <div className="flex align-center gap-md" style={{ flex: '1 1 40%' }}>
+              <div className="flex align-center gap-md">
                 <div style={{ 
-                  width: 40, height: 40, 
-                  borderRadius: '10px', 
+                  width: 44, height: 44, flexShrink: 0,
+                  borderRadius: '12px', 
                   background: 'var(--primary-light)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center' 
                 }}>
-                  <Ticket size={20} style={{ color: 'var(--primary)' }} />
+                  <Ticket size={24} style={{ color: 'var(--primary)' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.3px' }}>{adv.name}</div>
-                  <div style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: 700 }}>रू {Number(adv.price).toLocaleString()}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.2 }}>{adv.name}</div>
+                  <div style={{ fontSize: '15px', color: 'var(--primary)', fontWeight: 700, marginTop: '2px' }}>रू {Number(adv.price).toLocaleString()}</div>
                 </div>
               </div>
 
-              <div className="flex align-center gap-lg justify-center" style={{ flex: '1 1 40%' }}>
+              <div className="flex align-center justify-between mt-auto pt-md" style={{ borderTop: '1px dashed var(--glass-border)' }}>
                 <div className="flex flex-col align-center">
                   <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>Sold</span>
                   <span style={{ fontSize: '15px', fontWeight: 800 }}>{stats[adv.id]?.sold || 0}</span>
@@ -195,16 +197,6 @@ export default function AdventurePOS() {
                 <div className="flex flex-col align-center">
                   <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>Left</span>
                   <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--warning)' }}>{stats[adv.id]?.unused || 0}</span>
-                </div>
-              </div>
-
-              <div style={{ flex: '0 0 auto', paddingLeft: '16px' }}>
-                <div style={{ 
-                  width: 32, height: 32, borderRadius: '50%', 
-                  background: 'var(--primary)', color: '#fff', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' 
-                }}>
-                  <Plus size={16} />
                 </div>
               </div>
             </div>
