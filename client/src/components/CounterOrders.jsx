@@ -270,12 +270,44 @@ export default function CounterOrders() {
       {/* Add Counter Order Modal */}
       {showAddModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 900, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
+          <div className="modal-content" style={{ maxWidth: 1100, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
             <div className="modal-header">
               <h2>New Counter Order</h2>
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
             <div className="modal-body counter-modal-body gap-lg" style={{ height: '75vh', overflow: 'hidden' }}>
+              <div className="counter-category-panel flex flex-col" style={{ flex: '0 0 200px', borderRight: '1px solid var(--glass-border)', paddingRight: '16px', overflowY: 'auto' }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Categories</h3>
+                <div 
+                  className="p-sm mb-xs cursor-pointer"
+                  style={{ 
+                    borderRadius: '8px', 
+                    fontWeight: selectedCategory === 'All' ? 700 : 500,
+                    background: selectedCategory === 'All' ? 'var(--primary)' : 'transparent',
+                    color: selectedCategory === 'All' ? '#fff' : 'inherit',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setSelectedCategory('All')}
+                >
+                  All Categories
+                </div>
+                {categories.map(cat => (
+                  <div 
+                    key={cat}
+                    className="p-sm mb-xs cursor-pointer"
+                    style={{ 
+                      borderRadius: '8px', 
+                      fontWeight: selectedCategory === cat ? 700 : 500,
+                      background: selectedCategory === cat ? 'var(--primary)' : 'transparent',
+                      color: selectedCategory === cat ? '#fff' : 'inherit',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat}
+                  </div>
+                ))}
+              </div>
               <div className="counter-menu-panel">
                 <div style={{ flexShrink: 0 }}>
                   <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
@@ -296,16 +328,6 @@ export default function CounterOrders() {
                       <option key={t.id} value={t.id}>
                         Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}
                       </option>
-                    ))}
-                  </select>
-                  <select
-                    className="form-select flex-1"
-                    value={selectedCategory}
-                    onChange={e => setSelectedCategory(e.target.value)}
-                  >
-                    <option value="All">All Categories</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                   <div className="flex flex-1 gap-sm">
