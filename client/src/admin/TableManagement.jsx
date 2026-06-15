@@ -28,6 +28,7 @@ export default function TableManagement() {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [shiftFromTable, setShiftFromTable] = useState(null);
@@ -284,6 +285,15 @@ export default function TableManagement() {
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
+          <label className="flex align-center gap-xs cursor-pointer" style={{ userSelect: 'none', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+            <input 
+              type="checkbox" 
+              checked={showActiveOnly}
+              onChange={(e) => setShowActiveOnly(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>Active Tables</span>
+          </label>
           <button className="btn btn-primary" onClick={openAdd} style={{ whiteSpace: 'nowrap' }}>
             <Plus size={18} /> Add Table
           </button>
@@ -312,7 +322,10 @@ export default function TableManagement() {
         </div>
       ) : (
         <div className="tables-grid">
-          {tables.filter(t => t.number?.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.capacity).includes(searchQuery)).map((table) => (
+          {tables
+            .filter(t => t.number?.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.capacity).includes(searchQuery))
+            .filter(t => showActiveOnly ? (t.status === 'occupied' || t.status === 'reserved') : true)
+            .map((table) => (
             <div 
               key={table.id} 
               className={`card table-card ${getStatusClass(table.status)}`}

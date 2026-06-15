@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search } from 'lucide-react';
@@ -23,6 +23,7 @@ export default function CounterOrders() {
   const [menuSearch, setMenuSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [orderSearch, setOrderSearch] = useState('');
+  const cartEndRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
   const location = useLocation();
@@ -46,6 +47,10 @@ export default function CounterOrders() {
       unsubscribeFromEvent('order:status-update', handleUpdate);
     };
   }, []);
+
+  useEffect(() => {
+    cartEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [cart]);
 
   useEffect(() => {
     if (location.state?.autoOpenTableId) {
@@ -378,9 +383,18 @@ export default function CounterOrders() {
                           </div>
                           <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{formatCurrency(item.price * item.quantity)}</span>
                         </div>
+                        <input
+                          type="text"
+                          className="form-input mt-sm w-full"
+                          style={{ fontSize: 13, padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)' }}
+                          placeholder="Add remark/note (optional)..."
+                          value={item.notes || ''}
+                          onChange={(e) => updateCartItem(item.id, 'notes', e.target.value)}
+                        />
                       </div>
                     ))
                   )}
+                  <div ref={cartEndRef} />
                 </div>
                 <div className="mt-md pt-md" style={{ borderTop: '1px solid var(--border)' }}>
                   <div className="flex justify-between mb-md text-lg" style={{ fontWeight: 'bold' }}>
