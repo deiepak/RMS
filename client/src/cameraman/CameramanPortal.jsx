@@ -19,7 +19,9 @@ export default function CameramanPortal() {
   const [isLive, setIsLive] = useState(false);
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
-  const peerConnections = useRef(new Map());
+  const canvasRef = useRef(null);
+  const liveIntervalRef = useRef(null);
+  const [cameraError, setCameraError] = useState('');
 
   useEffect(() => {
     if (!user || user.role !== 'cameraman') {
@@ -34,30 +36,18 @@ export default function CameramanPortal() {
         setTvs(list);
       });
 
-      socket.on('tv:answer', async ({ senderId, sdp }) => {
-        const pc = peerConnections.current.get(senderId);
-        if (pc) {
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        }
-      });
-
-      socket.on('tv:candidate', ({ senderId, candidate }) => {
-        const pc = peerConnections.current.get(senderId);
-        if (pc) {
-          pc.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-      });
-
       return () => {
         socket.off('tv:list');
-        socket.off('tv:answer');
-        socket.off('tv:candidate');
       };
     }
   }, [socket, user, navigate]);
 
   useEffect(() => {
     const getDevices = async () => {
+      if (!navigator.mediaDevices) {
+        setCameraError('Camera access requires a secure HTTPS connection. Please use the localtunnel link or set up HTTPS.');
+        return;
+      }
       try {
         await navigator.mediaDevices.getUserMedia({ video: true });
         const devs = await navigator.mediaDevices.enumerateDevices();
@@ -67,7 +57,7 @@ export default function CameramanPortal() {
           setSelectedDevice(videoDevs[0].deviceId);
         }
       } catch (e) {
-        showToast('Camera permission denied', 'error');
+        setCameraError('Camera permission denied or camera not available.');
       }
     };
     getDevices();
@@ -104,8 +94,8 @@ export default function CameramanPortal() {
     }
   };
 
-  const handleGoLive = async () => {
-    if (!localStreamRef.current) {
+  const handleGoLive = () => {
+    if (!localStreamRef.current || !localVideoRef.current) {
       return showToast('No camera stream available', 'error');
     }
     if (tvs.length === 0) {
@@ -115,37 +105,37 @@ export default function CameramanPortal() {
     setIsLive(true);
     socket.emit('tv:start_live', { targetId: selectedTv === 'all' ? null : selectedTv });
 
-    const targetTvs = selectedTv === 'all' ? tvs : tvs.filter(t => t.id === selectedTv);
-
-    for (const tv of targetTvs) {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          socket.emit('tv:candidate', { targetId: tv.id, candidate: e.candidate });
+    // Stream video frames via Socket.io at ~10 FPS
+    liveIntervalRef.current = setInterval(() => {
+      if (localVideoRef.current && canvasRef.current) {
+        const video = localVideoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        
+        // Match canvas size to video size
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
         }
-      };
 
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
-      });
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const frameData = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      
-      socket.emit('tv:offer', { targetId: tv.id, sdp: offer });
-      peerConnections.current.set(tv.id, pc);
-    }
+        socket.emit('tv:video_frame', { 
+          targetId: selectedTv === 'all' ? null : selectedTv,
+          frame: frameData
+        });
+      }
+    }, 100); // 100ms = 10 FPS
   };
 
   const handleStopLive = () => {
     setIsLive(false);
+    if (liveIntervalRef.current) {
+      clearInterval(liveIntervalRef.current);
+      liveIntervalRef.current = null;
+    }
     socket.emit('tv:stop_live', { targetId: selectedTv === 'all' ? null : selectedTv });
-    
-    peerConnections.current.forEach(pc => pc.close());
-    peerConnections.current.clear();
   };
 
   return (
@@ -158,10 +148,16 @@ export default function CameramanPortal() {
       </header>
 
       <main className="flex-1 flex flex-col align-center p-lg" style={{ gap: '24px' }}>
-        <div className="card p-xl" style={{ width: '100%', maxWidth: 800 }}>
-          <div className="flex gap-md mb-lg">
-            <div className="form-group flex-1">
-              <label className="form-label">Select Camera</label>
+        {cameraError ? (
+          <div className="card p-xl" style={{ width: '100%', maxWidth: 800, textAlign: 'center' }}>
+            <h3 className="text-danger mb-md">Camera Access Failed</h3>
+            <p className="text-secondary">{cameraError}</p>
+          </div>
+        ) : (
+          <div className="card p-xl" style={{ width: '100%', maxWidth: 800 }}>
+            <div className="flex gap-md mb-lg">
+              <div className="form-group flex-1">
+                <label className="form-label">Select Camera</label>
               <select 
                 className="form-select" 
                 value={selectedDevice} 
@@ -217,8 +213,11 @@ export default function CameramanPortal() {
               </button>
             )}
           </div>
-        </div>
+        )}
       </main>
+
+      {/* Hidden canvas for frame extraction */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );
 }

@@ -12,9 +12,8 @@ export default function TVPortal() {
 
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [liveFeeds, setLiveFeeds] = useState(new Map()); // map of senderId -> media stream URL
-  const peerConnections = useRef(new Map()); // map of senderId -> RTCPeerConnection
-
+  const [liveFeeds, setLiveFeeds] = useState(new Map()); // map of senderId -> Base64 frame
+  
   const mediaRef = useRef(null);
 
   useEffect(() => {
@@ -26,42 +25,15 @@ export default function TVPortal() {
     if (socket) {
       socket.emit('tv:register', { name: user.name });
 
-      const handleOffer = async ({ senderId, sdp }) => {
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      const handleVideoFrame = ({ senderId, frame }) => {
+        setLiveFeeds(prev => {
+          const next = new Map(prev);
+          next.set(senderId, frame);
+          return next;
         });
-
-        pc.onicecandidate = (e) => {
-          if (e.candidate) {
-            socket.emit('tv:candidate', { targetId: senderId, candidate: e.candidate });
-          }
-        };
-
-        pc.ontrack = (e) => {
-          setLiveFeeds(prev => {
-            const next = new Map(prev);
-            next.set(senderId, e.streams[0]);
-            return next;
-          });
-        };
-
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit('tv:answer', { targetId: senderId, sdp: answer });
-
-        peerConnections.current.set(senderId, pc);
-      };
-
-      const handleCandidate = ({ senderId, candidate }) => {
-        const pc = peerConnections.current.get(senderId);
-        if (pc) pc.addIceCandidate(new RTCIceCandidate(candidate));
       };
 
       const handleStopLive = ({ senderId }) => {
-        const pc = peerConnections.current.get(senderId);
-        if (pc) pc.close();
-        peerConnections.current.delete(senderId);
         setLiveFeeds(prev => {
           const next = new Map(prev);
           next.delete(senderId);
@@ -69,13 +41,11 @@ export default function TVPortal() {
         });
       };
 
-      socket.on('tv:offer', handleOffer);
-      socket.on('tv:candidate', handleCandidate);
+      socket.on('tv:video_frame', handleVideoFrame);
       socket.on('tv:stop_live', handleStopLive);
 
       return () => {
-        socket.off('tv:offer', handleOffer);
-        socket.off('tv:candidate', handleCandidate);
+        socket.off('tv:video_frame', handleVideoFrame);
         socket.off('tv:stop_live', handleStopLive);
       };
     }
@@ -129,13 +99,12 @@ export default function TVPortal() {
 
     return (
       <div style={gridStyle}>
-        {feeds.map((stream, idx) => (
-          <video 
+        {feeds.map((frameData, idx) => (
+          <img 
             key={idx}
-            autoPlay 
-            playsInline 
+            src={frameData}
+            alt="Live feed"
             style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-            ref={(el) => { if (el) el.srcObject = stream; }}
           />
         ))}
       </div>

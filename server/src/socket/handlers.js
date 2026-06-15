@@ -72,6 +72,17 @@ function setupSocketHandlers(io) {
       }
     });
 
+    socket.on('tv:video_frame', (payload) => {
+      if (payload.targetId) {
+        io.to(payload.targetId).emit('tv:video_frame', { senderId: socket.id, frame: payload.frame });
+      } else {
+         // broadcast to all TVs
+        activeTVs.forEach((tv, tvId) => {
+          io.to(tvId).emit('tv:video_frame', { senderId: socket.id, frame: payload.frame });
+        });
+      }
+    });
+
     socket.on('tv:stop_live', (payload) => {
       if (payload && payload.targetId) {
         io.to(payload.targetId).emit('tv:stop_live', { senderId: socket.id });
