@@ -112,13 +112,27 @@ export default function CameramanPortal() {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         
-        // Match canvas size to video size
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
+        if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+        const targetAspectRatio = 16 / 9;
+        const videoAspectRatio = video.videoWidth / video.videoHeight;
+        
+        let sx = 0, sy = 0, sWidth = video.videoWidth, sHeight = video.videoHeight;
+        
+        if (videoAspectRatio > targetAspectRatio) {
+          sWidth = video.videoHeight * targetAspectRatio;
+          sx = (video.videoWidth - sWidth) / 2;
+        } else if (videoAspectRatio < targetAspectRatio) {
+          sHeight = video.videoWidth / targetAspectRatio;
+          sy = (video.videoHeight - sHeight) / 2;
         }
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (canvas.width !== Math.floor(sWidth) || canvas.height !== Math.floor(sHeight)) {
+          canvas.width = Math.floor(sWidth);
+          canvas.height = Math.floor(sHeight);
+        }
+
+        ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
         const frameData = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality
 
         socket.emit('tv:video_frame', { 
