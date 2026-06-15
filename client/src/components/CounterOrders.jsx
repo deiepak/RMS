@@ -8,8 +8,10 @@ import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 
 export default function CounterOrders() {
   const [orders, setOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showActiveOrdersModal, setShowActiveOrdersModal] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cart, setCart] = useState([]);
@@ -58,6 +60,7 @@ export default function CounterOrders() {
     try {
       setLoading(true);
       const res = await api.get('/orders?status=active,checkout_requested&include_undelivered=true');
+      setAllOrders(res.data);
       // Filter only counter orders
       const counterOrders = res.data.filter(o => o.order_type === 'counter');
       setOrders(counterOrders);
@@ -107,40 +110,34 @@ export default function CounterOrders() {
   };
 
   const handleCreateOrder = async () => {
-    if (cart.length === 0) return showToast('Cart is empty', 'error');
+    if (cart.length === 0) return;
     try {
-      const items = cart.map(i => ({
-        menu_item_id: i.id,
-        quantity: i.quantity,
-        notes: i.notes
-      }));
-
-      if (selectedTableId) {
-        const table = tables.find(t => t.id === parseInt(selectedTableId));
-        if (table && table.status === 'occupied') {
-          // Add to existing order
-          const activeRes = await api.get(`/orders/table/${selectedTableId}/active`);
-          const activeOrder = activeRes.data;
-          if (activeOrder) {
-            await api.post(`/orders/${activeOrder.id}/items`, { items, customer_name: customerName });
-            showToast('Items added to existing table order', 'success');
-            setShowAddModal(false);
-            setCart([]);
-            setCustomerName('');
-            setSelectedTableId('');
-            fetchOrders();
-            return;
-          }
+      if (selectedTableId && tables.find(t => t.id === parseInt(selectedTableId))?.status === 'occupied') {
+        const activeOrderForTable = allOrders.find(o => String(o.table_id) === String(selectedTableId) && ['active', 'checkout_requested'].includes(o.status));
+        if (activeOrderForTable) {
+          const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, price_at_order: i.price }));
+          await api.post(`/orders/${activeOrderForTable.id}/items`, { items });
+          showToast('Items added to existing table order', 'success');
+          setShowAddModal(false);
+          setCart([]);
+          setCustomerName('');
+          setSelectedTableId('');
+          fetchOrders();
+          return;
         }
       }
 
-      await api.post('/orders', { 
+      await api.post('/orders', {
         order_type: 'counter',
         table_id: selectedTableId || null,
-        customer_name: customerName,
-        items 
+        items: cart.map(item => ({
+          menu_item_id: item.id,
+          quantity: item.quantity,
+          customer_name: customerName,
+          price_at_order: item.price
+        }))
       });
-      showToast('Counter order created', 'success');
+      showToast('Order created successfully', 'success');
       setShowAddModal(false);
       setCart([]);
       setCustomerName('');
@@ -221,6 +218,9 @@ export default function CounterOrders() {
               onChange={(e) => setOrderSearch(e.target.value)}
             />
           </div>
+          <button className="btn btn-secondary" onClick={() => setShowActiveOrdersModal(true)} style={{ whiteSpace: 'nowrap' }}>
+            Active Orders
+          </button>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)} style={{ whiteSpace: 'nowrap' }}>
             <Plus size={18} /> New Order
           </button>
@@ -439,17 +439,60 @@ export default function CounterOrders() {
                 Proceed to Payment
               </button>
               
-              <div className="flex gap-sm w-full mt-sm mb-sm p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', alignItems: 'center' }}>
-                <select className="form-select flex-2" value={assignTableId} onChange={e => setAssignTableId(e.target.value)}>
-                  <option value="">-- Assign to Table --</option>
-                  {tables.map(t => <option key={t.id} value={t.id}>{t.number} ({t.capacity} pax)</option>)}
-                </select>
-                <button className="btn btn-secondary flex-1" onClick={handleAssignTable} disabled={!assignTableId}>Assign</button>
-              </div>
+              {!viewOrderDetails.table_id && !viewOrderDetails.tableId && (
+                <div className="flex gap-sm w-full mt-sm mb-sm p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', alignItems: 'center' }}>
+                  <select className="form-select flex-2" value={assignTableId} onChange={e => setAssignTableId(e.target.value)}>
+                    <option value="">-- Assign to Table --</option>
+                    {tables.map(t => <option key={t.id} value={t.id}>{t.number} ({t.capacity} pax)</option>)}
+                  </select>
+                  <button className="btn btn-secondary flex-1" onClick={handleAssignTable} disabled={!assignTableId}>Assign</button>
+                </div>
+              )}
 
               <div className="flex gap-sm w-full">
                 <button className="btn btn-danger flex-1" onClick={() => handleDeleteOrder(viewOrderDetails.id)}>Cancel Order</button>
                 <button className="btn btn-secondary flex-1" onClick={() => { setViewOrderDetails(null); setAssignTableId(''); }}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+        </div>
+      )}
+
+      {/* Active Orders Summary Modal */}
+      {showActiveOrdersModal && (
+        <div className="modal-overlay" onClick={() => setShowActiveOrdersModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
+            <div className="modal-header">
+              <h2>Active Orders Summary</h2>
+              <button className="btn btn-icon" onClick={() => setShowActiveOrdersModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div className="flex-col gap-sm">
+                {allOrders.filter(o => ['active', 'checkout_requested'].includes(o.status)).map(order => (
+                  <div key={order.id} className="flex justify-between align-center p-md" style={{ background: 'var(--bg-elevated)', borderRadius: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '15px' }}>
+                        {order.order_type === 'table' ? `Table ${order.table_number || order.table?.number || order.table_id}` : (order.order_name || `Counter Order ${order.id}`)}
+                      </div>
+                      <div className="text-secondary" style={{ fontSize: '13px' }}>
+                        {order.items?.length || 0} items
+                      </div>
+                    </div>
+                    <div className="flex align-center gap-md">
+                      <span className={`badge ${order.status === 'checkout_requested' ? 'badge-warning' : 'badge-info'}`}>
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <span style={{ fontWeight: 700, minWidth: '80px', textAlign: 'right' }}>
+                        {formatCurrency(order.total)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {allOrders.filter(o => ['active', 'checkout_requested'].includes(o.status)).length === 0 && (
+                  <div className="text-center text-secondary p-xl">No active orders</div>
+                )}
               </div>
             </div>
           </div>
