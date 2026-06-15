@@ -213,6 +213,7 @@ export default function CameramanPortal() {
               </button>
             )}
           </div>
+          </div>
         )}
       </main>
 

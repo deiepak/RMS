@@ -262,7 +262,6 @@ export default function AdventurePOS() {
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
             />
-            />
             {videoPhones.map((phone, idx) => (
               <input 
                 key={idx}
