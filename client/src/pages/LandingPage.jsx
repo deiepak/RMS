@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChefHat, ConciergeBell, Delete, QrCode, Loader2 } from 'lucide-react';
+import { Shield, ChefHat, ConciergeBell, Delete, QrCode, Loader2, Camera, Tv } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -27,6 +27,20 @@ const roles = [
     subtitle: 'Serve customers',
     icon: ConciergeBell,
     path: '/waiter',
+  },
+  {
+    id: 'cameraman',
+    title: 'Cameraman Portal',
+    subtitle: 'Stream live to TVs',
+    icon: Camera,
+    path: '/cameraman',
+  },
+  {
+    id: 'tv',
+    title: 'TV Display',
+    subtitle: 'Digital signage & live feeds',
+    icon: Tv,
+    path: '/tv',
   },
 ];
 

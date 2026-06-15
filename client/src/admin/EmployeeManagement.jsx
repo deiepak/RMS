@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Edit2, Trash2, KeyRound, Shield, ChefHat, ConciergeBell, Phone, Briefcase } from 'lucide-react';
+import { Plus, Edit2, Trash2, KeyRound, Shield, ChefHat, ConciergeBell, Phone, Briefcase, Camera, Tv } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
 
@@ -155,6 +155,8 @@ export default function EmployeeManagement() {
       case 'admin': return <Shield size={16} />;
       case 'kitchen': return <ChefHat size={16} />;
       case 'waiter': return <ConciergeBell size={16} />;
+      case 'cameraman': return <Camera size={16} />;
+      case 'tv': return <Tv size={16} />;
       default: return null;
     }
   };
@@ -301,6 +303,8 @@ export default function EmployeeManagement() {
               <select className="form-select" value={form.role} onChange={e => setForm({...form, role: e.target.value, station_id: ''})}>
                 <option value="waiter">Waiter</option>
                 <option value="kitchen">Kitchen Staff</option>
+                <option value="cameraman">Cameraman</option>
+                <option value="tv">TV Display</option>
                 <option value="admin">Admin</option>
               </select>
             </div>

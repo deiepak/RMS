@@ -43,6 +43,7 @@ app.use('/api/employees', require('./routes/employees'));
 
 app.use('/api/vendors', require('./routes/vendors'));
 app.use('/api/stock', require('./routes/stock'));
+app.use('/api/tv', require('./routes/tv'));
 app.use('/api/promos', require('./routes/promos'));
 app.use('/api/ledger', ledgerRoutes);
 app.use('/api/expenses', expensesRoutes);

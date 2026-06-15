@@ -25,7 +25,8 @@ import {
   Heart,
   TrendingDown,
   ScrollText,
-  Compass
+  Compass,
+  Tv
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -79,6 +80,7 @@ const NAV_CATEGORIES = [
       { to: '/admin/maintenance', icon: Wrench, label: 'Maintenance Log' },
       { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
       { to: '/admin/stations', icon: Settings, label: 'Stations' },
+      { to: '/admin/tv-content', icon: Tv, label: 'TV Content' },
       { to: '/admin/communication', icon: MessageSquare, label: 'Communication' },
       { to: '/admin/settings', icon: Settings, label: 'Settings' },
     ]
@@ -103,6 +105,7 @@ const SECTION_TITLES = {
   '/admin/counter': 'Counter Orders',
   '/admin/packages': 'Packages',
   '/admin/adventures/videos': 'Video Requests',
+  '/admin/tv-content': 'TV Content Management',
 };
 
 export default function AdminPortal() {

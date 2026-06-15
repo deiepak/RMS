@@ -11,6 +11,8 @@ import LandingPage from './pages/LandingPage';
 import CustomerPortal from './customer/CustomerPortal';
 import KitchenPortal from './kitchen/KitchenPortal';
 import WaiterPortal from './waiter/WaiterPortal';
+import TVPortal from './tv/TVPortal';
+import CameramanPortal from './cameraman/CameramanPortal';
 
 import AdminPortal from './admin/AdminPortal';
 import Dashboard from './admin/Dashboard';
@@ -40,6 +42,7 @@ import AdventureManagement from './admin/AdventureManagement';
 import AdventurePOS from './admin/AdventurePOS';
 import ScanAdventure from './admin/ScanAdventure';
 import VideoManagement from './admin/VideoManagement';
+import TVContentManagement from './admin/TVContentManagement';
 
 const App = () => {
   return (
@@ -62,14 +65,25 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/waiter"
-                  element={
-                    <ProtectedRoute allowedRoles={['waiter']}>
-                      <WaiterPortal />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/waiter/*" element={
+                  <ProtectedRoute allowedRoles={['waiter', 'admin']}>
+                    <WaiterPortal />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/tv/*" element={
+                  <ProtectedRoute allowedRoles={['tv', 'admin']}>
+                    <TVPortal />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/cameraman/*" element={
+                  <ProtectedRoute allowedRoles={['cameraman', 'admin']}>
+                    <CameramanPortal />
+                  </ProtectedRoute>
+                } />
+
+                {/* Admin Portal */}
                 <Route
                   path="/admin"
                   element={
@@ -105,6 +119,7 @@ const App = () => {
                   <Route path="adventures/sell" element={<AdventurePOS />} />
                   <Route path="adventures/scan" element={<ScanAdventure />} />
                   <Route path="adventures/videos" element={<VideoManagement />} />
+                  <Route path="tv-content" element={<TVContentManagement />} />
                 </Route>
               </Routes>
             </SocketProvider>
