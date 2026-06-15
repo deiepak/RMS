@@ -47,7 +47,8 @@ export default function EmployeeManagement() {
     name: '', role: 'waiter', pin: '', station_id: '', is_active: true, 
     contact: '', join_date: '', monthly_salary: '', 
     dob: '', address: '', emergency_contact_name: '', emergency_contact_phone: '', 
-    employment_type: 'full-time', hourly_rate: '', access_pages: []
+    employment_type: 'full-time', hourly_rate: '', access_pages: [],
+    photo: null, id_photo: null
   };
   const [form, setForm] = useState(initialFormState);
   const [pinForm, setPinForm] = useState({ new_pin: '' });
@@ -74,16 +75,33 @@ export default function EmployeeManagement() {
 
   const handleSave = async () => {
     try {
+      const formData = new FormData();
+      Object.keys(form).forEach(key => {
+        if (key === 'photo' || key === 'id_photo') {
+          if (form[key]) formData.append(key, form[key]);
+        } else if (key === 'access_pages') {
+          formData.append(key, JSON.stringify(form[key]));
+        } else {
+          formData.append(key, form[key]);
+        }
+      });
+      if (form.role === 'kitchen') {
+        formData.set('station_id', form.station_id);
+      } else {
+        formData.set('station_id', '');
+      }
+
+      const headers = { 'Content-Type': 'multipart/form-data' };
+
       if (editingEmp) {
-        const updateData = { ...form, station_id: form.role === 'kitchen' ? form.station_id : null };
-        delete updateData.pin;
-        await api.put(`/employees/${editingEmp.id}`, updateData);
+        formData.delete('pin');
+        await api.put(`/employees/${editingEmp.id}`, formData, { headers });
         showToast('Employee updated', 'success');
       } else {
         if (!form.pin || form.pin.length < 4) {
           return showToast('PIN must be at least 4 digits', 'warning');
         }
-        await api.post('/employees', { ...form, station_id: form.role === 'kitchen' ? form.station_id : null });
+        await api.post('/employees', formData, { headers });
         showToast('Employee created', 'success');
       }
       setIsModalOpen(false);
@@ -135,7 +153,9 @@ export default function EmployeeManagement() {
         emergency_contact_phone: emp.emergency_contact_phone || '',
         employment_type: emp.employment_type || 'full-time',
         hourly_rate: emp.hourly_rate || '',
-        access_pages: emp.access_pages ? (typeof emp.access_pages === 'string' ? JSON.parse(emp.access_pages) : emp.access_pages) : []
+        access_pages: emp.access_pages ? (typeof emp.access_pages === 'string' ? JSON.parse(emp.access_pages) : emp.access_pages) : [],
+        photo: null,
+        id_photo: null
       });
     } else {
       setEditingEmp(null);
@@ -188,7 +208,6 @@ export default function EmployeeManagement() {
                   key={emp.id} 
                   style={{ cursor: 'pointer' }}
                   onClick={(e) => {
-                    // Prevent navigation if clicking on action buttons
                     if (!e.target.closest('button')) {
                       navigate(`/admin/employees/${emp.id}`, { state: { employee: emp } });
                     }
@@ -197,8 +216,18 @@ export default function EmployeeManagement() {
                 >
                   <td>
                     <div className="flex align-center gap-sm">
-                      {getRoleIcon(emp.role)}
-                      <span style={{ fontWeight: 500 }}>{emp.name}</span>
+                      {emp.photo_url ? (
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                          <img src={emp.photo_url} alt="photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <div className="flex-center" style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-tertiary)' }}>
+                          <Camera size={14} className="text-secondary" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold">{emp.name}</div>
+                      </div>
                     </div>
                   </td>
                   <td>
@@ -275,6 +304,19 @@ export default function EmployeeManagement() {
               <div className="form-group flex-1">
                 <label className="form-label">Emerg. Contact Phone</label>
                 <input type="text" className="form-input" value={form.emergency_contact_phone || ''} onChange={e => setForm({...form, emergency_contact_phone: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="flex gap-md">
+              <div className="form-group flex-1">
+                <label className="form-label">Employee Photo</label>
+                <input type="file" className="form-control" accept="image/*" onChange={e => setForm({ ...form, photo: e.target.files[0] })} />
+                {editingEmp?.photo_url && !form.photo && <div className="mt-xs text-xs text-success">Current photo uploaded</div>}
+              </div>
+              <div className="form-group flex-1">
+                <label className="form-label">ID Document Photo</label>
+                <input type="file" className="form-control" accept="image/*" onChange={e => setForm({ ...form, id_photo: e.target.files[0] })} />
+                {editingEmp?.id_photo_url && !form.id_photo && <div className="mt-xs text-xs text-success">Current ID uploaded</div>}
               </div>
             </div>
             

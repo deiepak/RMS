@@ -11,7 +11,7 @@ export default function AdventurePOS() {
   const [stats, setStats] = useState({});
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('');
-  const [videoPhone, setVideoPhone] = useState('');
+  const [videoPhones, setVideoPhones] = useState(['']); // Array of phones
   const [discount, setDiscount] = useState(0);
   const [paymentAmounts, setPaymentAmounts] = useState({ cash: '', online: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -92,8 +92,9 @@ export default function AdventurePOS() {
       return showToast(`Payment sum (रू ${currentSum}) must match the total (रू ${total}).`, 'warning');
     }
 
-    if (videoPhone && videoPhone.trim().length !== 10) {
-      return showToast('Phone number for video must be exactly 10 digits.', 'warning');
+    const validPhones = videoPhones.filter(p => p.trim() !== '');
+    if (validPhones.some(p => p.trim().length !== 10)) {
+      return showToast('All phone numbers for video must be exactly 10 digits.', 'warning');
     }
 
     try {
@@ -105,7 +106,7 @@ export default function AdventurePOS() {
           { method: 'online', amount: onlineAmt }
         ],
         customer_name: customerName,
-        video_phone: videoPhone,
+        video_phones: validPhones,
         subtotal,
         discount,
         tax,
@@ -115,7 +116,7 @@ export default function AdventurePOS() {
       showToast('Payment successful!', 'success');
       setCart([]);
       setCustomerName('');
-      setVideoPhone('');
+      setVideoPhones(['']);
       setDiscount(0);
       setPaymentAmounts({ cash: '', online: '' });
       fetchStats();
@@ -261,14 +262,26 @@ export default function AdventurePOS() {
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
             />
-            <input 
-              type="text" 
-              className="form-input" 
-              style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)' }}
-              placeholder="Optional Phone (For Video)"
-              value={videoPhone}
-              onChange={e => setVideoPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
             />
+            {videoPhones.map((phone, idx) => (
+              <input 
+                key={idx}
+                type="text" 
+                className="form-input" 
+                style={{ borderRadius: '12px', padding: '12px 16px', border: '1px solid var(--glass-border)', marginTop: idx > 0 ? '10px' : '0' }}
+                placeholder={`Optional Phone (For Video) ${idx + 1}`}
+                value={phone}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  const newPhones = [...videoPhones];
+                  newPhones[idx] = val;
+                  if (idx === newPhones.length - 1 && val.length === 10) {
+                    newPhones.push('');
+                  }
+                  setVideoPhones(newPhones);
+                }}
+              />
+            ))}
           </div>
 
           <div className="flex justify-between mb-sm text-secondary font-medium">
@@ -436,11 +449,8 @@ export default function AdventurePOS() {
             font-family: Arial, Helvetica, sans-serif !important;
           }
           
-          /* Position it absolutely so it starts at the true top-left of the paper */
+          /* Position it absolute isn't good for multiple pages */
           #barebones-print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
             width: 100%;
             margin: 0 !important;
             /* Allow the 10px inline padding to apply so content (like the logo) isn't cut off at the edges */

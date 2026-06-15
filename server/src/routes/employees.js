@@ -2,6 +2,25 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, '../../uploads/employees');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
@@ -13,7 +32,7 @@ router.get('/', async (req, res) => {
   try {
     const employees = await db('employees')
       .leftJoin('stations', 'employees.station_id', 'stations.id')
-      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.created_at', 'employees.updated_at')
+      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.photo_url', 'employees.id_photo_url', 'employees.created_at', 'employees.updated_at')
       .orderBy('employees.created_at');
     res.json(employees);
   } catch (err) {
@@ -23,7 +42,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/employees
-router.post('/', async (req, res) => {
+router.post('/', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'id_photo', maxCount: 1 }]), async (req, res) => {
   try {
     const { name, role, pin, station_id } = req.body;
     if (!name || !role || !pin) {
@@ -45,13 +64,15 @@ router.post('/', async (req, res) => {
       emergency_contact_phone: req.body.emergency_contact_phone || null,
       employment_type: req.body.employment_type || 'full-time',
       hourly_rate: req.body.hourly_rate || 0,
-      access_pages: req.body.access_pages ? JSON.stringify(req.body.access_pages) : null
+      access_pages: req.body.access_pages ? (typeof req.body.access_pages === 'string' ? req.body.access_pages : JSON.stringify(req.body.access_pages)) : null,
+      photo_url: req.files && req.files['photo'] ? `/uploads/employees/${req.files['photo'][0].filename}` : null,
+      id_photo_url: req.files && req.files['id_photo'] ? `/uploads/employees/${req.files['id_photo'][0].filename}` : null
     });
 
     const employee = await db('employees')
       .leftJoin('stations', 'employees.station_id', 'stations.id')
       .where({ 'employees.id': id })
-      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.created_at', 'employees.updated_at')
+      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.photo_url', 'employees.id_photo_url', 'employees.created_at', 'employees.updated_at')
       .first();
 
     res.status(201).json(employee);
@@ -62,7 +83,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/employees/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'id_photo', maxCount: 1 }]), async (req, res) => {
   try {
     const { name, role, is_active, station_id } = req.body;
     const updates = {};
@@ -79,7 +100,9 @@ router.put('/:id', async (req, res) => {
     if (req.body.emergency_contact_phone !== undefined) updates.emergency_contact_phone = req.body.emergency_contact_phone;
     if (req.body.employment_type !== undefined) updates.employment_type = req.body.employment_type;
     if (req.body.hourly_rate !== undefined) updates.hourly_rate = req.body.hourly_rate;
-    if (req.body.access_pages !== undefined) updates.access_pages = req.body.access_pages ? JSON.stringify(req.body.access_pages) : null;
+    if (req.body.access_pages !== undefined) updates.access_pages = req.body.access_pages ? (typeof req.body.access_pages === 'string' ? req.body.access_pages : JSON.stringify(req.body.access_pages)) : null;
+    if (req.files && req.files['photo']) updates.photo_url = `/uploads/employees/${req.files['photo'][0].filename}`;
+    if (req.files && req.files['id_photo']) updates.id_photo_url = `/uploads/employees/${req.files['id_photo'][0].filename}`;
     updates.updated_at = db.fn.now();
 
     const count = await db('employees').where({ id: req.params.id }).update(updates);
@@ -90,7 +113,7 @@ router.put('/:id', async (req, res) => {
     const employee = await db('employees')
       .leftJoin('stations', 'employees.station_id', 'stations.id')
       .where({ 'employees.id': req.params.id })
-      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.created_at', 'employees.updated_at')
+      .select('employees.id', 'employees.name', 'employees.role', 'employees.station_id', 'stations.name as station_name', 'employees.is_active', 'employees.contact', 'employees.join_date', 'employees.monthly_salary', 'employees.dob', 'employees.address', 'employees.emergency_contact_name', 'employees.emergency_contact_phone', 'employees.employment_type', 'employees.hourly_rate', 'employees.access_pages', 'employees.photo_url', 'employees.id_photo_url', 'employees.created_at', 'employees.updated_at')
       .first();
 
     res.json(employee);

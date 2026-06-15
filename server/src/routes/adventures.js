@@ -86,7 +86,7 @@ router.delete('/items/:id', verifyToken, requireRole(['admin']), async (req, res
 // POST /api/adventures/sell
 router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { items, payment_method, customer_name, subtotal, discount, tax, total, video_phone } = req.body;
+    const { items, payment_method, customer_name, subtotal, discount, tax, total, video_phones } = req.body;
     
     // Create the order
     const [orderId] = await db('orders').insert({
@@ -156,14 +156,18 @@ router.post('/sell', verifyToken, requireRole(['admin']), async (req, res) => {
       }
     }
 
-    // Insert video tracking if phone provided
-    if (video_phone && video_phone.trim().length === 10) {
-      await db('adventure_videos').insert({
-        order_id: orderId,
-        phone_number: video_phone.trim(),
-        is_sent: false,
-        created_at: db.fn.now()
-      });
+    // Insert video tracking if phones provided
+    if (Array.isArray(video_phones) && video_phones.length > 0) {
+      const validPhones = video_phones.filter(p => p && p.trim().length === 10);
+      if (validPhones.length > 0) {
+        const videoRecords = validPhones.map(p => ({
+          order_id: orderId,
+          phone_number: p.trim(),
+          is_sent: false,
+          created_at: db.fn.now()
+        }));
+        await db('adventure_videos').insert(videoRecords);
+      }
     }
 
     res.json({ success: true, orderId, tickets });

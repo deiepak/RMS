@@ -169,14 +169,25 @@ export default function EmployeeProfile() {
 
       {/* Header Card */}
       <div className="card mb-lg" style={{ padding: '24px' }}>
-        <div className="flex justify-between align-center mb-md">
-          <div className="flex align-center gap-md">
-            <h2 style={{ fontSize: 24, margin: 0 }}>{employee.name}</h2>
-            <span className={`badge ${employee.is_active ? 'badge-success' : 'badge-danger'}`}>
-              {employee.is_active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-          <div>
+        <div className="flex gap-lg align-start mb-md">
+          {employee.photo_url ? (
+            <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--border-color)', flexShrink: 0 }}>
+              <img src={employee.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          ) : (
+            <div className="flex-center" style={{ width: 100, height: 100, borderRadius: '50%', background: 'var(--bg-tertiary)', flexShrink: 0 }}>
+              <Briefcase size={32} className="text-secondary" />
+            </div>
+          )}
+          <div className="flex-1">
+            <div className="flex justify-between align-center mb-md">
+              <div className="flex align-center gap-md">
+                <h2 style={{ fontSize: 24, margin: 0 }}>{employee.name}</h2>
+                <span className={`badge ${employee.is_active ? 'badge-success' : 'badge-danger'}`}>
+                  {employee.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div>
             {!isClockedIn ? (
               <button className="btn btn-success flex align-center gap-sm" onClick={handleClockIn}>
                 <LogIn size={16} /> Clock In
@@ -187,14 +198,25 @@ export default function EmployeeProfile() {
               </button>
             )}
           </div>
-        </div>
-        
-        <div className="flex gap-lg flex-wrap text-secondary">
-          <div className="flex align-center gap-sm text-capitalize"><Briefcase size={16} /> {employee.role} {employee.station_name && `(${employee.station_name})`}</div>
-          {employee.contact && <div className="flex align-center gap-sm"><Phone size={16} /> {employee.contact}</div>}
-          {employee.join_date && <div className="flex align-center gap-sm"><Calendar size={16} /> Joined: {new Date(employee.join_date).toLocaleDateString()}</div>}
-          <div className="flex align-center gap-sm font-bold text-success"><DollarSign size={16} /> Base Salary: {formatCurrency(employee.monthly_salary)} / mo</div>
-          <div className="flex align-center gap-sm font-bold text-primary"><DollarSign size={16} /> Hourly: {formatCurrency(employee.hourly_rate)} / hr</div>
+            </div>
+            
+            <div className="flex gap-lg flex-wrap text-secondary">
+              <div className="flex align-center gap-sm text-capitalize"><Briefcase size={16} /> {employee.role} {employee.station_name && `(${employee.station_name})`}</div>
+              {employee.contact && <div className="flex align-center gap-sm"><Phone size={16} /> {employee.contact}</div>}
+              {employee.join_date && <div className="flex align-center gap-sm"><Calendar size={16} /> Joined: {new Date(employee.join_date).toLocaleDateString()}</div>}
+              <div className="flex align-center gap-sm font-bold text-success"><DollarSign size={16} /> Base Salary: {formatCurrency(employee.monthly_salary)} / mo</div>
+              <div className="flex align-center gap-sm font-bold text-primary"><DollarSign size={16} /> Hourly: {formatCurrency(employee.hourly_rate)} / hr</div>
+            </div>
+
+            {employee.id_photo_url && (
+              <div className="mt-md">
+                <div className="text-sm text-secondary mb-xs">ID Document:</div>
+                <a href={employee.id_photo_url} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm flex align-center gap-xs" style={{ display: 'inline-flex', width: 'auto' }}>
+                  <FileText size={16} /> View ID Document
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

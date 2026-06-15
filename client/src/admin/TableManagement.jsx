@@ -418,7 +418,7 @@ export default function TableManagement() {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={() => { setShowAddModal(false); setEditTable(null); }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editTable ? 'Edit Table' : 'Add New Table'}</h2>
               <button className="btn btn-icon" onClick={() => { setShowAddModal(false); setEditTable(null); }}>
@@ -479,7 +479,7 @@ export default function TableManagement() {
       {/* Shift Table Modal */}
       {showShiftModal && shiftFromTable && (
         <div className="modal-overlay" onClick={() => setShowShiftModal(false)}>
-          <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Shift {shiftFromTable.number}</h2>
               <button className="btn btn-icon" onClick={() => setShowShiftModal(false)}>
@@ -518,7 +518,7 @@ export default function TableManagement() {
       {/* Delete Confirmation */}
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Delete Table</h2>
               <button className="btn btn-icon" onClick={() => setDeleteTarget(null)}>
@@ -539,7 +539,7 @@ export default function TableManagement() {
       {/* QR Code Modal */}
       {qrTable && (
         <div className="modal-overlay" onClick={() => setQrTable(null)}>
-          <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>QR Code — {qrTable.number}</h2>
               <button className="btn btn-icon" onClick={() => setQrTable(null)}>
@@ -583,7 +583,7 @@ export default function TableManagement() {
       {/* View Order Modal */}
       {viewOrderTable && (
         <div className="modal-overlay" onClick={() => setViewOrderTable(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h2>{viewOrderTable.number} - Active Order</h2>
               <button className="btn btn-icon" onClick={() => setViewOrderTable(null)}>
