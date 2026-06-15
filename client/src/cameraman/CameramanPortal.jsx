@@ -7,7 +7,7 @@ import { LogOut, Video, StopCircle, Monitor } from 'lucide-react';
 
 export default function CameramanPortal() {
   const { user, logout } = useAuth();
-  const socket = useSocket();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const { showToast } = useToast();
 

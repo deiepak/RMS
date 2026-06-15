@@ -7,7 +7,7 @@ import { LogOut } from 'lucide-react';
 
 export default function TVPortal() {
   const { user, logout } = useAuth();
-  const socket = useSocket();
+  const { socket } = useSocket();
   const navigate = useNavigate();
 
   const [playlist, setPlaylist] = useState([]);
