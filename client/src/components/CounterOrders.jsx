@@ -133,13 +133,14 @@ export default function CounterOrders() {
       }
 
       await api.post('/orders', {
-        order_type: 'counter',
+        order_type: selectedTableId ? 'table' : 'counter',
         table_id: selectedTableId || null,
         items: cart.map(item => ({
           menu_item_id: item.id,
           quantity: item.quantity,
           customer_name: customerName,
-          price_at_order: item.price
+          price_at_order: item.price,
+          notes: item.notes
         }))
       });
       showToast('Order created successfully', 'success');
