@@ -144,7 +144,7 @@ export default function AdventurePOS() {
           </div>
         </div>
         
-        <div className="grid gap-md" style={{ gridTemplateColumns: 'repeat(2, 1fr)', overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
+        <div className="grid gap-md" style={{ gridTemplateColumns: 'repeat(2, 1fr)', alignContent: 'start', overflowY: 'auto', paddingRight: '12px', paddingBottom: '24px' }}>
           {adventures.map(adv => (
             <div 
               key={adv.id} 
@@ -205,14 +205,14 @@ export default function AdventurePOS() {
       </div>
 
       {/* Right side: Cart */}
-      <div className="card flex flex-col" style={{ flex: '0 0 420px', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)' }}>
+      <div className="card flex flex-col" style={{ flex: '0 0 420px', height: '100%', maxHeight: '100%', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid var(--glass-border)' }}>
           <h3 className="flex align-center gap-sm m-0" style={{ fontSize: '20px', fontWeight: 800 }}>
             <ShoppingCart size={24} style={{ color: 'var(--primary)' }} /> Order Summary
           </h3>
         </div>
         
-        <div className="card-body flex-1 overflow-y-auto" style={{ padding: '24px' }}>
+        <div className="card-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', minHeight: '0' }}>
           {cart.length === 0 ? (
             <div className="flex-center h-full flex-col text-secondary opacity-50" style={{ gap: '16px' }}>
               <ShoppingCart size={64} />
@@ -238,7 +238,7 @@ export default function AdventurePOS() {
           )}
         </div>
         
-        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderTop: '1px solid var(--glass-border)', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', flexShrink: 0, borderTop: '1px solid var(--glass-border)' }}>
           <div className="form-group mb-lg">
             <div className="flex align-center gap-sm mb-sm text-secondary font-bold" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               <User size={14} /> Customer Details
