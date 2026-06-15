@@ -92,7 +92,17 @@ export default function AdventurePOS() {
       return showToast(`Payment sum (रू ${currentSum}) must match the total (रू ${total}).`, 'warning');
     }
 
+    const requiresPhone = cart.some(item => 
+      item.name.toLowerCase().includes('video') || 
+      item.name.toLowerCase().includes('photo')
+    );
+
     const validPhones = videoPhones.filter(p => p.trim() !== '');
+
+    if (requiresPhone && validPhones.length === 0) {
+      return showToast('A phone number is mandatory when purchasing Photo/Video packages.', 'warning');
+    }
+
     if (validPhones.some(p => p.trim().length !== 10)) {
       return showToast('All phone numbers for video must be exactly 10 digits.', 'warning');
     }
