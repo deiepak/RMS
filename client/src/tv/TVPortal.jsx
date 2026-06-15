@@ -134,7 +134,6 @@ export default function TVPortal() {
         ) : (
           <video 
             autoPlay 
-            muted 
             ref={mediaRef}
             src={currentMedia.file_url} 
             onEnded={handleVideoEnded}
