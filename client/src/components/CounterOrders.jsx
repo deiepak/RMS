@@ -457,8 +457,6 @@ export default function CounterOrders() {
           </div>
         </div>
       )}
-        </div>
-      )}
 
       {/* Active Orders Summary Modal */}
       {showActiveOrdersModal && (
