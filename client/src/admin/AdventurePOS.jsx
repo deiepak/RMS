@@ -21,11 +21,16 @@ export default function AdventurePOS() {
   const { settings } = useSettings();
 
   const printRef = useRef(null);
+  const cartEndRef = useRef(null);
 
   useEffect(() => {
     fetchAdventures();
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    cartEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [cart]);
 
   const fetchStats = async () => {
     try {
@@ -235,6 +240,7 @@ export default function AdventurePOS() {
                   </div>
                 </div>
               ))}
+              <div ref={cartEndRef} />
             </div>
           )}
         </div>
