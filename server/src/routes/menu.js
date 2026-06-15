@@ -4,9 +4,15 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 
+const fs = require('fs');
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../uploads/menu'));
+    const dir = path.join(__dirname, '../../uploads/menu');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
