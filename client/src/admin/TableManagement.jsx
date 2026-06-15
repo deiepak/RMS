@@ -26,6 +26,7 @@ export default function TableManagement() {
   const navigate = useNavigate();
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [shiftFromTable, setShiftFromTable] = useState(null);
@@ -267,13 +268,25 @@ export default function TableManagement() {
   return (
     <div className="table-mgmt-page">
       {/* Header */}
-      <div className="page-actions">
+      <div className="page-actions" style={{ flexWrap: 'wrap', gap: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div className="page-info">
           <span className="result-count">{tables.length} tables</span>
         </div>
-        <button className="btn btn-primary" onClick={openAdd}>
-          <Plus size={18} /> Add Table
-        </button>
+        <div className="flex gap-sm flex-wrap align-center" style={{ flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+          <div className="input-with-icon" style={{ flex: 1, maxWidth: '300px' }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search by number or capacity..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn btn-primary" onClick={openAdd} style={{ whiteSpace: 'nowrap' }}>
+            <Plus size={18} /> Add Table
+          </button>
+        </div>
       </div>
 
       {/* Tables Grid */}
@@ -298,7 +311,7 @@ export default function TableManagement() {
         </div>
       ) : (
         <div className="tables-grid">
-          {tables.map((table) => (
+          {tables.filter(t => t.number?.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.capacity).includes(searchQuery)).map((table) => (
             <div 
               key={table.id} 
               className={`card table-card ${getStatusClass(table.status)}`}

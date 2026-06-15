@@ -75,7 +75,7 @@ export default function CounterOrders() {
     try {
       const res = await api.get('/menu');
       setMenuItems(res.data);
-      const cats = [...new Set(res.data.map(item => item.category))];
+      const cats = [...new Set(res.data.map(item => item.category_name))];
       setCategories(cats);
     } catch (error) {
       console.error(error);
@@ -322,7 +322,7 @@ export default function CounterOrders() {
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
               {categories.map(cat => {
                   if (selectedCategory !== 'All' && selectedCategory !== cat) return null;
-                  const filteredItems = menuItems.filter(m => m.category === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
+                  const filteredItems = menuItems.filter(m => m.category_name === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
                   if (filteredItems.length === 0) return null;
                   return (
                   <div key={cat} className="mb-lg">

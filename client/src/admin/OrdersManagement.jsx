@@ -667,7 +667,7 @@ export default function OrdersManagement() {
           <div className="flex-col gap-md">
             <div className="ticket-print-area" style={{ fontFamily: 'monospace', lineHeight: '1.2' }}>
               {/* KOT Copy 1 (Kitchen) */}
-              <div style={{ pageBreakAfter: 'always', breakAfter: 'page', marginBottom: '20px' }}>
+              <div className="kot-ticket" style={{ marginBottom: '20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '8px' }}>
                   <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (KITCHEN)</h2>
                 </div>
@@ -709,7 +709,7 @@ export default function OrdersManagement() {
               </div>
 
               {/* KOT Copy 2 (Admin) */}
-              <div style={{ pageBreakAfter: 'auto' }}>
+              <div className="kot-ticket" style={{ pageBreakAfter: 'auto' }}>
                 <div style={{ textAlign: 'center', marginBottom: '8px' }}>
                   <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>KOT (ADMIN)</h2>
                 </div>
@@ -777,6 +777,16 @@ export default function OrdersManagement() {
 
           .ticket-print-area, .ticket-print-area * {
             visibility: visible;
+          }
+
+          .kot-ticket {
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          
+          .kot-ticket:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
 
           .ticket-print-area {
