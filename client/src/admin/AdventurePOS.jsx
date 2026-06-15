@@ -377,10 +377,10 @@ export default function AdventurePOS() {
               </div>
             </div>
 
-            <div style={{ background: '#fff', color: '#000', padding: '10px', maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)' }} id="barebones-print-container">
-              <div ref={printRef}>
+            <div className="ticket-print-area" style={{ background: '#fff', color: '#000', padding: '10px', maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)' }}>
+              <div>
                 {ticketModal.map((ticket, index) => (
-                  <div key={ticket.id} className="ticket" style={{ pageBreakAfter: index === ticketModal.length - 1 ? 'auto' : 'always', marginBottom: index === ticketModal.length - 1 ? '0px' : '20px' }}>
+                  <div key={ticket.id} className="adventure-ticket" style={{ marginBottom: index === ticketModal.length - 1 ? '0px' : '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, borderBottom: '3px solid black', paddingBottom: 8, gap: 10 }}>
                       <img src="/adventure-logo.svg" alt="Adventure Pass" style={{ width: 80, height: 80, flexShrink: 0 }} />
                       <div style={{ textAlign: 'left' }}>
@@ -440,47 +440,47 @@ export default function AdventurePOS() {
             margin: 0;
           }
 
-          /* Force white background for the whole page */
-          html, body, #root, .modal-backdrop, .modal, .card, .kitchen-layout {
-            height: auto !important;
-            overflow: visible !important;
-            position: static !important;
+          html, body {
             background-color: #ffffff !important;
             color: #000000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
 
-          /* Hide everything in the body by default */
           body * {
             visibility: hidden;
           }
-          
-          /* Only show the barebones print container */
-          #barebones-print-container, #barebones-print-container * {
+
+          .ticket-print-area, .ticket-print-area * {
             visibility: visible;
-            font-weight: 900 !important;
-            font-family: Arial, Helvetica, sans-serif !important;
+          }
+
+          .adventure-ticket {
+            page-break-after: always !important;
+            break-after: page !important;
           }
           
-          /* Position it absolute isn't good for multiple pages */
-          #barebones-print-container {
-            width: 100%;
-            margin: 0 !important;
-            /* Allow the 10px inline padding to apply so content (like the logo) isn't cut off at the edges */
-            border: none !important;
-            max-height: none !important;
-            overflow: visible !important;
-            background-color: #ffffff !important;
+          .adventure-ticket:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+
+          .ticket-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 72mm;
+            padding: 0;
+            margin: 0;
+          }
+
+          .ticket-print-area img {
+            filter: grayscale(100%) contrast(1000%);
+            -webkit-filter: grayscale(100%) contrast(1000%);
           }
           
-          /* Don't print the close/print buttons */
           .no-print {
             display: none !important;
-          }
-          
-          /* Thermal printers are 1-bit monochrome. They ruin colored SVGs with dithering.
-             This filter forces pure black and white (1-bit monochrome) to prevent muddy printing. */
-          #barebones-print-container img[src="/adventure-logo.svg"] {
-            filter: grayscale(100%) brightness(65%) contrast(1000%);
           }
         }
       `}</style>
