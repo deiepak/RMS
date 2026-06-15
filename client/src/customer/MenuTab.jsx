@@ -275,12 +275,6 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
                           </div>
                         </div>
                         
-                        {!cartItem && !isCheckoutRequested && (
-                          <button className="sleek-add-btn" onClick={() => addToCart(item)}>
-                            <Plus size={18} />
-                          </button>
-                        )}
-                        
                         <div className="sleek-menu-body">
                           <div>
                             <div className="sleek-menu-title">{item.name}</div>
@@ -290,7 +284,11 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
                           
                           <div className="sleek-menu-footer">
                             <div className="sleek-menu-price">{formatCurrency(item.price)}</div>
-                            {cartItem && (
+                            {!cartItem && !isCheckoutRequested ? (
+                              <button className="btn btn-primary" style={{ padding: '6px 16px', borderRadius: '100px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => addToCart(item)}>
+                                <Plus size={14} /> Add
+                              </button>
+                            ) : cartItem ? (
                               <div className="sleek-qty-stepper">
                                 <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}>
                                   <Minus size={14} />
@@ -300,7 +298,7 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
                                   <Plus size={14} />
                                 </button>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
