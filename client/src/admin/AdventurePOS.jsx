@@ -204,13 +204,14 @@ export default function AdventurePOS() {
         </div>
       </div>
 
-      {/* Right side: Cart */}
-      <div className="card flex flex-col" style={{ flex: '0 0 420px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+      {/* Middle side: Cart Items */}
+      <div className="card flex flex-col" style={{ flex: '1', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid var(--glass-border)', flexShrink: 0 }}>
           <h3 className="flex align-center gap-sm m-0" style={{ fontSize: '20px', fontWeight: 800 }}>
             <ShoppingCart size={24} style={{ color: 'var(--primary)' }} /> Order Summary
           </h3>
         </div>
+        
         
         <div className="card-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', minHeight: '0' }}>
           {cart.length === 0 ? (
@@ -237,8 +238,11 @@ export default function AdventurePOS() {
             </div>
           )}
         </div>
+      </div>
         
-        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', flexShrink: 0, borderTop: '1px solid var(--glass-border)' }}>
+      {/* Right side: Details & Payment */}
+      <div className="card flex flex-col" style={{ flex: '1', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', flex: 1, overflowY: 'auto' }}>
           <div className="form-group mb-lg">
             <div className="flex align-center gap-sm mb-sm text-secondary font-bold" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               <User size={14} /> Customer Details
