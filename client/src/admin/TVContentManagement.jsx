@@ -191,16 +191,16 @@ export default function TVContentManagement() {
             </div>
           </div>
           <div className="card-body p-0" style={{ overflowX: 'auto' }}>
-            <table className="table">
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
-                  <th>Media</th>
-                  <th>Type</th>
-                  <th>Duration</th>
-                  <th>Occurrences/Hr</th>
-                  <th>Order</th>
-                  <th>Total/Hr</th>
-                  <th>Actions</th>
+                <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Media</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Type</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Duration</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Occurrences/Hr</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Order</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>Total/Hr</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'right', fontWeight: 600, color: 'var(--text-secondary)' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -209,10 +209,10 @@ export default function TVContentManagement() {
                 ) : contentList.length === 0 ? (
                   <tr><td colSpan="7" className="text-center p-xl text-secondary">No media uploaded yet.</td></tr>
                 ) : contentList.map(item => (
-                  <tr key={item.id}>
-                    <td>
+                  <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '16px 20px' }}>
                       {item.type === 'photo' ? (
-                        <div style={{ width: 60, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                        <div style={{ width: 60, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                           <img src={item.file_url} alt="media" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       ) : (
@@ -221,17 +221,17 @@ export default function TVContentManagement() {
                         </div>
                       )}
                     </td>
-                    <td>
+                    <td style={{ padding: '16px 20px' }}>
                       <span className="badge badge-secondary flex align-center gap-xs" style={{ display: 'inline-flex', textTransform: 'capitalize' }}>
                         {item.type === 'photo' ? <ImageIcon size={12}/> : <Video size={12}/>}
                         {item.type}
                       </span>
                     </td>
-                    <td>{item.duration_seconds}s</td>
-                    <td>{item.occurrences_per_hour}x</td>
-                    <td>{item.display_order}</td>
-                    <td className="font-bold">{item.duration_seconds * item.occurrences_per_hour}s</td>
-                    <td>
+                    <td style={{ padding: '16px 20px' }}>{item.duration_seconds}s</td>
+                    <td style={{ padding: '16px 20px' }}>{item.occurrences_per_hour}x</td>
+                    <td style={{ padding: '16px 20px' }}>{item.display_order}</td>
+                    <td style={{ padding: '16px 20px' }} className="font-bold">{item.duration_seconds * item.occurrences_per_hour}s</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                       <button className="btn btn-icon btn-sm text-danger" onClick={() => handleDelete(item.id)}>
                         <Trash2 size={16} />
                       </button>
