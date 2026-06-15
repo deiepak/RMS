@@ -31,6 +31,8 @@ export default function EmployeeManagement() {
     { id: '/admin/vendors', label: 'Vendors' },
     { id: '/admin/employees', label: 'Employees' },
     { id: '/admin/ledger', label: 'Books & Ledger' },
+    { id: '/admin/expenses', label: 'Expenses Report' },
+    { id: '/admin/financial-log', label: 'Financial Log' },
     { id: '/admin/tips', label: 'Tips Ledger' },
     { id: '/admin/damage', label: 'Damage Report' },
     { id: '/admin/maintenance', label: 'Maintenance Log' },
@@ -40,7 +42,9 @@ export default function EmployeeManagement() {
     { id: '/admin/settings', label: 'Settings' },
     { id: '/admin/adventures/manage', label: 'Manage Adventures' },
     { id: '/admin/adventures/sell', label: 'Sell Adventure' },
-    { id: '/admin/adventures/scan', label: 'Scan Adventure' }
+    { id: '/admin/adventures/scan', label: 'Scan Adventure' },
+    { id: '/admin/adventures/videos', label: 'Adventure Videos' },
+    { id: '/admin/tv-content', label: 'TV Content' }
   ];
 
   const initialFormState = { 
