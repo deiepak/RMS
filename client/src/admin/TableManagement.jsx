@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus,
   Edit2,
@@ -46,8 +47,7 @@ export default function TableManagement() {
   const [loadingOrder, setLoadingOrder] = useState(false);
   
   const [activeOrders, setActiveOrders] = useState({});
-  const [hoveredTableId, setHoveredTableId] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ top: '100%', bottom: 'auto', left: '50%', transform: 'translateX(-50%)' });
+  const [tooltipState, setTooltipState] = useState({ visible: false, tableId: null, x: 0, y: 0, align: 'bottom' });
 
   const { showToast } = useToast();
   const qrRef = useRef(null);
@@ -362,18 +362,18 @@ export default function TableManagement() {
               key={table.id} 
               className={`card table-card ${getStatusClass(table.status)}`}
               onMouseEnter={(e) => {
-                setHoveredTableId(table.id);
                 const rect = e.currentTarget.getBoundingClientRect();
                 const spaceBelow = window.innerHeight - rect.bottom;
-                if (spaceBelow < 250) {
-                  // Not enough space below, show above
-                  setTooltipPos({ top: 'auto', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', marginTop: '0' });
-                } else {
-                  // Show below
-                  setTooltipPos({ top: '100%', bottom: 'auto', left: '50%', transform: 'translateX(-50%)', marginTop: '8px', marginBottom: '0' });
-                }
+                const align = spaceBelow < 250 ? 'top' : 'bottom';
+                setTooltipState({
+                  visible: true,
+                  tableId: table.id,
+                  x: rect.left + rect.width / 2,
+                  y: align === 'top' ? rect.top - 8 : rect.bottom + 8,
+                  align
+                });
               }}
-              onMouseLeave={() => setHoveredTableId(null)}
+              onMouseLeave={() => setTooltipState({ visible: false, tableId: null, x: 0, y: 0, align: 'bottom' })}
               onClick={(e) => {
                 // Ignore if clicked on an action button
                 if (e.target.closest('.table-card-actions') || e.target.closest('.table-card-admin-actions')) return;
@@ -381,42 +381,9 @@ export default function TableManagement() {
               }}
               style={{ 
                 cursor: table.status === 'occupied' ? 'pointer' : 'default', 
-                position: 'relative',
-                overflow: hoveredTableId === table.id ? 'visible' : 'hidden',
-                zIndex: hoveredTableId === table.id ? 50 : 1
+                position: 'relative'
               }}
             >
-              {hoveredTableId === table.id && activeOrders[table.id] && (
-                <div 
-                  className="card"
-                  style={{ 
-                    position: 'absolute', 
-                    ...tooltipPos,
-                    zIndex: 9999, 
-                    minWidth: '220px', 
-                    background: 'var(--bg-elevated)', 
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    pointerEvents: 'none'
-                  }}
-                >
-                  <div style={{ fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
-                    Order #{activeOrders[table.id].id}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {activeOrders[table.id].items?.map((item, idx) => (
-                      <div key={idx} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', color: item.status === 'rejected' ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: item.status === 'rejected' ? 'line-through' : 'none' }}>
-                        <span>{item.quantity}x {item.item_name}</span>
-                        <span style={{ opacity: 0.7, fontSize: '11px', textTransform: 'capitalize' }}>{item.status}</span>
-                      </div>
-                    ))}
-                    {(!activeOrders[table.id].items || activeOrders[table.id].items.length === 0) && (
-                      <div className="text-muted" style={{ fontSize: '12px' }}>No items yet</div>
-                    )}
-                  </div>
-                </div>
-              )}
               <div className="table-card-header">
                 <span className="table-number">{table.number}</span>
                 <span className={getStatusBadge(table.status)}>
@@ -742,6 +709,43 @@ export default function TableManagement() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Global Tooltip Portal */}
+      {tooltipState.visible && activeOrders[tooltipState.tableId] && createPortal(
+        <div 
+          className="card"
+          style={{ 
+            position: 'fixed', 
+            top: tooltipState.align === 'bottom' ? tooltipState.y : 'auto',
+            bottom: tooltipState.align === 'top' ? (window.innerHeight - tooltipState.y) : 'auto',
+            left: tooltipState.x, 
+            transform: 'translateX(-50%)', 
+            zIndex: 999999, 
+            minWidth: '220px', 
+            background: 'var(--bg-elevated)', 
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            padding: '12px',
+            borderRadius: '12px',
+            pointerEvents: 'none'
+          }}
+        >
+          <div style={{ fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
+            Order #{activeOrders[tooltipState.tableId].id}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {activeOrders[tooltipState.tableId].items?.map((item, idx) => (
+              <div key={idx} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', color: item.status === 'rejected' ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: item.status === 'rejected' ? 'line-through' : 'none' }}>
+                <span>{item.quantity}x {item.item_name}</span>
+                <span style={{ opacity: 0.7, fontSize: '11px', textTransform: 'capitalize' }}>{item.status}</span>
+              </div>
+            ))}
+            {(!activeOrders[tooltipState.tableId].items || activeOrders[tooltipState.tableId].items.length === 0) && (
+              <div className="text-muted" style={{ fontSize: '12px' }}>No items yet</div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
