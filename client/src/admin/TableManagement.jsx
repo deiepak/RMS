@@ -47,6 +47,7 @@ export default function TableManagement() {
   
   const [activeOrders, setActiveOrders] = useState({});
   const [hoveredTableId, setHoveredTableId] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ top: '100%', bottom: 'auto', left: '50%', transform: 'translateX(-50%)' });
 
   const { showToast } = useToast();
   const qrRef = useRef(null);
@@ -360,31 +361,44 @@ export default function TableManagement() {
             <div 
               key={table.id} 
               className={`card table-card ${getStatusClass(table.status)}`}
-              onMouseEnter={() => setHoveredTableId(table.id)}
+              onMouseEnter={(e) => {
+                setHoveredTableId(table.id);
+                const rect = e.currentTarget.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                if (spaceBelow < 250) {
+                  // Not enough space below, show above
+                  setTooltipPos({ top: 'auto', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '8px', marginTop: '0' });
+                } else {
+                  // Show below
+                  setTooltipPos({ top: '100%', bottom: 'auto', left: '50%', transform: 'translateX(-50%)', marginTop: '8px', marginBottom: '0' });
+                }
+              }}
               onMouseLeave={() => setHoveredTableId(null)}
               onClick={(e) => {
                 // Ignore if clicked on an action button
                 if (e.target.closest('.table-card-actions') || e.target.closest('.table-card-admin-actions')) return;
                 handleViewOrder(table);
               }}
-              style={{ cursor: table.status === 'occupied' ? 'pointer' : 'default', position: 'relative' }}
+              style={{ 
+                cursor: table.status === 'occupied' ? 'pointer' : 'default', 
+                position: 'relative',
+                overflow: hoveredTableId === table.id ? 'visible' : 'hidden',
+                zIndex: hoveredTableId === table.id ? 50 : 1
+              }}
             >
               {hoveredTableId === table.id && activeOrders[table.id] && (
                 <div 
                   className="card"
                   style={{ 
                     position: 'absolute', 
-                    top: '100%', 
-                    left: '50%', 
-                    transform: 'translateX(-50%)', 
+                    ...tooltipPos,
                     zIndex: 9999, 
                     minWidth: '220px', 
                     background: 'var(--bg-elevated)', 
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                     padding: '12px',
                     borderRadius: '12px',
-                    pointerEvents: 'none',
-                    marginTop: '8px'
+                    pointerEvents: 'none'
                   }}
                 >
                   <div style={{ fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
