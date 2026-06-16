@@ -5,7 +5,7 @@ import { socket, subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import useSpeech from '../hooks/useSpeech';
 import ThemeToggle from '../components/ThemeToggle';
 import Modal from '../components/Modal';
-import { Clock, CheckCircle, List, Bell, LogOut, Volume2, PackagePlus, LogIn, LogOut as LogOutIcon, MessageSquare } from 'lucide-react';
+import { Clock, CheckCircle, List, Bell, LogOut, Volume2, PackagePlus, LogIn, LogOut as LogOutIcon, MessageSquare, Zap } from 'lucide-react';
 import { api } from '../api/client';
 import { checkStationMatch } from '../utils/helpers';
 
@@ -13,6 +13,7 @@ import PendingOrders from './PendingOrders';
 import AcceptedOrders from './AcceptedOrders';
 import MenuList from './MenuList';
 import TableWiseOrders from './TableWiseOrders';
+import OptimizedOrders from './OptimizedOrders';
 import ChatInterface from '../components/ChatInterface';
 import KitchenStock from './KitchenStock';
 
@@ -163,6 +164,12 @@ export default function KitchenPortal() {
             <List size={18} /> Table Wise
           </div>
           <div 
+            className={`tab-item flex-1 justify-center ${activeTab === 'optimized' ? 'active' : ''}`}
+            onClick={() => setActiveTab('optimized')}
+          >
+            <Zap size={18} /> Optimized
+          </div>
+          <div 
             className={`tab-item flex-1 justify-center ${activeTab === 'menu' ? 'active' : ''}`}
             onClick={() => setActiveTab('menu')}
           >
@@ -187,6 +194,7 @@ export default function KitchenPortal() {
         {activeTab === 'pending' && <PendingOrders updateCounts={(c) => setCounts(prev => ({...prev, pending: c}))} />}
         {activeTab === 'accepted' && <AcceptedOrders updateCounts={(c) => setCounts(prev => ({...prev, accepted: c}))} />}
         {activeTab === 'table-wise' && <TableWiseOrders />}
+        {activeTab === 'optimized' && <OptimizedOrders />}
         {activeTab === 'menu' && <MenuList />}
         {activeTab === 'chat' && <ChatInterface fullHeight={false} />}
         {activeTab === 'stock' && <KitchenStock />}
