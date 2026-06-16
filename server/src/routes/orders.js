@@ -559,6 +559,10 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
       return res.status(404).json({ error: 'Order not found.' });
     }
 
+    if (order.status === 'completed') {
+      return res.status(400).json({ error: 'This order has already been fully paid and completed. Duplicate payments are rejected.' });
+    }
+
     // Apply manual discount if provided
     let finalTotal = parseFloat(order.total);
     let totalDiscount = parseFloat(order.discount || 0);
