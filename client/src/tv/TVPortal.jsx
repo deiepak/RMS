@@ -127,13 +127,18 @@ export default function TVPortal() {
       ) : playlist.length > 0 && currentMedia ? (
         currentMedia.type === 'photo' ? (
           <img 
+            key={currentIndex}
             src={currentMedia.file_url} 
             alt="tv-content" 
             style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
         ) : (
           <video 
+            key={currentIndex}
             autoPlay 
+            muted
+            playsInline
+            loop={playlist.length === 1}
             ref={mediaRef}
             src={currentMedia.file_url} 
             onEnded={handleVideoEnded}
