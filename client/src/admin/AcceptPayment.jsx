@@ -231,6 +231,7 @@ export default function AcceptPayment() {
               className="form-input" 
               value={manualDiscount}
               onChange={e => setManualDiscount(e.target.value)}
+              onWheel={e => e.target.blur()}
               placeholder="0.00"
               min="0"
               step="0.01"
@@ -262,6 +263,7 @@ export default function AcceptPayment() {
               className="form-input" 
               value={paymentAmounts.cash}
               onChange={e => setPaymentAmounts(p => ({ ...p, cash: e.target.value }))}
+              onWheel={e => e.target.blur()}
               placeholder="0.00"
               min="0"
               step="0.01"
@@ -274,6 +276,7 @@ export default function AcceptPayment() {
               className="form-input" 
               value={paymentAmounts.card}
               onChange={e => setPaymentAmounts(p => ({ ...p, card: e.target.value }))}
+              onWheel={e => e.target.blur()}
               placeholder="0.00"
               min="0"
               step="0.01"
@@ -286,6 +289,7 @@ export default function AcceptPayment() {
               className="form-input" 
               value={paymentAmounts.online}
               onChange={e => setPaymentAmounts(p => ({ ...p, online: e.target.value }))}
+              onWheel={e => e.target.blur()}
               placeholder="0.00"
               min="0"
               step="0.01"
