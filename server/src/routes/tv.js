@@ -52,6 +52,11 @@ router.post('/content', verifyToken, requireRole(['admin']), upload.single('medi
       display_order: display_order ? parseInt(display_order) : 0
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('tv:content_updated');
+    }
+
     res.status(201).json({ id, file_url, message: 'Media uploaded successfully.' });
   } catch (err) {
     console.error('TV content upload error:', err);
@@ -91,6 +96,11 @@ router.post('/upload-chunk', verifyToken, requireRole(['admin']), upload.single(
         display_order: display_order ? parseInt(display_order) : 0
       });
       
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('tv:content_updated');
+      }
+      
       return res.status(201).json({ id, file_url, message: 'Upload completed' });
     } else {
       return res.json({ message: `Chunk ${chunkIndex} received` });
@@ -121,6 +131,12 @@ router.delete('/content/:id', verifyToken, requireRole(['admin']), async (req, r
     }
 
     await db('tv_content').where({ id }).del();
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('tv:content_updated');
+    }
+
     res.json({ message: 'Media deleted successfully.' });
   } catch (err) {
     console.error('Delete TV content error:', err);

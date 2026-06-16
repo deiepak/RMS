@@ -51,10 +51,8 @@ export default function TVPortal() {
     }
   }, [socket, user, navigate]);
 
-  useEffect(() => {
-    // Fetch Playlist
+  const fetchPlaylist = useCallback(() => {
     api.get('/tv/content').then(res => {
-      // expand playlist based on occurrences
       let expanded = [];
       res.data.forEach(item => {
         for (let i = 0; i < item.occurrences_per_hour; i++) {
@@ -62,8 +60,26 @@ export default function TVPortal() {
         }
       });
       setPlaylist(expanded);
+      // Reset index if it's now out of bounds
+      setCurrentIndex(prev => {
+        if (prev >= expanded.length && expanded.length > 0) return 0;
+        return prev;
+      });
     }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    fetchPlaylist();
+  }, [fetchPlaylist]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('tv:content_updated', fetchPlaylist);
+      return () => {
+        socket.off('tv:content_updated', fetchPlaylist);
+      };
+    }
+  }, [socket, fetchPlaylist]);
 
   // Media loop logic
   useEffect(() => {
