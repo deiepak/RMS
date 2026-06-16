@@ -119,10 +119,26 @@ export default function OptimizedOrders() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-      {tables.map(table => (
-        <div key={table.table_number} className="card animate-slideUp">
-          <div className="card-header flex justify-between align-center">
+    <>
+      <style>
+        {`
+          @keyframes pulseRedGreen {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); border-color: var(--danger); }
+            50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.9); border-color: var(--success); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); border-color: var(--danger); }
+          }
+          .alert-pending {
+            animation: pulseRedGreen 1.5s infinite;
+            border-width: 2px !important;
+          }
+        `}
+      </style>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+        {tables.map(table => {
+          const hasPending = table.orders.some(order => order.items.some(item => item.status === 'pending'));
+          return (
+          <div key={table.table_number} className={`card animate-slideUp ${hasPending ? 'alert-pending' : ''}`}>
+            <div className="card-header flex justify-between align-center">
             <h3>Table {table.table_number}</h3>
             <span className="badge badge-info">{table.total_items} items</span>
           </div>
@@ -180,7 +196,9 @@ export default function OptimizedOrders() {
             ))}
           </div>
         </div>
-      ))}
-    </div>
+        );
+        })}
+      </div>
+    </>
   );
 }
