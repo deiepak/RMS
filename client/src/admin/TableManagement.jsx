@@ -16,6 +16,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
 import '../index.css';
 
@@ -43,6 +44,9 @@ export default function TableManagement() {
   const [viewOrderTable, setViewOrderTable] = useState(null);
   const [viewOrderDetails, setViewOrderDetails] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
+  
+  const [activeOrders, setActiveOrders] = useState({});
+  const [hoveredTableId, setHoveredTableId] = useState(null);
 
   const { showToast } = useToast();
   const qrRef = useRef(null);
@@ -50,8 +54,19 @@ export default function TableManagement() {
   const fetchTables = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/tables');
+      const [res, ordersRes] = await Promise.all([
+        api.get('/tables'),
+        api.get('/orders?status=active,checkout_requested,payment_ready,hold')
+      ]);
       setTables(res.data?.data || res.data || []);
+      
+      const ordersMap = {};
+      ordersRes.data.forEach(order => {
+        if (order.table_id) {
+          ordersMap[order.table_id] = order;
+        }
+      });
+      setActiveOrders(ordersMap);
     } catch (err) {
       showToast('Failed to load tables', 'error');
     } finally {
@@ -61,6 +76,22 @@ export default function TableManagement() {
 
   useEffect(() => {
     fetchTables();
+
+    const handleUpdate = () => fetchTables();
+    
+    subscribeToEvent('order:new', handleUpdate);
+    subscribeToEvent('order:item-status', handleUpdate);
+    subscribeToEvent('order:payment-ready', handleUpdate);
+    subscribeToEvent('order:payment-collected', handleUpdate);
+    subscribeToEvent('table:updated', handleUpdate);
+
+    return () => {
+      unsubscribeFromEvent('order:new', handleUpdate);
+      unsubscribeFromEvent('order:item-status', handleUpdate);
+      unsubscribeFromEvent('order:payment-ready', handleUpdate);
+      unsubscribeFromEvent('order:payment-collected', handleUpdate);
+      unsubscribeFromEvent('table:updated', handleUpdate);
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -329,13 +360,49 @@ export default function TableManagement() {
             <div 
               key={table.id} 
               className={`card table-card ${getStatusClass(table.status)}`}
+              onMouseEnter={() => setHoveredTableId(table.id)}
+              onMouseLeave={() => setHoveredTableId(null)}
               onClick={(e) => {
                 // Ignore if clicked on an action button
-                if (e.target.closest('.table-card-actions')) return;
+                if (e.target.closest('.table-card-actions') || e.target.closest('.table-card-admin-actions')) return;
                 handleViewOrder(table);
               }}
-              style={{ cursor: table.status === 'occupied' ? 'pointer' : 'default' }}
+              style={{ cursor: table.status === 'occupied' ? 'pointer' : 'default', position: 'relative' }}
             >
+              {hoveredTableId === table.id && activeOrders[table.id] && (
+                <div 
+                  className="card"
+                  style={{ 
+                    position: 'absolute', 
+                    top: '100%', 
+                    left: '50%', 
+                    transform: 'translateX(-50%)', 
+                    zIndex: 9999, 
+                    minWidth: '220px', 
+                    background: 'var(--bg-elevated)', 
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    pointerEvents: 'none',
+                    marginTop: '8px'
+                  }}
+                >
+                  <div style={{ fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
+                    Order #{activeOrders[table.id].id}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {activeOrders[table.id].items?.map((item, idx) => (
+                      <div key={idx} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', color: item.status === 'rejected' ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: item.status === 'rejected' ? 'line-through' : 'none' }}>
+                        <span>{item.quantity}x {item.item_name}</span>
+                        <span style={{ opacity: 0.7, fontSize: '11px', textTransform: 'capitalize' }}>{item.status}</span>
+                      </div>
+                    ))}
+                    {(!activeOrders[table.id].items || activeOrders[table.id].items.length === 0) && (
+                      <div className="text-muted" style={{ fontSize: '12px' }}>No items yet</div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="table-card-header">
                 <span className="table-number">{table.number}</span>
                 <span className={getStatusBadge(table.status)}>
