@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import SearchBar from '../components/SearchBar';
@@ -378,62 +379,65 @@ export default function MenuTab({
         </button>
       </div>
 
-      {/* Cart Drawer */}
-      <div className={`sleek-cart-drawer ${isCartOpen ? 'open' : ''}`}>
-        <div className="sleek-drawer-header">
-          <h2>Your Order</h2>
-          <button className="btn btn-icon btn-secondary" style={{ borderRadius: '50%' }} onClick={() => setIsCartOpen(false)}>
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="card-body" style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
-          {cart.map(item => (
-            <div key={item.id} className="sleek-cart-item">
-              <div className="flex justify-between">
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
-                <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(item.price * item.quantity)}</div>
-              </div>
-              <div className="flex justify-between align-center mt-sm">
-                <div className="sleek-qty-stepper">
-                  <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}><Minus size={14} /></button>
-                  <span className="sleek-qty-val">{item.quantity}</span>
-                  <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}><Plus size={14} /></button>
-                </div>
-                <button className="btn" style={{ padding: '4px 8px', fontSize: 12, color: 'var(--danger)', background: 'transparent' }} onClick={() => updateCartQty(item.id, -item.quantity)}>
-                  Remove
-                </button>
-              </div>
-              <input 
-                type="text" 
-                className="form-input mt-sm" 
-                style={{ padding: '10px 14px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
-                placeholder="Special instructions (e.g. Less spicy)"
-                value={item.notes}
-                onChange={e => updateItemNotes(item.id, e.target.value)}
-              />
+      {/* Cart Drawer & Backdrop rendered in Portal to escape any containing blocks (like modal backdrop filters) */}
+      {createPortal(
+        <>
+          {isCartOpen && (
+            <div 
+              className="modal-overlay" 
+              style={{ zIndex: 1999, background: 'rgba(0,0,0,0.5)' }}
+              onClick={() => setIsCartOpen(false)}
+            />
+          )}
+          <div className={`sleek-cart-drawer ${isCartOpen ? 'open' : ''}`}>
+            <div className="sleek-drawer-header">
+              <h2>Your Order</h2>
+              <button className="btn btn-icon btn-secondary" style={{ borderRadius: '50%' }} onClick={() => setIsCartOpen(false)}>
+                <X size={20} />
+              </button>
             </div>
-          ))}
-        </div>
+            
+            <div className="card-body" style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
+              {cart.map(item => (
+                <div key={item.id} className="sleek-cart-item">
+                  <div className="flex justify-between">
+                    <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(item.price * item.quantity)}</div>
+                  </div>
+                  <div className="flex justify-between align-center mt-sm">
+                    <div className="sleek-qty-stepper">
+                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, -1)}><Minus size={14} /></button>
+                      <span className="sleek-qty-val">{item.quantity}</span>
+                      <button className="sleek-qty-btn" onClick={() => updateCartQty(item.id, 1)}><Plus size={14} /></button>
+                    </div>
+                    <button className="btn" style={{ padding: '4px 8px', fontSize: 12, color: 'var(--danger)', background: 'transparent' }} onClick={() => updateCartQty(item.id, -item.quantity)}>
+                      Remove
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    className="form-input mt-sm" 
+                    style={{ padding: '10px 14px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
+                    placeholder="Special instructions (e.g. Less spicy)"
+                    value={item.notes || ''}
+                    onChange={e => updateItemNotes(item.id, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
 
-        <div className="sleek-drawer-footer">
-          <div className="flex justify-between mb-md" style={{ fontSize: 18, fontWeight: 700 }}>
-            <span>Total to Pay</span>
-            <span style={{ color: 'var(--accent-primary)', fontSize: 22 }}>{formatCurrency(cartTotal)}</span>
+            <div className="sleek-drawer-footer">
+              <div className="flex justify-between mb-md" style={{ fontSize: 18, fontWeight: 700 }}>
+                <span>Total to Pay</span>
+                <span style={{ color: 'var(--accent-primary)', fontSize: 22 }}>{formatCurrency(cartTotal)}</span>
+              </div>
+              <button className="btn btn-primary w-full" style={{ padding: 16, fontSize: 16, borderRadius: '12px' }} onClick={submitOrder} disabled={isSubmitting}>
+                {isSubmitting ? 'Sending Order...' : 'Place Order Now'}
+              </button>
+            </div>
           </div>
-          <button className="btn btn-primary w-full" style={{ padding: 16, fontSize: 16, borderRadius: '12px' }} onClick={submitOrder} disabled={isSubmitting}>
-            {isSubmitting ? 'Sending Order...' : 'Place Order Now'}
-          </button>
-        </div>
-      </div>
-      
-      {/* Backdrop for drawer */}
-      {isCartOpen && (
-        <div 
-          className="modal-overlay" 
-          style={{ zIndex: 1999, background: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setIsCartOpen(false)}
-        />
+        </>,
+        document.body
       )}
     </div>
   );

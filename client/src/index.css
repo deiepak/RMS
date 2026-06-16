@@ -419,7 +419,7 @@ a {
 /* Sidebar Layout */
 .admin-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-primary);
 }
@@ -440,7 +440,7 @@ a {
   border-right: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   transition: width 0.3s;
 }
@@ -745,7 +745,7 @@ a {
 
 /* Customer Portal Specific */
 .customer-layout {
-  height: 100vh;
+  height: 100dvh;
   height: 100dvh;
   overflow: hidden;
   display: flex;
@@ -1091,7 +1091,7 @@ a {
   position: fixed;
   right: 0;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   width: min(400px, 90vw);
   background: var(--glass-bg);
   backdrop-filter: blur(30px);
@@ -1229,7 +1229,7 @@ a {
 
 /* Kitchen & Waiter Portals Specific */
 .kitchen-layout, .waiter-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
@@ -1473,7 +1473,7 @@ a {
 
 /* Landing Page Overhaul */
 .landing-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
