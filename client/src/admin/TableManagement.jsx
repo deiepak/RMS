@@ -717,10 +717,9 @@ export default function TableManagement() {
           className="card"
           style={{ 
             position: 'fixed', 
-            top: tooltipState.align === 'bottom' ? tooltipState.y : 'auto',
-            bottom: tooltipState.align === 'top' ? (window.innerHeight - tooltipState.y) : 'auto',
+            top: tooltipState.y,
             left: tooltipState.x, 
-            transform: 'translateX(-50%)', 
+            transform: `translate(-50%, ${tooltipState.align === 'top' ? '-100%' : '0'})`, 
             zIndex: 999999, 
             minWidth: '220px', 
             background: 'var(--bg-elevated)', 
