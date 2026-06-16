@@ -25,6 +25,7 @@ export default function CounterOrders({ isAdminView = false }) {
   const [menuSearch, setMenuSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [orderSearch, setOrderSearch] = useState('');
+  const [cameFromTables, setCameFromTables] = useState(false);
   const cartEndRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -59,6 +60,7 @@ export default function CounterOrders({ isAdminView = false }) {
       setSelectedTableId(location.state.autoOpenTableId.toString());
       setCustomerName('Admin');
       setShowAddModal(true);
+      setCameFromTables(true);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -293,6 +295,9 @@ export default function CounterOrders({ isAdminView = false }) {
                     setCart([]);
                     setSelectedTableId('');
                     setCustomerName('');
+                    if (cameFromTables) {
+                      navigate('/admin/tables');
+                    }
                   }}
                 />
               ) : (
@@ -311,6 +316,9 @@ export default function CounterOrders({ isAdminView = false }) {
                     setCart([]);
                     setSelectedTableId('');
                     setCustomerName('');
+                    if (cameFromTables) {
+                      navigate('/admin/tables');
+                    }
                   }}
                 />
               )}
