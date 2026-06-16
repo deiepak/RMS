@@ -96,7 +96,7 @@ const App = () => {
                   <Route path="orders" element={<OrdersManagement />} />
                   <Route path="payments" element={<AcceptPayment />} />
                   <Route path="tables" element={<TableManagement />} />
-                  <Route path="counter" element={<CounterOrders />} />
+                  <Route path="counter" element={<CounterOrders isAdminView={true} />} />
                   <Route path="packages" element={<Packages />} />
                   <Route path="menu" element={<MenuManagement />} />
                   <Route path="stock" element={<StockManagement />} />

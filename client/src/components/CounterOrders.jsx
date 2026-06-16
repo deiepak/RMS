@@ -6,8 +6,9 @@ import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import MenuTab from '../customer/MenuTab';
+import AdminCounterOrderModal from '../admin/AdminCounterOrderModal';
 
-export default function CounterOrders() {
+export default function CounterOrders({ isAdminView = false }) {
   const [orders, setOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -277,23 +278,42 @@ export default function CounterOrders() {
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
             <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', padding: 0 }}>
-              <MenuTab 
-                isAdminMode={true}
-                tables={tables}
-                adminTableId={selectedTableId}
-                setAdminTableId={setSelectedTableId}
-                adminCustomerName={customerName}
-                setAdminCustomerName={setCustomerName}
-                cart={cart}
-                setCart={setCart}
-                onAdminSubmitSuccess={() => {
-                  setShowAddModal(false);
-                  fetchOrders();
-                  setCart([]);
-                  setSelectedTableId('');
-                  setCustomerName('');
-                }}
-              />
+              {isAdminView ? (
+                <AdminCounterOrderModal
+                  tables={tables}
+                  adminTableId={selectedTableId}
+                  setAdminTableId={setSelectedTableId}
+                  adminCustomerName={customerName}
+                  setAdminCustomerName={setCustomerName}
+                  cart={cart}
+                  setCart={setCart}
+                  onAdminSubmitSuccess={() => {
+                    setShowAddModal(false);
+                    fetchOrders();
+                    setCart([]);
+                    setSelectedTableId('');
+                    setCustomerName('');
+                  }}
+                />
+              ) : (
+                <MenuTab 
+                  isAdminMode={true}
+                  tables={tables}
+                  adminTableId={selectedTableId}
+                  setAdminTableId={setSelectedTableId}
+                  adminCustomerName={customerName}
+                  setAdminCustomerName={setCustomerName}
+                  cart={cart}
+                  setCart={setCart}
+                  onAdminSubmitSuccess={() => {
+                    setShowAddModal(false);
+                    fetchOrders();
+                    setCart([]);
+                    setSelectedTableId('');
+                    setCustomerName('');
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
