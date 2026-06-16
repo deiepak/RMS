@@ -873,6 +873,8 @@ a {
 }
 
 .category-pill {
+  user-select: none;
+
   white-space: nowrap;
   padding: 8px 20px;
   border-radius: 100px;

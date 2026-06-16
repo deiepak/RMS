@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
@@ -29,6 +29,44 @@ export default function MenuTab({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
+
+  const stripRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const startDrag = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - stripRef.current.offsetLeft);
+    setScrollLeft(stripRef.current.scrollLeft);
+  };
+
+  const endDrag = () => {
+    setIsDragging(false);
+  };
+
+  const onDrag = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - stripRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // scroll speed multiplier
+    stripRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  useEffect(() => {
+    if (activeCategory && stripRef.current) {
+      const activeEl = document.getElementById(`pill-${activeCategory}`);
+      if (activeEl) {
+        const containerWidth = stripRef.current.clientWidth;
+        const pillLeft = activeEl.offsetLeft;
+        const pillWidth = activeEl.clientWidth;
+        stripRef.current.scrollTo({
+          left: pillLeft - (containerWidth / 2) + (pillWidth / 2),
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [activeCategory]);
 
   useEffect(() => {
     fetchMenu();
@@ -262,8 +300,17 @@ export default function MenuTab({
           </div>
         </div>
 
-        <div className="category-strip" style={{ position: 'relative' }}>
         <div 
+          className="category-strip" 
+          style={{ position: 'relative', cursor: isDragging ? 'grabbing' : 'grab' }}
+          ref={stripRef}
+          onMouseDown={startDrag}
+          onMouseLeave={endDrag}
+          onMouseUp={endDrag}
+          onMouseMove={onDrag}
+        >
+        <div 
+          id="pill-all"
           className={`category-pill ${activeCategory === 'all' ? 'active' : ''}`}
           onClick={() => scrollToCategory('all')}
         >
@@ -276,6 +323,7 @@ export default function MenuTab({
           return (
             <div 
               key={cat.id}
+              id={`pill-${cat.id}`}
               className={`category-pill ${activeCategory === cat.id ? 'active' : ''}`}
               onClick={() => scrollToCategory(cat.id)}
             >
