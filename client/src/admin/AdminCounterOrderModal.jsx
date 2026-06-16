@@ -185,7 +185,7 @@ export default function AdminCounterOrderModal({
           </select>
         </div>
         <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'var(--bg-secondary)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {displayItems.map(item => (
               <div 
                 key={item.id} 
