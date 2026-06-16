@@ -173,7 +173,8 @@ export default function MenuTab({
         const containerRect = container.getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
         const scrollTop = container.scrollTop;
-        const targetY = (elRect.top - containerRect.top) + scrollTop - 60; // offset for sticky pill header
+        const offset = isAdminMode ? 200 : 130; // offset for taller sticky header
+        const targetY = (elRect.top - containerRect.top) + scrollTop - offset;
         container.scrollTo({ top: targetY, behavior: 'smooth' });
       }
     }
@@ -198,7 +199,8 @@ export default function MenuTab({
         const sec = document.getElementById(`category-${categories[i].id}`);
         if (sec) {
           const rect = sec.getBoundingClientRect();
-          if (rect.top - containerRect.top <= 120) { // When section title touches sticky header
+          const threshold = isAdminMode ? 220 : 150;
+          if (rect.top - containerRect.top <= threshold) { // When section title touches sticky header
             currentActive = categories[i].id;
             break;
           }
@@ -237,26 +239,30 @@ export default function MenuTab({
         </div>
       )}
 
-      <div className="customer-hero">
-        <h1>What are you craving?</h1>
-        <div className="customer-search-container">
-          <div className="customer-search-input-wrapper">
-            <Search className="customer-search-icon" size={18} />
-            <input 
-              type="text" 
-              className="customer-search-input" 
-              placeholder="Search our delicious menu..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className={`veg-toggle-pill ${isVegOnly ? 'active' : ''}`} onClick={() => setIsVegOnly(!isVegOnly)}>
-            <span className="veg-badge" style={{ transform: 'scale(0.8)', margin: 0 }}></span> Veg
-          </div>
-        </div>
+      <div className="customer-hero" style={{ paddingBottom: '0' }}>
+        <h1 style={{ marginBottom: '16px' }}>What are you craving?</h1>
       </div>
 
-      <div className="category-strip" style={{ position: 'sticky', top: '0px', zIndex: 50 }}>
+      <div style={{ position: 'sticky', top: isAdminMode ? '72px' : '0px', zIndex: 50, background: 'var(--bg-base)' }}>
+        <div style={{ padding: '0 20px' }}>
+          <div className="customer-search-container" style={{ marginTop: 0, marginBottom: '12px' }}>
+            <div className="customer-search-input-wrapper">
+              <Search className="customer-search-icon" size={18} />
+              <input 
+                type="text" 
+                className="customer-search-input" 
+                placeholder="Search our delicious menu..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className={`veg-toggle-pill ${isVegOnly ? 'active' : ''}`} onClick={() => setIsVegOnly(!isVegOnly)}>
+              <span className="veg-badge" style={{ transform: 'scale(0.8)', margin: 0 }}></span> Veg
+            </div>
+          </div>
+        </div>
+
+        <div className="category-strip" style={{ position: 'relative' }}>
         <div 
           className={`category-pill ${activeCategory === 'all' ? 'active' : ''}`}
           onClick={() => scrollToCategory('all')}
@@ -277,6 +283,7 @@ export default function MenuTab({
             </div>
           );
         })}
+        </div>
       </div>
 
       {isCheckoutRequested && (
