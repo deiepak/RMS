@@ -65,7 +65,7 @@ export default function CounterOrders() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders?status=pending,checkout_requested&include_undelivered=true');
+      const res = await api.get('/orders?status=active,checkout_requested&include_undelivered=true');
       setAllOrders(res.data);
       // Filter only counter orders
       const counterOrders = res.data.filter(o => o.order_type === 'counter');

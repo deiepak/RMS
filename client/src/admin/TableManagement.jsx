@@ -57,7 +57,7 @@ export default function TableManagement() {
     try {
       const [res, ordersRes] = await Promise.all([
         api.get('/tables'),
-        api.get('/orders?status=pending,checkout_requested,payment_ready,hold')
+        api.get('/orders?status=active,checkout_requested,payment_ready,hold')
       ]);
       setTables(res.data?.data || res.data || []);
       

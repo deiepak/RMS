@@ -79,7 +79,7 @@ export default function Dashboard() {
         api.get('/analytics/revenue'),
         api.get('/analytics/popular-items'),
         api.get('/tables'),
-        api.get('/orders?status=pending,checkout_requested'),
+        api.get('/orders?status=active,checkout_requested'),
       ]);
       if (ovRes.status === 'fulfilled') setOverview(ovRes.value.data);
       if (revRes.status === 'fulfilled') {

@@ -26,7 +26,7 @@ export default function PickupTab({ updateCounts }) {
   const fetchPrepared = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get('/orders?status=pending,checkout_requested,payment_ready&include_undelivered=true');
+      const res = await api.get('/orders?status=active,checkout_requested,payment_ready&include_undelivered=true');
       
       const preparedOrders = res.data.filter(order => 
         order.items && order.items.some(i => 

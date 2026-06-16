@@ -42,7 +42,7 @@ export default function TableWiseOrders() {
   const fetchTableOrders = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get('/orders?status=pending,checkout_requested,payment_ready,hold&include_undelivered=true');
+      const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       const activeOrders = res.data;
       
       const tableMap = {};
