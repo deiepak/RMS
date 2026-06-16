@@ -177,7 +177,7 @@ export default function TableManagement() {
       if (activeOrder && activeOrder.status !== 'checkout_requested') {
         await api.patch(`/orders/${activeOrder.id}/status`, { status: 'checkout_requested' });
       }
-      navigate('/admin/payments');
+      navigate('/admin/payments', { state: { autoOpenOrderId: activeOrder.id } });
     } catch (err) {
       showToast('Failed to checkout table', 'error');
     } finally {
@@ -650,7 +650,7 @@ export default function TableManagement() {
                       if (viewOrderDetails.status !== 'checkout_requested') {
                         await api.patch(`/orders/${viewOrderDetails.id}/status`, { status: 'checkout_requested' });
                       }
-                      navigate('/admin/payments');
+                      navigate('/admin/payments', { state: { autoOpenOrderId: viewOrderDetails.id } });
                     }}
                   >
                     Proceed to Payment
