@@ -184,26 +184,51 @@ export default function AdminCounterOrderModal({
             ))}
           </select>
         </div>
-        <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+        <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'var(--bg-secondary)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
             {displayItems.map(item => (
               <div 
                 key={item.id} 
-                className="card p-md cursor-pointer" 
-                style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border-color)', transition: 'all 0.2s' }}
+                className="cursor-pointer" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'space-between', 
+                  padding: '16px',
+                  background: 'var(--bg-primary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.1)';
+                  e.currentTarget.style.borderColor = 'var(--primary)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                }}
                 onClick={() => addToCart(item)}
               >
-                <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{item.name}</div>
-                  {item.name_np && <div className="text-secondary" style={{ fontSize: '12px' }}>{item.name_np}</div>}
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontWeight: '600', fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.3' }}>{item.name}</div>
+                  {item.name_np && <div className="text-secondary" style={{ fontSize: '13px', marginTop: '4px' }}>{item.name_np}</div>}
                 </div>
-                <div style={{ marginTop: '12px', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {formatCurrency(item.price)}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '16px' }}>
+                    {formatCurrency(item.price)}
+                  </div>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '6px', borderRadius: '50%', color: 'var(--primary)' }}>
+                    <Plus size={16} />
+                  </div>
                 </div>
               </div>
             ))}
             {displayItems.length === 0 && (
-              <div className="text-muted" style={{ padding: '20px' }}>No items found in this category.</div>
+              <div className="text-muted" style={{ padding: '20px', gridColumn: '1 / -1', textAlign: 'center' }}>No items found in this category.</div>
             )}
           </div>
         </div>
