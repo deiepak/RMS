@@ -77,6 +77,11 @@ export default function AcceptedOrders({ updateCounts }) {
     return `${mins}m`;
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (isLoading && orders.length === 0) {
     return <div className="flex-center text-muted">Loading preparing orders...</div>;
   }
@@ -118,6 +123,7 @@ export default function AcceptedOrders({ updateCounts }) {
                         <div style={{ fontWeight: 600, fontSize: 16, textDecoration: isRejected ? 'line-through' : 'none' }}>
                           <span className={isRejected ? "text-danger mr-sm" : "text-info mr-sm"}>{item.quantity}x</span> 
                           {item.item_name}
+                          <span className="text-muted ml-sm" style={{ fontSize: 12, fontWeight: 'normal' }}>({formatTime(item.created_at)})</span>
                         </div>
                         <div className="timer bg-secondary" style={{ padding: '4px 8px', borderRadius: 4 }}>
                           {isRejected ? <span className="text-danger">Cancelled</span> : getElapsed(item.updated_at)}

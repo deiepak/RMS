@@ -12,6 +12,11 @@ export default function TableWiseOrders() {
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   useEffect(() => {
     fetchTableOrders();
 
@@ -134,7 +139,10 @@ export default function TableWiseOrders() {
                     return (
                       <div key={item.id} className="flex justify-between align-center p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', padding: '6px 10px', opacity: isRejected ? 0.6 : 1 }}>
                         <div style={{ textDecoration: isRejected ? 'line-through' : 'none' }}>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>{item.quantity}x {item.item_name}</div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>
+                            {item.quantity}x {item.item_name}
+                            <span className="text-muted ml-sm" style={{ fontSize: 11, fontWeight: 'normal' }}>({formatTime(item.created_at)})</span>
+                          </div>
                           {item.notes && <div className="text-secondary" style={{ fontSize: 11, marginTop: 2 }}>Note: {item.notes}</div>}
                         </div>
                         <div className="flex-col align-end gap-xs">

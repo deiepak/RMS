@@ -120,6 +120,11 @@ export default function PendingOrders({ updateCounts }) {
     return `${mins} min ago`;
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (isLoading && orders.length === 0) {
     return <div className="flex-center text-muted">Loading pending orders...</div>;
   }
@@ -172,6 +177,7 @@ export default function PendingOrders({ updateCounts }) {
                       <div style={{ fontWeight: 600, fontSize: 16 }}>
                         <span className={isRejected ? "text-danger mr-sm" : "text-warning mr-sm"}>{item.quantity}x</span> 
                         {item.item_name}
+                        <span className="text-muted ml-sm" style={{ fontSize: 12, fontWeight: 'normal' }}>({formatTime(item.created_at)})</span>
                       </div>
                       {item.notes && (
                         <div className="text-secondary mt-sm bg-primary" style={{ padding: '4px 8px', borderRadius: 4, fontSize: 13, borderLeft: `2px solid ${isRejected ? 'var(--danger)' : 'var(--warning)'}` }}>
