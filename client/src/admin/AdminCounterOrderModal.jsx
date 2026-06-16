@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Search, Plus, Minus, Trash2 } from 'lucide-react';
@@ -19,7 +19,12 @@ export default function AdminCounterOrderModal({
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const cartEndRef = useRef(null);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    cartEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [cart]);
 
   useEffect(() => {
     fetchMenu();
@@ -236,6 +241,7 @@ export default function AdminCounterOrderModal({
                   />
                 </div>
               ))}
+              <div ref={cartEndRef} />
             </div>
           )}
         </div>
