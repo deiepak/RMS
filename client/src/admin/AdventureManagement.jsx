@@ -82,7 +82,7 @@ export default function AdventureManagement() {
       </div>
 
       <div className="card">
-        <table className="table">
+        <table className="data-table w-full">
           <thead>
             <tr>
               <th>Name</th>
@@ -101,12 +101,14 @@ export default function AdventureManagement() {
                   <td className="font-medium">{adv.name}</td>
                   <td>रू {Number(adv.price).toLocaleString()}</td>
                   <td className="text-right">
-                    <button className="btn btn-icon mr-sm text-info" onClick={() => openModal(adv)} title="Edit">
-                      <Edit2 size={18} />
-                    </button>
-                    <button className="btn btn-icon text-danger" onClick={() => handleDelete(adv.id)} title="Delete">
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="flex justify-end gap-sm">
+                      <button className="btn btn-icon text-info" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--info)' }} onClick={() => openModal(adv)} title="Edit">
+                        <Edit2 size={18} />
+                      </button>
+                      <button className="btn btn-icon text-danger" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--danger)' }} onClick={() => handleDelete(adv.id)} title="Delete">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
