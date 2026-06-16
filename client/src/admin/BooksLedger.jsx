@@ -305,9 +305,14 @@ export default function BooksLedger() {
       {categories.length > 0 && (
         <div className="card mb-lg" style={{ padding: 20 }}>
           <h3 className="mb-md flex align-center gap-sm"><BarChart3 size={18} /> Revenue By Category</h3>
-          <div className="flex gap-md flex-wrap">
+          <div 
+            className="flex gap-md hide-scrollbar" 
+            style={{ ...dragProps.style }}
+            ref={stripRef}
+            {...dragProps}
+          >
             {categories.map((cat, idx) => (
-              <div key={idx} className="bg-secondary flex-col gap-xs" style={{ padding: '12px 16px', borderRadius: 'var(--radius)', minWidth: 150 }}>
+              <div key={idx} className="bg-secondary flex-col gap-xs" style={{ padding: '12px 16px', borderRadius: 'var(--radius)', minWidth: 150, flexShrink: 0 }}>
                 <span className="text-secondary" style={{ fontSize: 13 }}>{cat.category || 'Uncategorized'}</span>
                 <span style={{ fontSize: 18, fontWeight: 600 }}>{formatCurrency(cat.total)}</span>
                 <span className="text-secondary" style={{ fontSize: 11 }}>{cat.items_count} items sold</span>

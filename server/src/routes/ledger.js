@@ -126,7 +126,7 @@ router.get('/by-category', async (req, res) => {
     let query = db('order_items')
       .join('orders', 'order_items.order_id', 'orders.id')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
-      .join('menu_categories', 'menu_items.category_id', 'menu_categories.id')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('orders.status', 'completed')
       .where('order_items.status', '!=', 'rejected')
       .select('menu_categories.name as category')
