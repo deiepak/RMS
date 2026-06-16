@@ -131,8 +131,25 @@ export default function OptimizedOrders() {
             animation: pulseRedGreen 1.5s infinite;
             border-width: 2px !important;
           }
+          @keyframes fullscreenPulseRedGreen {
+            0% { box-shadow: inset 0 0 50px 20px rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.05); }
+            50% { box-shadow: inset 0 0 100px 40px rgba(16, 185, 129, 0.5); background-color: rgba(16, 185, 129, 0.05); }
+            100% { box-shadow: inset 0 0 50px 20px rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.05); }
+          }
+          .fullscreen-alert {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            animation: fullscreenPulseRedGreen 1.5s infinite;
+          }
         `}
       </style>
+      
+      {tables.some(t => t.orders.some(o => o.items.some(i => i.status === 'pending'))) && (
+        <div className="fullscreen-alert" />
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
         {tables.map(table => {
           const hasPending = table.orders.some(order => order.items.some(item => item.status === 'pending'));
