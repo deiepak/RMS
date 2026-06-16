@@ -44,12 +44,15 @@ export default function BooksLedger() {
       fromDate.setMonth(today.getMonth() - 1);
     }
 
+    const pad = (n) => n.toString().padStart(2, '0');
+    const toLocalISOString = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
     if (period !== 'custom') {
       setFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: toLocalISOString(fromDate),
+        to: toLocalISOString(endOfDay)
       }));
     } else {
       setFilters(prev => ({ ...prev, period }));

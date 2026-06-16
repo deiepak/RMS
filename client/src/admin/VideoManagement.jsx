@@ -56,7 +56,7 @@ export default function VideoManagement() {
           <div className="spinner"></div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
           
           {/* Top Section: Pending Videos */}
           <div className="card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
