@@ -5,6 +5,7 @@ import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search } from 'lucide-r
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
+import MenuTab from '../customer/MenuTab';
 
 export default function CounterOrders() {
   const [orders, setOrders] = useState([]);
@@ -275,162 +276,24 @@ export default function CounterOrders() {
               <h2>New Counter Order</h2>
               <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
             </div>
-            <div className="modal-body counter-modal-body gap-lg" style={{ height: '75vh', overflow: 'hidden' }}>
-              <div className="counter-category-panel flex flex-col" style={{ flex: '0 0 200px', borderRight: '1px solid var(--glass-border)', paddingRight: '16px', overflowY: 'auto' }}>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Categories</h3>
-                <div 
-                  className="p-sm mb-xs cursor-pointer"
-                  style={{ 
-                    borderRadius: '8px', 
-                    fontWeight: selectedCategory === 'All' ? 700 : 500,
-                    background: selectedCategory === 'All' ? 'var(--primary)' : 'transparent',
-                    color: selectedCategory === 'All' ? '#fff' : 'inherit',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setSelectedCategory('All')}
-                >
-                  All Categories
-                </div>
-                {categories.map(cat => (
-                  <div 
-                    key={cat}
-                    className="p-sm mb-xs cursor-pointer"
-                    style={{ 
-                      borderRadius: '8px', 
-                      fontWeight: selectedCategory === cat ? 700 : 500,
-                      background: selectedCategory === cat ? 'var(--primary)' : 'transparent',
-                      color: selectedCategory === cat ? '#fff' : 'inherit',
-                      transition: 'all 0.2s'
-                    }}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    {cat}
-                  </div>
-                ))}
-              </div>
-              <div className="counter-menu-panel">
-                <div style={{ flexShrink: 0 }}>
-                  <div className="mb-md flex gap-sm" style={{ flexWrap: 'wrap' }}>
-                  <input 
-                    type="text" 
-                    className="form-input flex-1" 
-                    placeholder="Customer Name (Optional)" 
-                    value={customerName}
-                    onChange={e => setCustomerName(e.target.value)}
-                  />
-                  <select 
-                    className="form-select flex-1" 
-                    value={selectedTableId}
-                    onChange={e => setSelectedTableId(e.target.value)}
-                  >
-                    <option value="">Table No (Optional)</option>
-                    {tables.map(t => (
-                      <option key={t.id} value={t.id}>
-                        Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex flex-1 gap-sm">
-                    <div className="input-with-icon flex-1">
-                      <Search size={16} />
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Search menu..."
-                        value={menuSearch}
-                        onChange={(e) => setMenuSearch(e.target.value)}
-                      />
-                    </div>
-                    <button className="btn btn-secondary btn-icon" style={{ borderRadius: '8px', flexShrink: 0 }} title="Search">
-                      <Search size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-              {categories.map(cat => {
-                  if (selectedCategory !== 'All' && selectedCategory !== cat) return null;
-                  const filteredItems = menuItems.filter(m => m.category_name === cat && m.name.toLowerCase().includes(menuSearch.toLowerCase()));
-                  if (filteredItems.length === 0) return null;
-                  return (
-                  <div key={cat} className="mb-lg">
-                    <h4 className="mb-sm text-secondary">{cat}</h4>
-                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
-                      {filteredItems.map(item => (
-                        <div key={item.id} className="card p-sm flex flex-col justify-between hover-lift" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                          <div className="flex align-start justify-between mb-sm gap-sm">
-                            <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>{item.name}</div>
-                            <div className={item.is_veg ? 'veg-badge' : 'nonveg-badge'} style={{ width: 10, height: 10, flexShrink: 0, position: 'static' }}></div>
-                          </div>
-                          <div className="flex justify-between align-center mt-auto pt-sm" style={{ borderTop: '1px dashed var(--border)' }}>
-                            <div className="text-primary" style={{ fontSize: 14, fontWeight: 800 }}>{formatCurrency(item.price)}</div>
-                            <button className="btn btn-icon btn-primary btn-sm" onClick={() => addToCart(item)} style={{ width: 28, height: 28, borderRadius: '8px' }}><Plus size={16} /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  );
-                })}
-                </div>
-              </div>
-              <div className="counter-cart-panel">
-                <div className="flex justify-between align-center mb-md">
-                  <h3 style={{ margin: 0 }}>Order Cart</h3>
-                  {cart.length > 0 && (
-                    <span className="badge badge-primary" style={{ fontSize: 12 }}>
-                      {cart.reduce((s, i) => s + i.quantity, 0)} Items
-                    </span>
-                  )}
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                  {cart.length === 0 ? (
-                    <div className="text-secondary text-center p-md">Cart is empty</div>
-                  ) : (
-                    cart.map(item => (
-                      <div key={item.id} className="mb-sm p-md sleek-cart-item" style={{ background: 'var(--bg-elevated)', borderRadius: '16px' }}>
-                        <div className="flex justify-between align-center mb-sm">
-                          <span style={{ fontWeight: 600, fontSize: '15px' }}>{item.name}</span>
-                          <button className="btn btn-icon btn-sm text-danger" onClick={() => removeFromCart(item.id)}><X size={16} /></button>
-                        </div>
-                        <div className="flex justify-between align-center">
-                          <div className="sleek-qty-stepper" style={{ border: 'none', background: 'var(--bg-card)' }}>
-                            <input 
-                              type="number" 
-                              min="1"
-                              className="input btn-sm text-center" 
-                              style={{ width: 60, padding: 4, background: 'transparent', border: 'none', fontWeight: 600 }}
-                              value={item.quantity}
-                              onChange={(e) => updateCartItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                            />
-                          </div>
-                          <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{formatCurrency(item.price * item.quantity)}</span>
-                        </div>
-                        <input
-                          type="text"
-                          className="form-input mt-sm w-full"
-                          style={{ fontSize: 13, padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)' }}
-                          placeholder="Add remark/note (optional)..."
-                          value={item.notes || ''}
-                          onChange={(e) => updateCartItem(item.id, 'notes', e.target.value)}
-                        />
-                      </div>
-                    ))
-                  )}
-                  <div ref={cartEndRef} />
-                </div>
-                <div className="mt-md pt-md" style={{ borderTop: '1px solid var(--border)' }}>
-                  <div className="flex justify-between mb-md text-lg" style={{ fontWeight: 'bold' }}>
-                    <span>Total:</span>
-                    <span>{formatCurrency(cart.reduce((s, i) => s + (i.price * i.quantity), 0))}</span>
-                  </div>
-                  <button className="btn btn-primary w-full" onClick={handleCreateOrder} disabled={cart.length === 0}>
-                    {selectedTableId && tables.find(t => t.id === parseInt(selectedTableId))?.status === 'occupied' 
-                      ? 'Add to Existing Order' 
-                      : 'Place Counter Order'}
-                  </button>
-                </div>
-              </div>
+            <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', padding: 0 }}>
+              <MenuTab 
+                isAdminMode={true}
+                tables={tables}
+                adminTableId={selectedTableId}
+                setAdminTableId={setSelectedTableId}
+                adminCustomerName={customerName}
+                setAdminCustomerName={setCustomerName}
+                cart={cart}
+                setCart={setCart}
+                onAdminSubmitSuccess={() => {
+                  setShowAddModal(false);
+                  fetchOrders();
+                  setCart([]);
+                  setSelectedTableId('');
+                  setCustomerName('');
+                }}
+              />
             </div>
           </div>
         </div>

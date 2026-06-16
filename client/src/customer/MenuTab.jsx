@@ -5,7 +5,21 @@ import SearchBar from '../components/SearchBar';
 import { Minus, Plus, ShoppingBag, X, Receipt, Search } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 
-export default function MenuTab({ tableId, customerName, isCheckoutRequested, cart, setCart, goToStatus }) {
+export default function MenuTab({ 
+  tableId, 
+  customerName, 
+  isCheckoutRequested, 
+  cart, 
+  setCart, 
+  goToStatus,
+  isAdminMode,
+  tables = [],
+  adminTableId,
+  setAdminTableId,
+  adminCustomerName,
+  setAdminCustomerName,
+  onAdminSubmitSuccess
+}) {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -68,34 +82,52 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
   };
 
   const submitOrder = async () => {
-    if (!tableId || cart.length === 0 || isSubmitting) return;
+    if ((!isAdminMode && !tableId) || cart.length === 0 || isSubmitting) return;
     
     try {
       setIsSubmitting(true);
-      const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, notes: i.notes }));
+      const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, notes: i.notes, price_at_order: i.price }));
       
+      const effectiveTableId = isAdminMode ? adminTableId : tableId;
+      const effectiveCustomerName = isAdminMode ? adminCustomerName : customerName;
+
       const payload = {
-        table_id: tableId,
-        customer_name: customerName,
+        table_id: effectiveTableId || null,
+        order_type: effectiveTableId ? 'table' : 'counter',
+        customer_name: effectiveCustomerName,
         items
       };
 
-      // Check if there's an active order first
-      let orderId;
-      try {
-        const activeRes = await api.get(`/orders/table/${tableId}/active`);
-        orderId = activeRes.data.id;
-        // Add to existing
-        await api.post(`/orders/${orderId}/items`, { items, customer_name: customerName });
-      } catch (err) {
-        // No active order, create new
+      if (effectiveTableId) {
+        // Check if there's an active order first
+        let orderId;
+        try {
+          const activeRes = await api.get(`/orders/table/${effectiveTableId}/active`);
+          if (activeRes.data && activeRes.data.id) {
+            orderId = activeRes.data.id;
+            // Add to existing
+            await api.post(`/orders/${orderId}/items`, { items, customer_name: effectiveCustomerName });
+          } else {
+            await api.post('/orders', payload);
+          }
+        } catch (err) {
+          // No active order, create new
+          await api.post('/orders', payload);
+        }
+      } else {
+        // Counter order (no table)
         await api.post('/orders', payload);
       }
 
       setCart([]);
       setIsCartOpen(false);
       showToast('Order placed successfully!', 'success');
-      goToStatus();
+      
+      if (isAdminMode && onAdminSubmitSuccess) {
+        onAdminSubmitSuccess();
+      } else if (goToStatus) {
+        goToStatus();
+      }
     } catch (error) {
       showToast('Failed to place order', 'error');
     } finally {
@@ -180,6 +212,30 @@ export default function MenuTab({ tableId, customerName, isCheckoutRequested, ca
 
   return (
     <div>
+      {isAdminMode && (
+        <div style={{ padding: '16px 20px', background: 'var(--bg-secondary)', display: 'flex', gap: '16px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 60 }}>
+          <select 
+            className="form-select flex-1" 
+            value={adminTableId || ''}
+            onChange={e => setAdminTableId(e.target.value)}
+            style={{ padding: '12px', background: 'var(--bg-primary)' }}
+          >
+            <option value="">Counter Order (No Table)</option>
+            {tables.map(t => (
+              <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
+            ))}
+          </select>
+          <input 
+            type="text"
+            className="form-input flex-1"
+            placeholder="Customer Name (Optional)"
+            value={adminCustomerName || ''}
+            onChange={e => setAdminCustomerName(e.target.value)}
+            style={{ padding: '12px', background: 'var(--bg-primary)' }}
+          />
+        </div>
+      )}
+
       <div className="customer-hero">
         <h1>What are you craving?</h1>
         <div className="customer-search-container">
