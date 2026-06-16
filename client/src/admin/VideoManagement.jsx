@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDragScroll } from '../hooks/useDragScroll';
 import { Video, CheckCircle, Clock, Phone, User, Calendar } from 'lucide-react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
@@ -7,6 +8,8 @@ export default function VideoManagement() {
   const [videos, setVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
+  
+  const { ref: stripRef, dragProps } = useDragScroll();
 
   useEffect(() => {
     fetchVideos();
@@ -67,7 +70,12 @@ export default function VideoManagement() {
                 <div>No pending video requests!</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px' }}>
+              <div 
+                ref={stripRef}
+                {...dragProps}
+                className="hide-scrollbar"
+                style={{ display: 'flex', gap: '16px', paddingBottom: '10px', ...dragProps.style }}
+              >
                 {pendingVideos.map(video => (
                   <div key={video.id} className="card" style={{ flex: '0 0 300px', padding: '20px', border: '1px solid var(--glass-border)', background: 'var(--bg-secondary)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                     <div className="flex justify-between align-center mb-md pb-md" style={{ borderBottom: '1px dashed var(--glass-border)' }}>

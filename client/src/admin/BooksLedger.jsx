@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDragScroll } from '../hooks/useDragScroll';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Download, FileText, FileSpreadsheet, DollarSign, CreditCard, Smartphone, Wallet, BarChart3 } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function BooksLedger() {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { ref: stripRef, dragProps } = useDragScroll();
 
   const [filters, setFilters] = useState({
     period: 'today',
@@ -238,11 +240,16 @@ export default function BooksLedger() {
 
       <div className="card mb-lg" style={{ padding: 20 }}>
         <div className="flex gap-lg flex-wrap align-center">
-          <div className="flex gap-sm bg-secondary" style={{ padding: 4, borderRadius: 'var(--radius)' }}>
-            <button className={`btn ${filters.period === 'today' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('today')}>Today</button>
-            <button className={`btn ${filters.period === 'week' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('week')}>This Week</button>
-            <button className={`btn ${filters.period === 'month' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('month')}>This Month</button>
-            <button className={`btn ${filters.period === 'custom' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('custom')}>Custom Range</button>
+          <div 
+            className="flex gap-sm bg-secondary hide-scrollbar" 
+            style={{ padding: 4, borderRadius: 'var(--radius)', ...dragProps.style }}
+            ref={stripRef}
+            {...dragProps}
+          >
+            <button className={`btn ${filters.period === 'today' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none', whiteSpace: 'nowrap' }} onClick={() => setDateRange('today')}>Today</button>
+            <button className={`btn ${filters.period === 'week' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none', whiteSpace: 'nowrap' }} onClick={() => setDateRange('week')}>This Week</button>
+            <button className={`btn ${filters.period === 'month' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none', whiteSpace: 'nowrap' }} onClick={() => setDateRange('month')}>This Month</button>
+            <button className={`btn ${filters.period === 'custom' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none', whiteSpace: 'nowrap' }} onClick={() => setDateRange('custom')}>Custom Range</button>
           </div>
 
           {filters.period === 'custom' && (

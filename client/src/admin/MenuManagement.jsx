@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDragScroll } from '../hooks/useDragScroll';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Settings, CheckCircle, XCircle } from 'lucide-react';
@@ -15,6 +16,8 @@ export default function MenuManagement() {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [isCategoryManageModalOpen, setIsCategoryManageModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  
+  const { ref: stripRef, dragProps } = useDragScroll();
   
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -194,7 +197,12 @@ export default function MenuManagement() {
         </div>
       </div>
 
-      <div className="tab-bar mb-lg" style={{ overflowX: 'auto', paddingBottom: '5px', WebkitOverflowScrolling: 'touch' }}>
+      <div 
+        className="tab-bar mb-lg hide-scrollbar" 
+        style={{ paddingBottom: '5px', ...dragProps.style }}
+        ref={stripRef}
+        {...dragProps}
+      >
         <div 
           className={`tab-item ${activeCategory === 'all' ? 'active' : ''}`}
           onClick={() => setActiveCategory('all')}
