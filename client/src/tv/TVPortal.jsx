@@ -54,11 +54,16 @@ export default function TVPortal() {
   const fetchPlaylist = useCallback(() => {
     api.get('/tv/content').then(res => {
       let expanded = [];
-      res.data.forEach(item => {
-        for (let i = 0; i < item.occurrences_per_hour; i++) {
-          expanded.push(item);
+      let remaining = res.data.map(item => ({ ...item, left: item.occurrences_per_hour }));
+      
+      while (remaining.some(item => item.left > 0)) {
+        for (let i = 0; i < remaining.length; i++) {
+          if (remaining[i].left > 0) {
+            expanded.push(remaining[i]);
+            remaining[i].left--;
+          }
         }
-      });
+      }
       setPlaylist(expanded);
       // Reset index if it's now out of bounds
       setCurrentIndex(prev => {
