@@ -14,7 +14,7 @@ exports.up = function (knex) {
       table.decimal('discount', 10, 2).defaultTo(0);
       table.decimal('tax', 10, 2).defaultTo(0);
       table.decimal('total', 10, 2).defaultTo(0);
-      table.enum('payment_method', ['cash', 'card', 'online']).nullable();
+      table.enum('payment_method', ['cash', 'card', 'online', 'split']).nullable();
       table.timestamps(true, true);
     })
     .createTable('order_items', (table) => {

@@ -615,21 +615,29 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
 
     await db('orders').where({ id: orderId }).update(orderUpdates);
 
-    // Free the table
-    await db('restaurant_tables').where({ id: order.table_id }).update({
-      status: 'available',
-      updated_at: db.fn.now(),
-    });
+    if (order.table_id) {
+      // Free the table
+      await db('restaurant_tables').where({ id: order.table_id }).update({
+        status: 'available',
+        updated_at: db.fn.now(),
+      });
+    }
 
     const updatedOrder = await db('orders').where({ id: orderId }).first();
-    const table = await db('restaurant_tables').where({ id: order.table_id }).first();
-    const tableRoom = `table-${table.number}`;
+    let table = null;
+    let tableRoom = null;
+    if (order.table_id) {
+      table = await db('restaurant_tables').where({ id: order.table_id }).first();
+      tableRoom = `table-${table.number}`;
+    }
 
     const io = req.app.get('io');
     if (io) {
       const allPayments = await db('payments').where({ order_id: orderId });
-      io.to('admin').emit('order:payment-collected', { order: updatedOrder, table_number: table.number, payments: allPayments });
-      io.to(tableRoom).emit('order:payment-collected', { order: updatedOrder });
+      io.to('admin').emit('order:payment-collected', { order: updatedOrder, table_number: table ? table.number : updatedOrder.order_name, payments: allPayments });
+      if (tableRoom) {
+        io.to(tableRoom).emit('order:payment-collected', { order: updatedOrder });
+      }
     }
 
     res.json({ order: updatedOrder, totalPaid: paymentSum, isFullyPaid: true, payments: validPayments });

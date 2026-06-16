@@ -88,7 +88,7 @@ router.put('/categories/:id', verifyToken, requireRole(['admin']), async (req, r
     const updates = req.body;
     delete updates.id;
     delete updates.created_at;
-    updates.updated_at = db.fn.now();
+    delete updates.updated_at;
 
     const count = await db('menu_categories').where({ id }).update(updates);
     if (count === 0) {

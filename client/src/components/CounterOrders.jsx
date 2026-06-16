@@ -120,7 +120,7 @@ export default function CounterOrders() {
       if (selectedTableId && tables.find(t => t.id === parseInt(selectedTableId))?.status === 'occupied') {
         const activeOrderForTable = allOrders.find(o => String(o.table_id) === String(selectedTableId) && ['active', 'checkout_requested'].includes(o.status));
         if (activeOrderForTable) {
-          const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, price_at_order: i.price }));
+          const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, price_at_order: i.price, notes: i.notes }));
           await api.post(`/orders/${activeOrderForTable.id}/items`, { items });
           showToast('Items added to existing table order', 'success');
           setShowAddModal(false);
