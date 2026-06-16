@@ -38,7 +38,7 @@ export default function AcceptedOrders({ updateCounts }) {
   const fetchAccepted = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
+      const res = await api.get('/orders?status=pending,checkout_requested,payment_ready,hold&include_undelivered=true');
       
       const acceptedOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
