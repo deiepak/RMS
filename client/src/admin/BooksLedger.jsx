@@ -432,7 +432,7 @@ export default function BooksLedger() {
                   <div>
                     <span style={{ fontWeight: 600 }}>{item.quantity}x</span> {item.item_name}
                   </div>
-                  <div>{formatCurrency(item.price_at_order * item.quantity)}</div>
+                  <div>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</div>
                 </div>
               ))}
             </div>
