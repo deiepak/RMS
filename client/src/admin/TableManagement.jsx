@@ -356,11 +356,18 @@ export default function TableManagement() {
         <div className="tables-grid">
           {tables
             .filter(t => t.number?.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.capacity).includes(searchQuery))
-            .filter(t => showActiveOnly ? (t.status === 'occupied' || t.status === 'reserved') : true)
-            .map((table) => (
+            .filter(t => {
+              if (!showActiveOnly) return true;
+              return !!activeOrders[t.id] || t.status === 'occupied' || t.status === 'reserved';
+            })
+            .map((table) => {
+              const hasActiveOrder = !!activeOrders[table.id];
+              const displayStatus = hasActiveOrder ? 'occupied' : (table.status || 'available');
+              
+              return (
             <div 
               key={table.id} 
-              className={`card table-card ${getStatusClass(table.status)}`}
+              className={`card table-card ${getStatusClass(displayStatus)}`}
               onMouseEnter={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const spaceBelow = window.innerHeight - rect.bottom;
@@ -377,17 +384,17 @@ export default function TableManagement() {
               onClick={(e) => {
                 // Ignore if clicked on an action button
                 if (e.target.closest('.table-card-actions') || e.target.closest('.table-card-admin-actions')) return;
-                handleViewOrder(table);
+                if (hasActiveOrder) handleViewOrder(table);
               }}
               style={{ 
-                cursor: table.status === 'occupied' ? 'pointer' : 'default', 
+                cursor: displayStatus === 'occupied' ? 'pointer' : 'default', 
                 position: 'relative'
               }}
             >
               <div className="table-card-header">
                 <span className="table-number">{table.number}</span>
-                <span className={getStatusBadge(table.status)}>
-                  {table.status || 'available'}
+                <span className={getStatusBadge(displayStatus)}>
+                  {displayStatus}
                 </span>
               </div>
               <div className="table-card-body">
@@ -407,7 +414,7 @@ export default function TableManagement() {
                 >
                   Order by Admin
                 </button>
-                {table.status === 'occupied' && (
+                {displayStatus === 'occupied' && (
                   <button 
                     className="btn btn-success btn-sm flex-1" 
                     onClick={(e) => handleQuickCheckout(e, table)}
@@ -417,7 +424,7 @@ export default function TableManagement() {
                 )}
               </div>
               <div className="table-card-actions">
-                {table.status === 'occupied' && (
+                {displayStatus === 'occupied' && (
                   <>
                     <button
                       className="btn btn-icon btn-sm btn-success"
@@ -459,7 +466,8 @@ export default function TableManagement() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
