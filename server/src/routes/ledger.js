@@ -19,7 +19,14 @@ router.get('/', async (req, res) => {
         'orders.order_name as customer_name',
         'orders.total as order_total',
         'orders.discount as order_discount',
-        'restaurant_tables.number as table_number'
+        'orders.status as order_status',
+        'restaurant_tables.number as table_number',
+        db.raw(`(
+          SELECT COALESCE(SUM(oi.quantity * mi.price), 0)
+          FROM order_items oi
+          JOIN menu_items mi ON oi.menu_item_id = mi.id
+          WHERE oi.order_id = orders.id AND oi.status = 'rejected'
+        ) as item_refunds`)
       );
 
     let pkgQuery = db('package_payments')
@@ -60,11 +67,17 @@ router.get('/', async (req, res) => {
       created_at: p.created_at,
       order_total: p.order_total,
       order_discount: 0,
+      order_refund: 0,
       table_number: p.package_title,
       is_package: true
     }));
 
-    const allPayments = [...payments, ...formattedPkgPayments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const formattedPayments = payments.map(p => ({
+      ...p,
+      order_refund: p.order_status === 'cancelled' ? parseFloat(p.amount) : parseFloat(p.item_refunds || 0)
+    }));
+
+    const allPayments = [...formattedPayments, ...formattedPkgPayments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     res.json(allPayments);
   } catch (error) {
@@ -112,6 +125,40 @@ router.get('/summary', async (req, res) => {
         summary.by_method[p.method] += amount;
       }
     });
+
+    const refundsQuery = db('orders')
+      .whereExists(function() {
+        this.select(1).from('payments').whereRaw('payments.order_id = orders.id');
+        if (from) this.where('payments.created_at', '>=', from);
+        if (to) this.where('payments.created_at', '<=', to);
+      })
+      .select(
+        'orders.id',
+        'orders.status',
+        db.raw(`(
+          SELECT COALESCE(SUM(oi.quantity * mi.price), 0)
+          FROM order_items oi
+          JOIN menu_items mi ON oi.menu_item_id = mi.id
+          WHERE oi.order_id = orders.id AND oi.status = 'rejected'
+        ) as item_refunds`),
+        db.raw(`(
+          SELECT COALESCE(SUM(amount), 0)
+          FROM payments
+          WHERE payments.order_id = orders.id
+        ) as total_paid`)
+      );
+
+    const ordersWithRefunds = await refundsQuery;
+    let total_refunds = 0;
+    ordersWithRefunds.forEach(o => {
+      if (o.status === 'cancelled') {
+        total_refunds += parseFloat(o.total_paid);
+      } else {
+        total_refunds += parseFloat(o.item_refunds || 0);
+      }
+    });
+
+    summary.total_refunds = total_refunds;
 
     res.json(summary);
   } catch (error) {

@@ -145,17 +145,17 @@ export default function BooksLedger() {
   };
 
   const downloadNormalCSV = () => {
-    let csv = 'Date Group,Transaction Date,Order ID,Table,Amount,Methods,Discount,Collected By\n';
+    let csv = 'Date,Time,Order Ref,Table/Counter,Amount Paid,Method,Discount,Refunds,Collected By\n';
     
     const dailyGroups = groupPaymentsByDate();
 
     dailyGroups.forEach(day => {
       // Add a header row for the day
-      csv += `\n"--- ${day.date} ---","","","","","","",""\n`;
+      csv += `\n"--- ${day.date} ---","","","","","","","",""\n`;
       day.orders.forEach(p => {
-        csv += `"${day.date}","${new Date(p.created_at).toLocaleString()}","${p.is_package ? p.order_id : `ORD-${p.order_id}`}","${p.is_package ? p.table_number : (p.table_number ? `Table ${p.table_number}` : 'Counter Order')}","${p.amount}","${Array.from(p.methods).join(' + ')}","${p.discount}","${Array.from(p.collected_by).join(', ')}"\n`;
+        csv += `"${day.date}","${new Date(p.created_at).toLocaleString()}","${p.is_package ? p.order_id : `ORD-${p.order_id}`}","${p.is_package ? p.table_number : (p.table_number ? `Table ${p.table_number}` : 'Counter Order')}","${p.amount}","${Array.from(p.methods).join(' + ')}","${p.discount}","${p.refund}","${Array.from(p.collected_by).join(', ')}"\n`;
       });
-      csv += `"Daily Total","","","","${day.total}","","",""\n`;
+      csv += `"Daily Total","","","","${day.total}","","","",""\n`;
     });
     
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -169,15 +169,15 @@ export default function BooksLedger() {
   };
 
   const downloadMinimalCSV = () => {
-    let csv = 'Date,Orders Count,Total Revenue,Cash,Card,Online\n';
+    let csv = 'Date,Orders Count,Total Revenue,Cash,Card,Online,Refunds\n';
     const dailyGroups = groupPaymentsByDate();
 
     dailyGroups.forEach(day => {
-      csv += `"${day.date}","${day.orders.length}","${day.total}","${day.cash || 0}","${day.card || 0}","${day.online || 0}"\n`;
+      csv += `"${day.date}","${day.orders.length}","${day.total}","${day.cash || 0}","${day.card || 0}","${day.online || 0}",""\n`;
     });
 
     // Add total row
-    csv += `\n"TOTAL","${summary?.count || 0}","${summary?.total_revenue || 0}","${summary?.by_method.cash || 0}","${summary?.by_method.card || 0}","${summary?.by_method.online || 0}"\n`;
+    csv += `\n"TOTAL","${summary?.count || 0}","${summary?.total_revenue || 0}","${summary?.by_method.cash || 0}","${summary?.by_method.card || 0}","${summary?.by_method.online || 0}","${summary?.total_refunds || 0}"\n`;
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -215,6 +215,7 @@ export default function BooksLedger() {
         methods: new Set(),
         collected_by: new Set(),
         discount: parseFloat(p.order_discount || 0),
+        refund: parseFloat(p.order_refund || 0),
         is_package: p.is_package
       };
     }
@@ -302,6 +303,13 @@ export default function BooksLedger() {
               <Smartphone size={14} /> QR / Wallets
             </div>
           </div>
+          <div className="card stat-card" style={{ borderTopColor: 'var(--danger)' }}>
+            <div className="stat-label">Total Refunds Given</div>
+            <div className="stat-value text-danger">{formatCurrency(summary.total_refunds || 0)}</div>
+            <div className="flex align-center gap-sm mt-sm text-secondary">
+              Rejected items & cancelled orders
+            </div>
+          </div>
         </div>
       )}
 
@@ -364,6 +372,11 @@ export default function BooksLedger() {
                     {p.discount > 0 && (
                       <span className="badge badge-secondary ml-xs text-warning">
                         Discount: {formatCurrency(p.discount)}
+                      </span>
+                    )}
+                    {p.refund > 0 && (
+                      <span className="badge badge-danger ml-xs">
+                        Refund: {formatCurrency(p.refund)}
                       </span>
                     )}
                   </div>
