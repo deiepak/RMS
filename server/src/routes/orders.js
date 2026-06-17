@@ -725,7 +725,7 @@ router.patch('/:id/status', verifyToken, requireRole(['admin', 'waiter']), async
       updated_at: db.fn.now()
     });
 
-    if (status === 'cancelled' && order.table_id) {
+    if ((status === 'cancelled' || status === 'completed') && order.table_id) {
       await db('restaurant_tables').where({ id: order.table_id }).update({ status: 'available' });
     }
 
