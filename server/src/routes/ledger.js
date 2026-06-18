@@ -22,11 +22,10 @@ router.get('/', async (req, res) => {
         'orders.status as order_status',
         'restaurant_tables.number as table_number',
         db.raw(`(
-          SELECT COALESCE(SUM(oi.quantity * mi.price), 0)
-          FROM order_items oi
-          JOIN menu_items mi ON oi.menu_item_id = mi.id
-          WHERE oi.order_id = orders.id AND oi.status = 'rejected'
-        ) as item_refunds`)
+          SELECT COALESCE(SUM(amount), 0)
+          FROM payments p2
+          WHERE p2.order_id = orders.id
+        ) as total_order_paid`)
       );
 
     let pkgQuery = db('package_payments')
@@ -74,7 +73,9 @@ router.get('/', async (req, res) => {
 
     const formattedPayments = payments.map(p => ({
       ...p,
-      order_refund: p.order_status === 'cancelled' ? parseFloat(p.amount) : parseFloat(p.item_refunds || 0)
+      order_refund: p.order_status === 'cancelled' 
+        ? parseFloat(p.amount) 
+        : Math.max(0, parseFloat(p.total_order_paid) - parseFloat(p.order_total))
     }));
 
     const allPayments = [...formattedPayments, ...formattedPkgPayments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -135,12 +136,7 @@ router.get('/summary', async (req, res) => {
       .select(
         'orders.id',
         'orders.status',
-        db.raw(`(
-          SELECT COALESCE(SUM(oi.quantity * mi.price), 0)
-          FROM order_items oi
-          JOIN menu_items mi ON oi.menu_item_id = mi.id
-          WHERE oi.order_id = orders.id AND oi.status = 'rejected'
-        ) as item_refunds`),
+        'orders.total',
         db.raw(`(
           SELECT COALESCE(SUM(amount), 0)
           FROM payments
@@ -151,10 +147,14 @@ router.get('/summary', async (req, res) => {
     const ordersWithRefunds = await refundsQuery;
     let total_refunds = 0;
     ordersWithRefunds.forEach(o => {
+      const paid = parseFloat(o.total_paid);
       if (o.status === 'cancelled') {
-        total_refunds += parseFloat(o.total_paid);
+        total_refunds += paid;
       } else {
-        total_refunds += parseFloat(o.item_refunds || 0);
+        const expected = parseFloat(o.total);
+        if (paid > expected) {
+          total_refunds += (paid - expected);
+        }
       }
     });
 
