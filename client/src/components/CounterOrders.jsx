@@ -218,40 +218,163 @@ export default function CounterOrders({ isAdminView = false }) {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div className="flex justify-between mb-xl" style={{ flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{isAdminView ? 'Counter Orders' : 'Table Orders'}</h1>
-          <p className="text-secondary" style={{ margin: 0, marginTop: 4 }}>{isAdminView ? 'Manage walk-in and takeaway orders' : 'Select a table and place orders'}</p>
-        </div>
-        <div className="flex gap-md" style={{ flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
-          <div className="input-with-icon" style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
-            <Search size={18} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Search orders..."
-              value={orderSearch}
-              onChange={(e) => setOrderSearch(e.target.value)}
-            />
+    <div style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {!isAdminView ? (
+        waiterStep === 1 ? (
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', background: 'var(--bg-base)' }}>
+            <h2 style={{ marginBottom: '16px', fontSize: '24px', color: 'var(--text-primary)' }}>Select a Table</h2>
+            
+            <div style={{ width: '100%', maxWidth: '800px', marginBottom: '24px' }}>
+              <div className="input-with-icon" style={{ width: '100%', background: 'var(--bg-primary)', borderRadius: '12px', padding: '8px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <Search size={20} color="var(--text-secondary)" />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Search table number..." 
+                  style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '16px', padding: '8px' }}
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ width: '100%', maxWidth: '800px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', overflowY: 'auto' }}>
+              {tables.filter(t => t.number.toString().toLowerCase().includes((tableSearch || '').toLowerCase())).map(t => {
+                const isOccupied = t.status === 'occupied';
+                const isExpanded = expandedTableId === t.id;
+                const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
+
+                return (
+                  <div 
+                    key={t.id}
+                    style={{ 
+                      background: 'var(--bg-primary)', 
+                      borderRadius: '12px', 
+                      borderLeft: `6px solid ${isOccupied ? 'var(--danger)' : 'var(--success)'}`,
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div 
+                      style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                      onClick={() => {
+                        if (isOccupied) {
+                          setExpandedTableId(isExpanded ? null : t.id);
+                        } else {
+                          setSelectedTableId(t.id);
+                          setWaiterStep(2);
+                        }
+                      }}
+                    >
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Table {t.number}</h3>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{isOccupied ? 'Occupied' : 'Available'}</span>
+                      </div>
+                      {isOccupied && (
+                        <div style={{ padding: '6px 12px', background: 'var(--bg-secondary)', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
+                          {isExpanded ? 'Hide' : 'View'}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {isOccupied && isExpanded && (
+                      <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg-secondary)' }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Active Order Items</h4>
+                        {activeOrder?.items?.length > 0 ? (
+                          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', fontSize: '14px' }}>
+                            {activeOrder.items.map(item => (
+                              <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                                <span>{item.quantity}x {item.item_name}</span>
+                                <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(item.price_at_order * item.quantity)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No items found.</p>
+                        )}
+                        <button 
+                          className="btn btn-primary"
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTableId(t.id);
+                            setWaiterStep(2);
+                          }}
+                        >
+                          Place New Order
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <button className="btn btn-secondary" onClick={() => setShowActiveOrdersModal(true)} style={{ whiteSpace: 'nowrap' }}>
-            Active Orders
-          </button>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => {
-              setSelectedTableId('');
-              setCustomerName('');
-              setCart([]);
-              setShowAddModal(true);
-            }} 
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            <Plus size={18} /> New Order
-          </button>
-        </div>
-      </div>
+        ) : (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex justify-between align-center mb-md">
+              <h2 style={{ margin: 0 }}>Order for Table {tables.find(t => t.id === parseInt(selectedTableId))?.number}</h2>
+              <button className="btn btn-secondary" onClick={() => setWaiterStep(1)}>
+                <X size={18} /> Back to Tables
+              </button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <AdminCounterOrderModal
+                tables={tables}
+                adminTableId={selectedTableId}
+                setAdminTableId={setSelectedTableId}
+                adminCustomerName={customerName}
+                setAdminCustomerName={setCustomerName}
+                cart={cart}
+                setCart={setCart}
+                onAdminSubmitSuccess={() => {
+                  fetchOrders();
+                  setCart([]);
+                  setSelectedTableId('');
+                  setCustomerName('');
+                  setWaiterStep(1);
+                }}
+              />
+            </div>
+          </div>
+        )
+      ) : (
+        <>
+          <div className="flex justify-between mb-xl" style={{ flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
+            <div>
+              <h1 style={{ margin: 0 }}>Counter Orders</h1>
+              <p className="text-secondary" style={{ margin: 0, marginTop: 4 }}>Manage walk-in and takeaway orders</p>
+            </div>
+            <div className="flex gap-md" style={{ flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+              <div className="input-with-icon" style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+                <Search size={18} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Search orders..."
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-secondary" onClick={() => setShowActiveOrdersModal(true)} style={{ whiteSpace: 'nowrap' }}>
+                Active Orders
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setSelectedTableId('');
+                  setCustomerName('');
+                  setCart([]);
+                  setShowAddModal(true);
+                }} 
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <Plus size={18} /> New Order
+              </button>
+            </div>
+          </div>
 
       {loading ? (
         <div className="text-center text-secondary p-xl">Loading counter orders...</div>
@@ -287,12 +410,12 @@ export default function CounterOrders({ isAdminView = false }) {
         </div>
       )}
 
-      {/* Add Counter Order / Table Selection Modal */}
-      {showAddModal && (
+      {/* Add Counter Order / Table Selection Modal (Admin only) */}
+      {showAddModal && isAdminView && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: 1100, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
             <div className="modal-header">
-              <h2>{isAdminView ? 'New Counter Order' : (waiterStep === 1 ? 'Table Selection' : `Order for Table ${tables.find(t => t.id === parseInt(selectedTableId))?.number}`)}</h2>
+              <h2>New Counter Order</h2>
               <button 
                 className="btn btn-icon" 
                 onClick={() => {
@@ -310,138 +433,26 @@ export default function CounterOrders({ isAdminView = false }) {
               </button>
             </div>
             <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', overflowX: 'auto', padding: 0 }}>
-              {isAdminView ? (
-                <AdminCounterOrderModal
-                  tables={tables}
-                  adminTableId={selectedTableId}
-                  setAdminTableId={setSelectedTableId}
-                  adminCustomerName={customerName}
-                  setAdminCustomerName={setCustomerName}
-                  cart={cart}
-                  setCart={setCart}
-                  onAdminSubmitSuccess={() => {
-                    setShowAddModal(false);
-                    fetchOrders();
-                    setCart([]);
-                    setSelectedTableId('');
-                    setCustomerName('');
-                    if (cameFromTables) {
-                      navigate('/admin/tables');
-                      setCameFromTables(false);
-                    }
-                  }}
-                />
-              ) : waiterStep === 1 ? (
-                <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
-                  <h2 style={{ marginBottom: '16px', fontSize: '24px', color: 'var(--text-primary)' }}>Select a Table</h2>
-                  
-                  <div style={{ width: '100%', maxWidth: '800px', marginBottom: '24px' }}>
-                    <div className="input-with-icon" style={{ width: '100%', background: 'var(--bg-primary)', borderRadius: '12px', padding: '8px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                      <Search size={20} color="var(--text-secondary)" />
-                      <input 
-                        type="text" 
-                        className="form-input" 
-                        placeholder="Search table number..." 
-                        style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '16px', padding: '8px' }}
-                        value={tableSearch}
-                        onChange={(e) => setTableSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ width: '100%', maxWidth: '800px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                    {tables.filter(t => t.number.toString().toLowerCase().includes((tableSearch || '').toLowerCase())).map(t => {
-                      const isOccupied = t.status === 'occupied';
-                      const isExpanded = expandedTableId === t.id;
-                      const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
-
-                      return (
-                        <div 
-                          key={t.id}
-                          style={{ 
-                            background: 'var(--bg-primary)', 
-                            borderRadius: '12px', 
-                            borderLeft: `6px solid ${isOccupied ? 'var(--danger)' : 'var(--success)'}`,
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                            overflow: 'hidden',
-                            transition: 'all 0.2s',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div 
-                            style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                            onClick={() => {
-                              if (isOccupied) {
-                                setExpandedTableId(isExpanded ? null : t.id);
-                              } else {
-                                setSelectedTableId(t.id);
-                                setWaiterStep(2);
-                              }
-                            }}
-                          >
-                            <div>
-                              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Table {t.number}</h3>
-                              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{isOccupied ? 'Occupied' : 'Available'}</span>
-                            </div>
-                            {isOccupied && (
-                              <div style={{ padding: '6px 12px', background: 'var(--bg-secondary)', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
-                                {isExpanded ? 'Hide' : 'View'}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {isOccupied && isExpanded && (
-                            <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg-secondary)' }}>
-                              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Active Order Items</h4>
-                              {activeOrder?.items?.length > 0 ? (
-                                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', fontSize: '14px' }}>
-                                  {activeOrder.items.map(item => (
-                                    <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
-                                      <span>{item.quantity}x {item.item_name}</span>
-                                      <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(item.price_at_order * item.quantity)}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No items found.</p>
-                              )}
-                              <button 
-                                className="btn btn-primary"
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedTableId(t.id);
-                                  setWaiterStep(2);
-                                }}
-                              >
-                                Place New Order
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <AdminCounterOrderModal
-                  tables={tables}
-                  adminTableId={selectedTableId}
-                  setAdminTableId={setSelectedTableId}
-                  adminCustomerName={customerName}
-                  setAdminCustomerName={setCustomerName}
-                  cart={cart}
-                  setCart={setCart}
-                  onAdminSubmitSuccess={() => {
-                    setShowAddModal(false);
-                    fetchOrders();
-                    setCart([]);
-                    setSelectedTableId('');
-                    setCustomerName('');
-                    setWaiterStep(1);
-                  }}
-                />
-              )}
+              <AdminCounterOrderModal
+                tables={tables}
+                adminTableId={selectedTableId}
+                setAdminTableId={setSelectedTableId}
+                adminCustomerName={customerName}
+                setAdminCustomerName={setCustomerName}
+                cart={cart}
+                setCart={setCart}
+                onAdminSubmitSuccess={() => {
+                  setShowAddModal(false);
+                  fetchOrders();
+                  setCart([]);
+                  setSelectedTableId('');
+                  setCustomerName('');
+                  if (cameFromTables) {
+                    navigate('/admin/tables');
+                    setCameFromTables(false);
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
