@@ -13,9 +13,9 @@ export default function AcceptedOrders({ updateCounts }) {
   const { showToast } = useToast();
 
   useEffect(() => {
-    fetchAccepted();
+    fetchAccepted(true);
 
-    const handleUpdate = () => fetchAccepted();
+    const handleUpdate = () => fetchAccepted(false);
     subscribeToEvent('order:new', handleUpdate);
     subscribeToEvent('order:item-status', handleUpdate);
     subscribeToEvent('order:hold', handleUpdate);
@@ -35,14 +35,14 @@ export default function AcceptedOrders({ updateCounts }) {
     };
   }, []);
 
-  const fetchAccepted = async () => {
+  const fetchAccepted = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       
       const acceptedOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
-          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
+          const isStationMatch = checkStationMatch(i.station_ids, i.category_station_ids, user?.station_id);
           return isStationMatch && (i.status === 'accepted' || i.status === 'preparing' || i.status === 'rejected');
         }) || [];
         return { ...order, items: filteredItems };
@@ -57,7 +57,7 @@ export default function AcceptedOrders({ updateCounts }) {
     } catch (error) {
       showToast('Failed to load preparing orders', 'error');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 

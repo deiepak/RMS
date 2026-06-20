@@ -170,6 +170,7 @@ router.get('/by-category', async (req, res) => {
   try {
     const { from, to } = req.query;
     
+    // Step 1: Get raw category totals using historical price (price_at_order)
     let query = db('order_items')
       .join('orders', 'order_items.order_id', 'orders.id')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
@@ -177,7 +178,7 @@ router.get('/by-category', async (req, res) => {
       .where('orders.status', 'completed')
       .where('order_items.status', '!=', 'rejected')
       .select('menu_categories.name as category')
-      .select(db.raw('SUM(order_items.quantity * menu_items.price) as total'))
+      .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as total'))
       .count('order_items.id as items_count')
       .groupBy('menu_categories.id', 'menu_categories.name');
 
@@ -189,6 +190,35 @@ router.get('/by-category', async (req, res) => {
     }
 
     const results = await query;
+
+    // Step 2: Get total discounts for the same period to subtract proportionally
+    let discountQuery = db('orders')
+      .where('orders.status', 'completed')
+      .select(
+        db.raw('COALESCE(SUM(orders.discount), 0) as total_discount'),
+        db.raw('COALESCE(SUM(orders.subtotal), 0) as total_subtotal')
+      );
+
+    if (from) {
+      discountQuery = discountQuery.where('orders.created_at', '>=', `${from} 00:00:00`);
+    }
+    if (to) {
+      discountQuery = discountQuery.where('orders.created_at', '<=', `${to} 23:59:59`);
+    }
+
+    const [discountData] = await discountQuery;
+    const totalDiscount = parseFloat(discountData.total_discount || 0);
+    const totalSubtotal = parseFloat(discountData.total_subtotal || 0);
+
+    // Subtract proportional discount from each category
+    if (totalDiscount > 0 && totalSubtotal > 0) {
+      const discountRatio = totalDiscount / totalSubtotal;
+      results.forEach(r => {
+        const rawTotal = parseFloat(r.total || 0);
+        r.total = Math.max(0, rawTotal - (rawTotal * discountRatio));
+      });
+    }
+
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: error.message });

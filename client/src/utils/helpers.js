@@ -153,13 +153,31 @@ export const numberToWords = (num) => {
 /**
  * Check if an item belongs to a specific station
  */
-export const checkStationMatch = (stationIds, userStationId) => {
-  if (!userStationId) return true;
-  if (!stationIds) return true;
-  let arr = stationIds;
-  if (typeof arr === 'string') {
-    try { arr = JSON.parse(arr); } catch (e) { arr = []; }
-  }
-  if (!Array.isArray(arr) || arr.length === 0) return true;
-  return arr.includes(userStationId) || arr.includes(Number(userStationId)) || arr.includes(String(userStationId));
+export const checkStationMatch = (itemStationIds, categoryStationIds, userStationId) => {
+  if (!userStationId) return true; // If user is not assigned to a station, they see everything.
+
+  const parseIds = (ids) => {
+    if (!ids) return [];
+    let arr = ids;
+    if (typeof arr === 'string') {
+      try { arr = JSON.parse(arr); } catch (e) { arr = []; }
+    }
+    return Array.isArray(arr) ? arr : [];
+  };
+
+  const iArr = parseIds(itemStationIds);
+  const cArr = parseIds(categoryStationIds);
+
+  // If neither item nor category has any station assigned, it is global
+  if (iArr.length === 0 && cArr.length === 0) return true;
+
+  const matchesId = (arr) => arr.includes(userStationId) || arr.includes(Number(userStationId)) || arr.includes(String(userStationId));
+
+  // If item has a specific station assigned, respect that.
+  if (iArr.length > 0) return matchesId(iArr);
+
+  // Otherwise, respect the category's station assignment.
+  if (cArr.length > 0) return matchesId(cArr);
+
+  return false;
 };

@@ -12,9 +12,9 @@ async function recalculateOrderTotals(orderId) {
     .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
     .where('order_items.order_id', orderId)
     .whereNot('order_items.status', 'rejected')
-    .select('menu_items.price', 'order_items.quantity');
+    .select('order_items.price_at_order', 'menu_items.price', 'order_items.quantity');
 
-  const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+  const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.price_at_order || item.price) * item.quantity), 0);
 
   // Check for promo discount
   const order = await db('orders').where({ id: orderId }).first();
@@ -79,6 +79,12 @@ router.post('/', async (req, res) => {
     });
 
     // Create order items
+    // Fetch menu prices to store as price_at_order
+    const menuItemIds = items.map(i => i.menu_item_id);
+    const menuPrices = await db('menu_items').whereIn('id', menuItemIds).select('id', 'price');
+    const priceMap = {};
+    menuPrices.forEach(m => { priceMap[m.id] = parseFloat(m.price); });
+
     const orderItems = items.map((item) => ({
       order_id: orderId,
       menu_item_id: item.menu_item_id,
@@ -86,6 +92,7 @@ router.post('/', async (req, res) => {
       customer_name: item.customer_name || customer_name || 'Guest',
       notes: item.notes || null,
       status: 'pending',
+      price_at_order: item.price_at_order || priceMap[item.menu_item_id] || 0,
     }));
 
     await db('order_items').insert(orderItems);
@@ -102,13 +109,19 @@ router.post('/', async (req, res) => {
     const order = await db('orders').where({ id: orderId }).first();
     const fullItems = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('order_items.order_id', orderId)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.station_ids as category_station_ids');
 
     // Emit to kitchen
     const io = req.app.get('io');
     if (io) {
-      io.to('kitchen').emit('order:new', { order, items: fullItems, table_number: table ? table.number : order_name });
+      io.emit('order:new', { 
+        ...order, 
+        items: fullItems, 
+        table_number: table ? table.number : order_name,
+        source: req.user?.role || 'unknown'
+      });
     }
 
     res.status(201).json({ order, items: fullItems });
@@ -155,13 +168,37 @@ router.get('/', async (req, res) => {
     query.orderBy('orders.created_at', 'desc');
     const orders = await query;
 
-    // Attach items to each order
-    for (const order of orders) {
-      order.items = await db('order_items')
-        .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
-        .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
-        .where('order_items.order_id', order.id)
-        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.name as category_name');
+      if (orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const allItems = await db('order_items')
+          .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+          .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
+          .whereIn('order_items.order_id', orderIds)
+          .select(
+            'order_items.*', 
+            'menu_items.name as item_name', 
+            'menu_items.name_np as item_name_np', 
+            'menu_items.price', 
+            'menu_items.station_ids', 
+            'menu_categories.name as category_name',
+            'menu_categories.station_ids as category_station_ids'
+          );
+
+      const itemsByOrderId = {};
+      for (const item of allItems) {
+        if (!itemsByOrderId[item.order_id]) {
+          itemsByOrderId[item.order_id] = [];
+        }
+        itemsByOrderId[item.order_id].push(item);
+      }
+
+      for (const order of orders) {
+        order.items = itemsByOrderId[order.id] || [];
+      }
+    } else {
+      for (const order of orders) {
+        order.items = [];
+      }
     }
 
     res.json(orders);
@@ -205,18 +242,7 @@ router.get('/table/:tableId/active', async (req, res) => {
       .join('restaurant_tables', 'orders.table_id', 'restaurant_tables.id')
       .leftJoin('promo_codes', 'orders.promo_code_id', 'promo_codes.id')
       .where('orders.table_id', req.params.tableId)
-      .where(function() {
-        this.whereIn('orders.status', ['active', 'checkout_requested', 'payment_ready'])
-          .orWhere(function() {
-            this.where('orders.status', 'completed')
-              .whereExists(function() {
-                this.select(1)
-                  .from('order_items')
-                  .whereRaw('order_items.order_id = orders.id')
-                  .whereIn('order_items.status', ['pending', 'accepted', 'preparing', 'prepared', 'picked_up']);
-              });
-          });
-      })
+      .whereIn('orders.status', ['active', 'checkout_requested', 'payment_ready', 'hold'])
       .orderBy('orders.created_at', 'desc')
       .select('orders.*', 'restaurant_tables.number as table_number', 'restaurant_tables.section', 'promo_codes.code as promo_code_name')
       .first();
@@ -251,6 +277,12 @@ router.post('/:id/items', async (req, res) => {
       return res.status(400).json({ error: 'Cannot add items to a completed or cancelled order.' });
     }
 
+    // Fetch menu prices to store as price_at_order
+    const menuItemIds = items.map(i => i.menu_item_id);
+    const menuPrices = await db('menu_items').whereIn('id', menuItemIds).select('id', 'price');
+    const priceMap = {};
+    menuPrices.forEach(m => { priceMap[m.id] = parseFloat(m.price); });
+
     const newItems = items.map((item) => ({
       order_id: orderId,
       menu_item_id: item.menu_item_id,
@@ -258,6 +290,7 @@ router.post('/:id/items', async (req, res) => {
       customer_name: item.customer_name || customer_name || 'Guest',
       notes: item.notes || null,
       status: 'pending',
+      price_at_order: item.price_at_order || priceMap[item.menu_item_id] || 0,
     }));
 
     await db('order_items').insert(newItems);
@@ -268,8 +301,9 @@ router.post('/:id/items', async (req, res) => {
     // Fetch updated items
     const fullItems = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('order_items.order_id', orderId)
-      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids');
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.station_ids as category_station_ids');
 
     const updatedOrder = await db('orders').where({ id: orderId }).first();
 
@@ -278,7 +312,13 @@ router.post('/:id/items', async (req, res) => {
       // Only emit the newly added items to prevent the kitchen from speaking the entire order again
       const sortedItems = [...fullItems].sort((a, b) => b.id - a.id);
       const recentlyAddedItems = sortedItems.slice(0, newItems.length);
-      io.to('kitchen').emit('order:new', { order: updatedOrder, items: recentlyAddedItems, table_number: table.number });
+      io.emit('order:update', { orderId: orderId, items: fullItems });
+      io.emit('order:new', { 
+        ...updatedOrder, 
+        items: recentlyAddedItems,
+        table_number: table?.number,
+        source: req.user?.role || 'unknown'
+      });
     }
 
     res.json({ order: updatedOrder, items: fullItems });
@@ -369,7 +409,7 @@ router.patch('/items/:itemId/status', async (req, res) => {
       // Always emit to the table room
       io.to(tableRoom).emit('order:item-status', updatedItem);
       // Emit to kitchen so they can update UI or announce cancellation
-      io.to('kitchen').emit('order:item-status', updatedItem);
+      io.emit('order:item-status', updatedItem);
 
       // Additional emissions based on status
       if (status === 'prepared') {
@@ -450,7 +490,7 @@ router.patch('/:id/hold', verifyToken, requireRole(['admin']), async (req, res) 
 
     const io = req.app.get('io');
     if (io) {
-      io.to('kitchen').emit('order:hold', { order_id: order.id, table_number });
+      io.emit('order:hold', { order_id: order.id, table_number });
     }
     res.json({ success: true, status: 'hold' });
   } catch (err) {
@@ -474,7 +514,7 @@ router.patch('/:id/unhold', verifyToken, requireRole(['admin']), async (req, res
 
     const io = req.app.get('io');
     if (io) {
-      io.to('kitchen').emit('order:unhold', { order_id: order.id, table_number });
+      io.emit('order:unhold', { order_id: order.id, table_number });
     }
     res.json({ success: true, status: 'active' });
   } catch (err) {
@@ -547,7 +587,7 @@ router.patch('/:id/payment-ready', verifyToken, requireRole(['waiter', 'admin'])
 // PATCH /api/orders/:id/payment - record payment (Admin)
 router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { payments, collected_by, manual_discount, discount_reason } = req.body;
+    const { payments, collected_by, manual_discount, discount_reason, cash_tendered, change_due } = req.body;
     const orderId = req.params.id;
 
     if (!payments || !Array.isArray(payments) || !collected_by) {
@@ -609,6 +649,8 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
       status: 'completed',
       payment_method: validPayments.length > 1 ? 'split' : (validPayments[0]?.method || 'cash'),
       updated_at: db.fn.now(),
+      cash_tendered: parseFloat(cash_tendered || 0),
+      change_due: parseFloat(change_due || 0)
     };
     
     if (md > 0) {
@@ -739,6 +781,78 @@ router.patch('/:id/status', verifyToken, requireRole(['admin', 'waiter']), async
     res.json(updatedOrder);
   } catch (err) {
     console.error('Update status error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+// POST /api/orders/merge-table - merge source table into target table
+router.post('/merge-table', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { source_table_id, target_table_id } = req.body;
+
+    if (!source_table_id || !target_table_id) {
+      return res.status(400).json({ error: 'Source and target table IDs are required.' });
+    }
+
+    if (source_table_id === target_table_id) {
+      return res.status(400).json({ error: 'Source and target tables cannot be the same.' });
+    }
+
+    // Get active orders for both
+    const getActiveOrder = async (tableId) => {
+      return await db('orders')
+        .where('table_id', tableId)
+        .whereIn('status', ['active', 'checkout_requested', 'payment_ready', 'hold'])
+        .orderBy('created_at', 'desc')
+        .first();
+    };
+
+    const sourceOrder = await getActiveOrder(source_table_id);
+    if (!sourceOrder) {
+      return res.status(400).json({ error: 'Source table has no active order to merge.' });
+    }
+
+    const targetOrder = await getActiveOrder(target_table_id);
+
+    await db.transaction(async (trx) => {
+      if (targetOrder) {
+        // Both have active orders: move all items from source to target
+        await trx('order_items')
+          .where('order_id', sourceOrder.id)
+          .update({ order_id: targetOrder.id });
+
+        // Set the source order as merged
+        await trx('orders')
+          .where('id', sourceOrder.id)
+          .update({ status: 'merged', updated_at: db.fn.now() });
+
+        // Recalculate target order totals inside transaction? 
+        // We'll just do it outside using the existing function.
+      } else {
+        // Only source has order: move the order to target table
+        await trx('orders')
+          .where('id', sourceOrder.id)
+          .update({ table_id: target_table_id, updated_at: db.fn.now() });
+      }
+
+      // Update table statuses
+      await trx('restaurant_tables').where('id', source_table_id).update({ status: 'available' });
+      await trx('restaurant_tables').where('id', target_table_id).update({ status: 'occupied' });
+    });
+
+    if (targetOrder) {
+      await recalculateOrderTotals(targetOrder.id);
+    } else {
+      await recalculateOrderTotals(sourceOrder.id);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('order:new'); // trigger general refresh
+    }
+
+    res.json({ message: 'Tables merged successfully.' });
+  } catch (err) {
+    console.error('Merge table error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

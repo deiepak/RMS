@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import SearchBar from '../components/SearchBar';
+import { useAuth } from '../contexts/AuthContext';
+import { checkStationMatch } from '../utils/helpers';
 
 export default function MenuList() {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('name');
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -44,13 +48,31 @@ export default function MenuList() {
   };
 
   let filteredItems = items;
+  
+  if (user?.station_id) {
+    filteredItems = filteredItems.filter(item => {
+      const cat = categories.find(c => c.id === item.category_id);
+      return checkStationMatch(item.station_ids, cat?.station_ids, user.station_id);
+    });
+  }
+
   if (activeCategory !== 'all') {
-    filteredItems = filteredItems.filter(i => i.category_id === activeCategory);
+    filteredItems = filteredItems.filter(i => i.category_id == activeCategory);
   }
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filteredItems = filteredItems.filter(i => i.name.toLowerCase().includes(q));
   }
+
+  filteredItems = filteredItems.sort((a, b) => {
+    if (sortBy === 'category') {
+      return (a.category_name || '').localeCompare(b.category_name || '') || a.name.localeCompare(b.name);
+    } else if (sortBy === 'stock') {
+      if (a.is_available === b.is_available) return a.name.localeCompare(b.name);
+      return a.is_available ? 1 : -1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   if (isLoading) return <div className="flex-center text-muted">Loading menu...</div>;
 
@@ -66,7 +88,17 @@ export default function MenuList() {
         </div>
         <select 
           className="form-select" 
-          style={{ width: 200 }}
+          style={{ width: 180 }}
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="name">Sort by Name</option>
+          <option value="category">Sort by Category</option>
+          <option value="stock">Out of Stock First</option>
+        </select>
+        <select 
+          className="form-select" 
+          style={{ width: 180 }}
           value={activeCategory}
           onChange={(e) => setActiveCategory(e.target.value)}
         >

@@ -101,7 +101,8 @@ export default function AdminCounterOrderModal({
             await api.post('/orders', payload);
           }
         } catch (err) {
-          await api.post('/orders', payload);
+          console.error("Error adding items to table order:", err);
+          throw new Error('Failed to update existing table order. Please try again.');
         }
       } else {
         await api.post('/orders', payload);
@@ -132,10 +133,10 @@ export default function AdminCounterOrderModal({
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
 
   return (
-    <div style={{ display: 'flex', height: '100%', width: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
       
       {/* Left Column: Categories */}
-      <div style={{ width: '220px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
+      <div style={{ width: '220px', minWidth: '220px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
         <div style={{ padding: '20px', fontWeight: 'bold', fontSize: '18px', borderBottom: '1px solid var(--border-color)' }}>Categories</div>
         <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           {categories.map(cat => (
@@ -160,7 +161,7 @@ export default function AdminCounterOrderModal({
       </div>
 
       {/* Middle Column: Items */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+      <div style={{ flex: 1, minWidth: '400px', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '16px', background: 'var(--bg-primary)' }}>
           <div className="input-with-icon" style={{ flex: 2 }}>
             <Search size={18} />
@@ -178,14 +179,14 @@ export default function AdminCounterOrderModal({
             value={adminTableId || ''}
             onChange={e => setAdminTableId(e.target.value)}
           >
-            <option value="">Counter Order (No Table)</option>
+            <option value="" disabled>-- Select a Table (Compulsory) --</option>
             {tables.map(t => (
               <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
             ))}
           </select>
         </div>
         <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'var(--bg-secondary)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
             {displayItems.map(item => (
               <div 
                 key={item.id} 
@@ -235,7 +236,7 @@ export default function AdminCounterOrderModal({
       </div>
 
       {/* Right Column: Order Summary (Cart) */}
-      <div style={{ width: '380px', borderLeft: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
+      <div style={{ width: '380px', minWidth: '380px', borderLeft: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
         <div style={{ padding: '20px', fontWeight: 'bold', fontSize: '18px', borderBottom: '1px solid var(--border-color)' }}>Order Summary</div>
         
         <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
@@ -290,7 +291,7 @@ export default function AdminCounterOrderModal({
             className="btn btn-primary w-full" 
             style={{ padding: '14px', fontSize: '16px', fontWeight: 'bold' }}
             onClick={submitOrder}
-            disabled={cart.length === 0 || isSubmitting}
+            disabled={cart.length === 0 || isSubmitting || !adminTableId}
           >
             {isSubmitting ? 'Placing Order...' : 'Place Order'}
           </button>

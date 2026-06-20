@@ -13,12 +13,15 @@ import {
   Banknote,
   RefreshCw,
   Search,
+  Merge,
+  Printer,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { useToast } from '../contexts/ToastContext';
+import { formatCurrency, formatTime, formatDateTime } from '../utils/helpers';
 import '../index.css';
 
 const SECTIONS = ['Main Hall', 'Patio', 'VIP', 'Rooftop', 'Garden', 'Bar'];
@@ -36,6 +39,10 @@ export default function TableManagement() {
   const [shiftFromTable, setShiftFromTable] = useState(null);
   const [shiftToTableId, setShiftToTableId] = useState('');
   
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSourceTable, setMergeSourceTable] = useState(null);
+  const [mergeTargetTableId, setMergeTargetTableId] = useState('');
+
   const [editTable, setEditTable] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [qrTable, setQrTable] = useState(null);
@@ -85,6 +92,8 @@ export default function TableManagement() {
     subscribeToEvent('order:payment-ready', handleUpdate);
     subscribeToEvent('order:payment-collected', handleUpdate);
     subscribeToEvent('table:updated', handleUpdate);
+    subscribeToEvent('order:hold', handleUpdate);
+    subscribeToEvent('order:unhold', handleUpdate);
 
     return () => {
       unsubscribeFromEvent('order:new', handleUpdate);
@@ -92,6 +101,8 @@ export default function TableManagement() {
       unsubscribeFromEvent('order:payment-ready', handleUpdate);
       unsubscribeFromEvent('order:payment-collected', handleUpdate);
       unsubscribeFromEvent('table:updated', handleUpdate);
+      unsubscribeFromEvent('order:hold', handleUpdate);
+      unsubscribeFromEvent('order:unhold', handleUpdate);
     };
   }, []);
 
@@ -186,6 +197,30 @@ export default function TableManagement() {
     }
   };
 
+  const openMerge = (table) => {
+    setMergeSourceTable(table);
+    setMergeTargetTableId('');
+    setShowMergeModal(true);
+  };
+
+  const handleMergeSubmit = async (e) => {
+    e.preventDefault();
+    if (!mergeTargetTableId) return;
+    try {
+      setSaving(true);
+      await api.post('/orders/merge-table', { source_table_id: mergeSourceTable.id, target_table_id: parseInt(mergeTargetTableId) });
+      showToast('Table merged successfully', 'success');
+      setShowMergeModal(false);
+      setMergeSourceTable(null);
+      setMergeTargetTableId('');
+      fetchTables();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to merge table', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleViewOrder = async (table) => {
     if (table.status !== 'occupied') return;
     setViewOrderTable(table);
@@ -212,6 +247,22 @@ export default function TableManagement() {
       navigate('/admin/payments', { state: { autoOpenOrderId: activeOrder.id } });
     } catch (err) {
       showToast('Failed to checkout table', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePrintBill = async (e, table) => {
+    e.stopPropagation();
+    try {
+      setSaving(true);
+      const res = await api.get(`/orders/table/${table.id}/active`);
+      const activeOrder = res.data;
+      if (activeOrder) {
+        navigate('/admin/orders', { state: { autoPrintOrderId: activeOrder.id } });
+      }
+    } catch (err) {
+      showToast('Failed to print bill', 'error');
     } finally {
       setSaving(false);
     }
@@ -427,12 +478,12 @@ export default function TableManagement() {
                 {displayStatus === 'occupied' && (
                   <>
                     <button
-                      className="btn btn-icon btn-sm btn-success"
-                      onClick={(e) => handleQuickCheckout(e, table)}
-                      title="Checkout"
+                      className="btn btn-icon btn-sm btn-info"
+                      onClick={(e) => handlePrintBill(e, table)}
+                      title="Print Bill"
                       disabled={saving}
                     >
-                      <Banknote size={16} />
+                      <Printer size={16} />
                     </button>
                     <button
                       className="btn btn-icon btn-sm btn-primary"
@@ -440,6 +491,13 @@ export default function TableManagement() {
                       title="Shift Table"
                     >
                       <ArrowRightLeft size={16} />
+                    </button>
+                    <button
+                      className="btn btn-icon btn-sm btn-secondary"
+                      onClick={() => openMerge(table)}
+                      title="Merge Table"
+                    >
+                      <Merge size={16} />
                     </button>
                   </>
                 )}
@@ -571,7 +629,50 @@ export default function TableManagement() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Merge Table Modal */}
+      {showMergeModal && mergeSourceTable && (
+        <div className="modal-overlay" onClick={() => setShowMergeModal(false)}>
+          <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Merge {mergeSourceTable.number}</h2>
+              <button className="btn btn-icon" onClick={() => setShowMergeModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleMergeSubmit}>
+              <div className="modal-body">
+                <p style={{ marginBottom: '16px' }}>Move all items from {mergeSourceTable.number} to another table.</p>
+                <div className="form-group">
+                  <label>Target Table *</label>
+                  <select 
+                    className="input" 
+                    required 
+                    value={mergeTargetTableId} 
+                    onChange={(e) => setMergeTargetTableId(e.target.value)}
+                  >
+                    <option value="">-- Select Target Table --</option>
+                    {tables
+                      .filter(t => t.id !== mergeSourceTable.id)
+                      .map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.number} ({t.section || 'Main Hall'}) - {t.status}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer flex gap-sm justify-end">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowMergeModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving || !mergeTargetTableId}>
+                  {saving ? 'Merging...' : 'Merge Table'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
@@ -660,6 +761,11 @@ export default function TableManagement() {
                       <div key={item.id} className="flex justify-between align-center p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', padding: '8px 12px', opacity: item.status === 'rejected' || item.status === 'cancelled' ? 0.6 : 1 }}>
                         <div style={{ textDecoration: item.status === 'rejected' || item.status === 'cancelled' ? 'line-through' : 'none' }}>
                           <span style={{ fontWeight: 600 }}>{item.quantity}x {item.item_name}</span>
+                          {item.created_at && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                              {formatTime(item.created_at)}
+                            </span>
+                          )}
                           {item.notes && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Note: {item.notes}</div>}
                         </div>
                         <div className="flex align-center gap-sm">
@@ -689,19 +795,33 @@ export default function TableManagement() {
                 <div className="text-center text-secondary" style={{ padding: 40 }}>No active order found for this table.</div>
               )}
             </div>
-            <div className="modal-footer" style={{ display: 'flex', gap: '10px' }}>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {viewOrderDetails && viewOrderDetails.status !== 'completed' && (
                 <>
                   <button 
                     className={`btn ${viewOrderDetails.status === 'hold' ? 'btn-success' : 'btn-warning'} flex-1`}
-                    style={{ fontSize: '1.1rem', padding: '12px' }} 
+                    style={{ fontSize: '1rem', padding: '12px', minWidth: '140px' }} 
                     onClick={() => handleHoldOrder(viewOrderDetails.id, viewOrderDetails.status === 'hold')}
                   >
                     {viewOrderDetails.status === 'hold' ? 'Unhold Order' : 'Hold Order'}
                   </button>
                   <button 
-                    className="btn btn-primary flex-1" 
-                    style={{ fontSize: '1.1rem', padding: '12px' }} 
+                    className="btn btn-info flex-1" 
+                    style={{ fontSize: '1rem', padding: '12px', background: 'var(--info)', minWidth: '140px' }} 
+                    onClick={(e) => { e.stopPropagation(); navigate('/admin/counter', { state: { autoOpenTableId: viewOrderTable.id } }); }}
+                  >
+                    Order by Admin
+                  </button>
+                  <button 
+                    className="btn flex-1" 
+                    style={{ fontSize: '1rem', padding: '12px', background: 'var(--primary)', color: 'white', minWidth: '140px' }} 
+                    onClick={(e) => { e.stopPropagation(); navigate('/admin/orders', { state: { autoPrintOrderId: viewOrderDetails.id } }); }}
+                  >
+                    Print Bill
+                  </button>
+                  <button 
+                    className="btn btn-success flex-1" 
+                    style={{ fontSize: '1rem', padding: '12px', minWidth: '140px' }} 
                     onClick={async () => {
                       if (viewOrderDetails.status !== 'checkout_requested') {
                         await api.patch(`/orders/${viewOrderDetails.id}/status`, { status: 'checkout_requested' });
@@ -713,7 +833,7 @@ export default function TableManagement() {
                   </button>
                 </>
               )}
-              <button className="btn btn-secondary flex-1" onClick={() => setViewOrderTable(null)}>Close</button>
+              <button className="btn btn-secondary" style={{ flex: '1 1 100%', padding: '12px', fontSize: '1rem' }} onClick={() => setViewOrderTable(null)}>Close</button>
             </div>
           </div>
         </div>
@@ -737,8 +857,9 @@ export default function TableManagement() {
             pointerEvents: 'none'
           }}
         >
-          <div style={{ fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
-            Order #{activeOrders[tooltipState.tableId].id}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--accent-primary)' }}>
+            <span>Order #{activeOrders[tooltipState.tableId].id}</span>
+            <span>{formatCurrency(activeOrders[tooltipState.tableId].total)}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {activeOrders[tooltipState.tableId].items?.map((item, idx) => (

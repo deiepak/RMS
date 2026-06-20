@@ -18,9 +18,9 @@ export default function TableWiseOrders() {
   };
 
   useEffect(() => {
-    fetchTableOrders();
+    fetchTableOrders(true);
 
-    const handleUpdate = () => fetchTableOrders();
+    const handleUpdate = () => fetchTableOrders(false);
 
     subscribeToEvent('order:new', handleUpdate);
     subscribeToEvent('order:item-status', handleUpdate);
@@ -39,9 +39,9 @@ export default function TableWiseOrders() {
     };
   }, []);
 
-  const fetchTableOrders = async () => {
+  const fetchTableOrders = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       const activeOrders = res.data;
       
@@ -55,10 +55,7 @@ export default function TableWiseOrders() {
           };
         }
         
-        const validItems = order.items.filter(i => {
-          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
-          return isStationMatch;
-        });
+        const validItems = order.items || [];
         
         if (validItems.length > 0) {
           tableMap[order.table_number].orders.push({
@@ -76,7 +73,7 @@ export default function TableWiseOrders() {
     } catch (error) {
       showToast('Failed to fetch table orders', 'error');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -116,9 +113,21 @@ export default function TableWiseOrders() {
       </div>
     );
   }
-
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+    <>
+      <style>
+        {`
+          @keyframes pulseRedGreenItem {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); border: 1px solid var(--danger); }
+            50% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.7); border: 1px solid var(--success); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); border: 1px solid var(--danger); }
+          }
+          .alert-pending-item {
+            animation: pulseRedGreenItem 1.5s infinite;
+          }
+        `}
+      </style>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
       {tables.map(table => (
         <div key={table.table_number} className="card animate-slideUp">
           <div className="card-header flex justify-between align-center">
@@ -137,7 +146,7 @@ export default function TableWiseOrders() {
                   {order.items.map(item => {
                     const isRejected = item.status === 'rejected' || item.status === 'cancelled';
                     return (
-                      <div key={item.id} className="flex justify-between align-center p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', padding: '6px 10px', opacity: isRejected ? 0.6 : 1 }}>
+                      <div key={item.id} className={`flex justify-between align-center p-sm bg-secondary ${item.status === 'pending' ? 'alert-pending-item' : ''}`} style={{ borderRadius: 'var(--radius-sm)', padding: '6px 10px', opacity: isRejected ? 0.6 : 1 }}>
                         <div style={{ textDecoration: isRejected ? 'line-through' : 'none' }}>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
                             {item.quantity}x {item.item_name}
@@ -160,7 +169,7 @@ export default function TableWiseOrders() {
                             </div>
                           )}
                           {(item.status === 'accepted' || item.status === 'preparing') && (
-                            <button className="btn btn-sm btn-success" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Prepared</button>
+                            <button className="btn btn-sm btn-danger" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Mark as prepared</button>
                           )}
                           {isRejected && (
                             <div className="badge badge-danger" style={{ fontSize: 10 }}>Cancelled</div>
@@ -181,5 +190,6 @@ export default function TableWiseOrders() {
         </div>
       ))}
     </div>
+    </>
   );
 }

@@ -18,9 +18,9 @@ export default function PendingOrders({ updateCounts }) {
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    fetchPending();
+    fetchPending(true);
 
-    const handleNewOrder = () => fetchPending();
+    const handleNewOrder = () => fetchPending(false);
     subscribeToEvent('order:new', handleNewOrder);
     subscribeToEvent('order:item-status', handleNewOrder);
     subscribeToEvent('order:hold', handleNewOrder);
@@ -40,14 +40,14 @@ export default function PendingOrders({ updateCounts }) {
     };
   }, []);
 
-  const fetchPending = async () => {
+  const fetchPending = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       // Filter to only get orders that have pending items for this station
       const pendingOrders = res.data.map(order => {
         const filteredItems = order.items?.filter(i => {
-          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
+          const isStationMatch = checkStationMatch(i.station_ids, i.category_station_ids, user?.station_id);
           return isStationMatch && (i.status === 'pending' || i.status === 'rejected');
         }) || [];
         return { ...order, items: filteredItems };
@@ -63,7 +63,7 @@ export default function PendingOrders({ updateCounts }) {
     } catch (error) {
       showToast('Failed to load pending orders', 'error');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 

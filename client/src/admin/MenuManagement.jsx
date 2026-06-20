@@ -65,8 +65,8 @@ export default function MenuManagement() {
     formData.append('description_np', itemForm.description_np || '');
     formData.append('category_id', itemForm.category_id);
     formData.append('price', itemForm.price);
-    formData.append('is_veg', itemForm.is_veg);
-    formData.append('is_available', itemForm.is_available);
+    formData.append('is_veg', Boolean(itemForm.is_veg) ? 'true' : 'false');
+    formData.append('is_available', Boolean(itemForm.is_available) ? 'true' : 'false');
     formData.append('sort_order', itemForm.sort_order);
     if (itemForm.station_ids) formData.append('station_ids', JSON.stringify(itemForm.station_ids));
     
@@ -171,7 +171,7 @@ export default function MenuManagement() {
       setCatForm(cat);
     } else {
       setEditingCategory(null);
-      setCatForm({ name: '', name_np: '', sort_order: 0 });
+      setCatForm({ name: '', name_np: '', sort_order: 0, station_ids: [] });
     }
     setIsCategoryModalOpen(true);
   };
@@ -397,15 +397,44 @@ export default function MenuManagement() {
             style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
           />
         </div>
-        <div className="form-group">
-          <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Sort Order</label>
-          <input 
-            type="number" 
-            className="form-input" 
-            value={catForm.sort_order} 
-            onChange={e => setCatForm({...catForm, sort_order: parseInt(e.target.value) || 0})} 
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-          />
+        <div className="flex gap-md mb-md">
+          <div className="form-group flex-1">
+            <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Sort Order</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              value={catForm.sort_order} 
+              onChange={e => setCatForm({...catForm, sort_order: parseInt(e.target.value) || 0})} 
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div className="form-group flex-1">
+            <label className="form-label" style={{ fontWeight: 500, marginBottom: '6px', display: 'block' }}>Category Stations</label>
+            <div className="flex gap-sm flex-wrap" style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', maxHeight: '100px', overflowY: 'auto' }}>
+              {stations.length === 0 ? (
+                <span className="text-muted" style={{ fontSize: 13 }}>No stations available</span>
+              ) : (
+                stations.map(s => (
+                  <label key={s.id} className="flex align-center gap-xs" style={{ cursor: 'pointer', fontSize: 14 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={Array.isArray(catForm.station_ids) && catForm.station_ids.includes(s.id)}
+                      onChange={(e) => {
+                        const ids = Array.isArray(catForm.station_ids) ? [...catForm.station_ids] : [];
+                        if (e.target.checked) ids.push(s.id);
+                        else {
+                          const idx = ids.indexOf(s.id);
+                          if (idx > -1) ids.splice(idx, 1);
+                        }
+                        setCatForm({...catForm, station_ids: ids});
+                      }}
+                    />
+                    {s.name}
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </Modal>
 

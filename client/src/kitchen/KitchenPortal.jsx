@@ -26,7 +26,7 @@ export default function KitchenPortal() {
   const [audioEnabled, setAudioEnabled] = useState(false);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [requestForm, setRequestForm] = useState({ item_name: '', quantity: '', notes: '' });
+  const [requestForm, setRequestForm] = useState([{ item_name: '', quantity: '', notes: '' }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,21 +37,26 @@ export default function KitchenPortal() {
       let itemsToSpeak = data.items || [];
       if (user?.station_id) {
         // If assigned to a station, only speak items for this station or items with no specific station
-        itemsToSpeak = itemsToSpeak.filter(i => checkStationMatch(i.station_ids, user.station_id));
+        itemsToSpeak = itemsToSpeak.filter(i => 
+          checkStationMatch(i.station_ids, i.category_station_ids, user.station_id)
+        );
       }
 
       if (itemsToSpeak.length > 0) {
         showToast('New order received!', 'info');
-        const tableStr = data.table_number || 'Unknown';
-        const itemsStr = itemsToSpeak.map(i => `${i.quantity} ${i.item_name}${i.notes ? ` with note: ${i.notes}` : ''}`).join(', ');
-        speak(`New order from Table ${tableStr}. ${itemsStr}`);
+        
+        // Only speak if not from a Waiter
+        if (data.source !== 'waiter') {
+          const tableStr = data.table_number || 'Unknown';
+          const itemsStr = itemsToSpeak.map(i => `${i.quantity} ${i.item_name}${i.notes ? ` with note: ${i.notes}` : ''}`).join(', ');
+          speak(`New order from Table ${tableStr}. ${itemsStr}`);
+        }
       }
     };
 
     const handleMessage = (msg) => {
       if (msg.target_stations && msg.target_stations.length > 0) {
-        // If station_id is not set or not in target_stations, ignore
-        if (!user?.station_id || !msg.target_stations.includes(user.station_id)) {
+        if (!user?.station_id || !checkStationMatch(msg.target_stations, null, user.station_id)) {
           return;
         }
       }
@@ -63,6 +68,15 @@ export default function KitchenPortal() {
       } else if (msg.content) {
         speak(`Announcement from ${msg.sender_role}. ${msg.content}`);
       }
+    };
+
+    const handleVoiceChunk = (payload) => {
+      if (payload.target_stations && payload.target_stations.length > 0) {
+        if (!user?.station_id || !checkStationMatch(payload.target_stations, null, user.station_id)) return;
+      }
+      import('../utils/audioStreamer').then(({ playAudioChunk }) => {
+        playAudioChunk(payload.streamId, payload.chunk, payload.isFirstChunk);
+      });
     };
 
     const handleItemStatus = (updatedItem) => {
@@ -87,16 +101,35 @@ export default function KitchenPortal() {
 
     subscribeToEvent('order:new', handleNewOrder);
     subscribeToEvent('admin:message', handleMessage);
+    subscribeToEvent('chat:voice-chunk:receive', handleVoiceChunk);
     subscribeToEvent('order:item-status', handleItemStatus);
     subscribeToEvent('order:hold', handleOrderHold);
     subscribeToEvent('order:unhold', handleOrderUnhold);
 
+    // 15-minute Order Reminder
+    const reminderInterval = setInterval(async () => {
+      try {
+        const res = await api.get('/orders/items?status=pending,accepted');
+        let pendingItems = res.data;
+        if (user?.station_id) {
+          pendingItems = pendingItems.filter(i => checkStationMatch(i.station_ids, i.category_station_ids, user.station_id));
+        }
+        if (pendingItems.length > 0) {
+          speak(`Attention! You have ${pendingItems.length} items waiting to be prepared.`);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pending items for reminder', err);
+      }
+    }, 15 * 60 * 1000); // 15 minutes
+
     return () => {
       unsubscribeFromEvent('order:new', handleNewOrder);
       unsubscribeFromEvent('admin:message', handleMessage);
+      unsubscribeFromEvent('chat:voice-chunk:receive', handleVoiceChunk);
       unsubscribeFromEvent('order:item-status', handleItemStatus);
       unsubscribeFromEvent('order:hold', handleOrderHold);
       unsubscribeFromEvent('order:unhold', handleOrderUnhold);
+      clearInterval(reminderInterval);
     };
   }, [user]);
 
@@ -200,35 +233,64 @@ export default function KitchenPortal() {
         {activeTab === 'stock' && <KitchenStock />}
       </div>
 
-      <Modal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} title="Request Stock from Admin">
+      <Modal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} title="Request Stock from Admin" maxWidth="800px">
         <form onSubmit={async (e) => {
           e.preventDefault();
           try {
+            const validItems = requestForm.filter(i => i.item_name && i.quantity);
+            if (validItems.length === 0) return showToast('Please add at least one item', 'error');
+
             setIsSubmitting(true);
             await api.post('/stock-requests', {
-              ...requestForm,
+              items: validItems,
               requested_by: user?.name || 'Kitchen Staff'
             });
             showToast('Stock request sent to Admin', 'success');
             setIsRequestModalOpen(false);
-            setRequestForm({ item_name: '', quantity: '', notes: '' });
+            setRequestForm([{ item_name: '', quantity: '', notes: '' }]);
           } catch (err) {
             showToast('Failed to send request', 'error');
           } finally {
             setIsSubmitting(false);
           }
         }} className="flex-col gap-md">
-          <div className="form-group">
-            <label className="form-label">Item Name</label>
-            <input type="text" className="form-input" required value={requestForm.item_name} onChange={e => setRequestForm({...requestForm, item_name: e.target.value})} placeholder="e.g. Tomatoes" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Quantity</label>
-            <input type="text" className="form-input" required value={requestForm.quantity} onChange={e => setRequestForm({...requestForm, quantity: e.target.value})} placeholder="e.g. 5 kg" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Notes (Optional)</label>
-            <textarea className="form-input" value={requestForm.notes} onChange={e => setRequestForm({...requestForm, notes: e.target.value})} placeholder="Any specific requirements..."></textarea>
+          <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <table className="data-table" style={{ minWidth: '600px' }}>
+              <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1 }}>
+                <tr>
+                  <th style={{ width: '40px' }}>S.No</th>
+                  <th>Item Name</th>
+                  <th style={{ width: '150px' }}>Quantity</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requestForm.map((item, index) => {
+                  const updateItem = (field, value) => {
+                    const newItems = [...requestForm];
+                    newItems[index][field] = value;
+                    if (index === newItems.length - 1 && newItems[index].item_name && newItems[index].quantity) {
+                      newItems.push({ item_name: '', quantity: '', notes: '' });
+                    }
+                    setRequestForm(newItems);
+                  };
+                  return (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <input type="text" className="form-input w-full" style={{ padding: '4px' }} required={index === 0} value={item.item_name} onChange={e => updateItem('item_name', e.target.value)} placeholder="e.g. Tomatoes" />
+                      </td>
+                      <td>
+                        <input type="text" className="form-input w-full" style={{ padding: '4px' }} required={index === 0 && !!item.item_name} value={item.quantity} onChange={e => updateItem('quantity', e.target.value)} placeholder="e.g. 5 kg" />
+                      </td>
+                      <td>
+                        <input type="text" className="form-input w-full" style={{ padding: '4px' }} value={item.notes} onChange={e => updateItem('notes', e.target.value)} placeholder="Any specific requirements..." />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
           <div className="flex gap-md justify-end mt-md">
             <button type="button" className="btn btn-secondary" onClick={() => setIsRequestModalOpen(false)}>Cancel</button>

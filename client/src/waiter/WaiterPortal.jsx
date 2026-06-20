@@ -42,10 +42,16 @@ export default function WaiterPortal() {
 
     const handleMessage = (msg) => {
       if (msg.target_stations && msg.target_stations.length > 0) {
-        if (!user?.station_id || !msg.target_stations.includes(user.station_id)) {
-          return;
-        }
+        import('../utils/helpers').then(({ checkStationMatch }) => {
+          if (!user?.station_id || !checkStationMatch(msg.target_stations, null, user.station_id)) return;
+          processMessage(msg);
+        });
+        return;
       }
+      processMessage(msg);
+    };
+
+    const processMessage = (msg) => {
       showToast(`From ${msg.sender_role}: ${msg.content || 'Voice message'}`, 'info');
       
       if (msg.audio_data) {
@@ -56,16 +62,33 @@ export default function WaiterPortal() {
       }
     };
 
+    const handleVoiceChunk = (payload) => {
+      if (payload.target_stations && payload.target_stations.length > 0) {
+        import('../utils/helpers').then(({ checkStationMatch }) => {
+          if (!user?.station_id || !checkStationMatch(payload.target_stations, null, user.station_id)) return;
+          import('../utils/audioStreamer').then(({ playAudioChunk }) => {
+            playAudioChunk(payload.streamId, payload.chunk, payload.isFirstChunk);
+          });
+        });
+        return;
+      }
+      import('../utils/audioStreamer').then(({ playAudioChunk }) => {
+        playAudioChunk(payload.streamId, payload.chunk, payload.isFirstChunk);
+      });
+    };
+
     subscribeToEvent('order:ready-for-pickup', handlePickupReady);
     subscribeToEvent('order:checkout-requested', handleCheckoutReq);
     subscribeToEvent('assistance:requested', handleAssistanceReq);
     subscribeToEvent('admin:message', handleMessage);
+    subscribeToEvent('chat:voice-chunk:receive', handleVoiceChunk);
 
     return () => {
       unsubscribeFromEvent('order:ready-for-pickup', handlePickupReady);
       unsubscribeFromEvent('order:checkout-requested', handleCheckoutReq);
       unsubscribeFromEvent('assistance:requested', handleAssistanceReq);
       unsubscribeFromEvent('admin:message', handleMessage);
+      unsubscribeFromEvent('chat:voice-chunk:receive', handleVoiceChunk);
     };
   }, [user]);
 

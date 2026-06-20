@@ -17,25 +17,45 @@ router.get('/', async (req, res) => {
 // Create a stock request
 router.post('/', async (req, res) => {
   try {
-    const { item_name, quantity, notes, requested_by } = req.body;
+    const { items, item_name, quantity, notes, requested_by } = req.body;
     
-    const [id] = await db('stock_requests').insert({
-      item_name,
-      quantity,
-      notes,
-      requested_by,
-      status: 'pending'
-    });
-    
-    const newRequest = await db('stock_requests').where({ id }).first();
-    
-    // Optionally emit a socket event to admin
-    const io = req.app.get('io');
-    if (io) {
-      io.to('admin').emit('stock:request', newRequest);
+    if (items && Array.isArray(items) && items.length > 0) {
+      const insertedRequests = [];
+      const io = req.app.get('io');
+      for (const item of items) {
+        if (!item.item_name || !item.quantity) continue;
+        const [id] = await db('stock_requests').insert({
+          item_name: item.item_name,
+          quantity: item.quantity,
+          notes: item.notes || '',
+          requested_by: requested_by || 'Kitchen Staff',
+          status: 'pending'
+        });
+        const newRequest = await db('stock_requests').where({ id }).first();
+        insertedRequests.push(newRequest);
+        if (io) {
+          io.to('admin').emit('stock:request', newRequest);
+        }
+      }
+      return res.status(201).json(insertedRequests);
+    } else {
+      const [id] = await db('stock_requests').insert({
+        item_name,
+        quantity,
+        notes,
+        requested_by: requested_by || 'Kitchen Staff',
+        status: 'pending'
+      });
+      
+      const newRequest = await db('stock_requests').where({ id }).first();
+      
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admin').emit('stock:request', newRequest);
+      }
+      
+      return res.status(201).json(newRequest);
     }
-    
-    res.status(201).json(newRequest);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

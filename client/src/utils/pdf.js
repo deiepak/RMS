@@ -67,14 +67,32 @@ export const generateBillPDF = (orderData, settings = {}) => {
 
   // Items table
   const items = orderData.items || [];
-  const tableData = items
-    .filter(item => item.status !== 'rejected')
-    .map((item) => [
+  
+  // Merge items
+  const mergedItems = [];
+  items.filter(item => item.status !== 'rejected').forEach(item => {
+    const itemName = item.menu_item_name || item.item_name || item.menu_item?.name || item.name || 'Item';
+    const existing = mergedItems.find(i => {
+      const iName = i.menu_item_name || i.item_name || i.menu_item?.name || i.name || 'Item';
+      const p1 = Number(i.price_at_order || i.price || 0);
+      const p2 = Number(item.price_at_order || item.price || 0);
+      const c1 = i.customer_name || '-';
+      const c2 = item.customer_name || '-';
+      return iName === itemName && p1 === p2 && c1 === c2;
+    });
+    if (existing) {
+      existing.quantity += item.quantity || 1;
+    } else {
+      mergedItems.push({ ...item, quantity: item.quantity || 1 });
+    }
+  });
+
+  const tableData = mergedItems.map((item) => [
       item.menu_item_name || item.item_name || item.menu_item?.name || item.name || 'Item',
-      item.quantity || 1,
+      item.quantity,
       item.customer_name || '-',
       formatCurrency(item.price_at_order || item.price || 0),
-      formatCurrency((item.price_at_order || item.price || 0) * (item.quantity || 1)),
+      formatCurrency((item.price_at_order || item.price || 0) * item.quantity),
     ]);
 
   doc.autoTable({

@@ -17,6 +17,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { numberToWords } from '../utils/helpers';
 import { formatToBS } from '../utils/nepaliDate';
 import Modal from '../components/Modal';
+import { useLocation } from 'react-router-dom';
 import '../index.css';
 
 const STATUS_OPTIONS = [
@@ -74,6 +75,35 @@ export default function OrdersManagement() {
   const { showToast } = useToast();
   const { settings } = useSettings();
   const refreshInterval = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.autoPrintOrderId && !loading) {
+      const order = orders.find(o => (o.id || o._id) === location.state.autoPrintOrderId);
+      if (order) {
+        setPrintOrderModal(order);
+        // Clear state to prevent reopening on refresh
+        window.history.replaceState({}, document.title);
+        // Slight delay to allow the modal to render before triggering print
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      } else {
+        // If the order isn't in the current view, we might need to fetch it
+        api.get(`/orders/${location.state.autoPrintOrderId}`)
+          .then(res => {
+            if (res.data) {
+              setPrintOrderModal(res.data);
+              window.history.replaceState({}, document.title);
+              setTimeout(() => {
+                window.print();
+              }, 500);
+            }
+          })
+          .catch(err => console.error("Could not fetch order for auto-print", err));
+      }
+    }
+  }, [location.state, orders, loading]);
 
   const handleToggleKOTItem = (orderId, itemId) => {
     setSelectedForKOT(prev => {
@@ -576,11 +606,14 @@ export default function OrdersManagement() {
                     const mergedItems = [];
                     (printOrderModal.items || []).forEach(item => {
                       const itemName = item.item_name || item.name || item.menuItem?.name || 'Item';
-                      const existing = mergedItems.find(i => 
-                        (i.item_name || i.name || i.menuItem?.name || 'Item') === itemName &&
-                        i.status === item.status &&
-                        (i.price_at_order || i.price) === (item.price_at_order || item.price)
-                      );
+                      const isCancelled = (s) => s === 'cancelled' || s === 'rejected';
+                      const existing = mergedItems.find(i => {
+                        const iName = i.item_name || i.name || i.menuItem?.name || 'Item';
+                        const p1 = Number(i.price_at_order || i.price);
+                        const p2 = Number(item.price_at_order || item.price);
+                        return iName === itemName && isCancelled(i.status) === isCancelled(item.status) && p1 === p2;
+                      });
+                      
                       if (existing) {
                         existing.quantity += item.quantity;
                       } else {
@@ -624,6 +657,18 @@ export default function OrdersManagement() {
                   <span>Total:</span>
                   <span>{formatReceiptCurrency(printOrderModal.totalAmount || printOrderModal.total || 0)}</span>
                 </div>
+                {(printOrderModal.cash_tendered > 0) && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                      <span>Cash Tendered:</span>
+                      <span>{formatReceiptCurrency(printOrderModal.cash_tendered)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0' }}>
+                      <span>Change Due:</span>
+                      <span>{formatReceiptCurrency(printOrderModal.change_due)}</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: '10px', fontStyle: 'italic' }}>
                   <span>In words:</span>
                   <span style={{ textAlign: 'right', maxWidth: '70%' }}>
@@ -769,6 +814,19 @@ export default function OrdersManagement() {
             color: #000000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Force all parent containers to be static and visible so absolute positioning or normal flow doesn't get clipped */
+          #root, .app-container, .main-content, .modal-overlay, .modal-container, .modal-content, .modal {
+            display: block !important;
+            position: static !important;
+            height: auto !important;
+            overflow: visible !important;
+            transform: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
 
           body * {

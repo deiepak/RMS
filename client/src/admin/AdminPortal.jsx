@@ -26,11 +26,15 @@ import {
   TrendingDown,
   ScrollText,
   Compass,
-  Tv
+  Tv,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
+import useSpeech from '../hooks/useSpeech';
+import { socket, subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import '../index.css';
 
 const NAV_CATEGORIES = [
@@ -150,9 +154,41 @@ export default function AdminPortal() {
     items: cat.items.filter(item => hasAccess(item.to))
   })).filter(cat => cat.items.length > 0);
 
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const { speak } = useSpeech();
+
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    socket.connect();
+    socket.emit('join', { room: 'admin' });
+
+    const handleMessage = (msg) => {
+      showToast(`From ${msg.sender_role}: ${msg.content || 'Voice message'}`, 'info');
+      
+      if (msg.audio_data) {
+        const audio = new Audio(msg.audio_data);
+        audio.play().catch(e => console.error("Audio play failed:", e));
+      } else if (msg.content) {
+        speak(`Message from ${msg.sender_role}. ${msg.content}`);
+      }
+    };
+
+    const handleAssistance = (data) => {
+      showToast(`Assistance requested at Table ${data.table_number}`, 'warning');
+      speak(`Attention! Table ${data.table_number} has requested assistance.`);
+    };
+
+    subscribeToEvent('admin:message', handleMessage);
+    subscribeToEvent('assistance:requested', handleAssistance);
+
+    return () => {
+      unsubscribeFromEvent('admin:message', handleMessage);
+      unsubscribeFromEvent('assistance:requested', handleAssistance);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('rms_token');
@@ -240,7 +276,17 @@ export default function AdminPortal() {
             <h1 className="header-title">{sectionTitle}</h1>
           </div>
           <div className="header-right">
-            <span className="header-user">
+            <button 
+              className={`btn btn-icon ${audioEnabled ? 'btn-secondary' : 'btn-danger'}`}
+              onClick={() => {
+                setAudioEnabled(!audioEnabled);
+                if (!audioEnabled) speak("Audio enabled");
+              }}
+              title={audioEnabled ? "Disable Audio" : "Enable Audio"}
+            >
+              {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            </button>
+            <span className="header-user" style={{ marginLeft: '12px' }}>
               {user?.name || 'Admin'}
             </span>
             <button className="btn btn-icon header-bell">
@@ -248,6 +294,15 @@ export default function AdminPortal() {
             </button>
           </div>
         </header>
+
+        {!audioEnabled && (
+          <div style={{ background: 'var(--danger)', color: '#fff', padding: '12px 16px', textAlign: 'center', cursor: 'pointer' }} onClick={() => {
+            speak('Audio notifications enabled.');
+            setAudioEnabled(true);
+          }}>
+            Click here to enable audio notifications for Voice Messages & Alerts!
+          </div>
+        )}
 
         <main className="admin-content">
           {!hasAccess(location.pathname) ? (

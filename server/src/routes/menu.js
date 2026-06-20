@@ -64,13 +64,15 @@ router.get('/categories', async (req, res) => {
 // POST /api/menu/categories - create category (admin)
 router.post('/categories', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { name, name_np, sort_order } = req.body;
+    const { name, name_np, sort_order, station_ids } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'name is required.' });
     }
 
+    const _station_ids = station_ids ? (typeof station_ids === 'string' ? station_ids : JSON.stringify(station_ids)) : '[]';
+
     const [id] = await db('menu_categories').insert({
-      name, name_np, sort_order: sort_order || 0
+      name, name_np, sort_order: sort_order || 0, station_ids: _station_ids
     });
 
     const category = await db('menu_categories').where({ id }).first();
@@ -89,6 +91,10 @@ router.put('/categories/:id', verifyToken, requireRole(['admin']), async (req, r
     delete updates.id;
     delete updates.created_at;
     delete updates.updated_at;
+
+    if (updates.station_ids !== undefined) {
+      updates.station_ids = typeof updates.station_ids === 'string' ? updates.station_ids : JSON.stringify(updates.station_ids);
+    }
 
     const count = await db('menu_categories').where({ id }).update(updates);
     if (count === 0) {

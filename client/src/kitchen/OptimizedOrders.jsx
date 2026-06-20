@@ -18,9 +18,9 @@ export default function OptimizedOrders() {
   };
 
   useEffect(() => {
-    fetchTableOrders();
+    fetchTableOrders(true);
 
-    const handleUpdate = () => fetchTableOrders();
+    const handleUpdate = () => fetchTableOrders(false);
 
     subscribeToEvent('order:new', handleUpdate);
     subscribeToEvent('order:item-status', handleUpdate);
@@ -39,9 +39,9 @@ export default function OptimizedOrders() {
     };
   }, []);
 
-  const fetchTableOrders = async () => {
+  const fetchTableOrders = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
       const activeOrders = res.data;
       
@@ -56,7 +56,7 @@ export default function OptimizedOrders() {
         }
         
         const validItems = order.items.filter(i => {
-          const isStationMatch = checkStationMatch(i.station_ids, user?.station_id);
+          const isStationMatch = checkStationMatch(i.station_ids, i.category_station_ids, user?.station_id);
           const isNotFinished = !['prepared', 'picked_up', 'delivered', 'rejected'].includes(i.status);
           return isStationMatch && isNotFinished;
         });
@@ -77,7 +77,7 @@ export default function OptimizedOrders() {
     } catch (error) {
       showToast('Failed to fetch table orders', 'error');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -143,6 +143,14 @@ export default function OptimizedOrders() {
             z-index: 9999;
             animation: fullscreenPulseRedGreen 1.5s infinite;
           }
+          @keyframes pulseRedGreenItem {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); border: 1px solid var(--danger); }
+            50% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.7); border: 1px solid var(--success); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); border: 1px solid var(--danger); }
+          }
+          .alert-pending-item {
+            animation: pulseRedGreenItem 1.5s infinite;
+          }
         `}
       </style>
       
@@ -171,7 +179,7 @@ export default function OptimizedOrders() {
                   {order.items.map(item => {
                     const isRejected = item.status === 'rejected' || item.status === 'cancelled';
                     return (
-                      <div key={item.id} className="flex justify-between align-center p-sm bg-secondary" style={{ borderRadius: 'var(--radius-sm)', padding: '6px 10px', opacity: isRejected ? 0.6 : 1 }}>
+                      <div key={item.id} className={`flex justify-between align-center p-sm bg-secondary ${item.status === 'pending' ? 'alert-pending-item' : ''}`} style={{ borderRadius: 'var(--radius-sm)', padding: '6px 10px', opacity: isRejected ? 0.6 : 1 }}>
                         <div style={{ textDecoration: isRejected ? 'line-through' : 'none' }}>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
                             {item.quantity}x {item.item_name}
@@ -194,7 +202,7 @@ export default function OptimizedOrders() {
                             </div>
                           )}
                           {(item.status === 'accepted' || item.status === 'preparing') && (
-                            <button className="btn btn-sm btn-success" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Prepared</button>
+                            <button className="btn btn-sm btn-danger" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Mark as prepared</button>
                           )}
                           {isRejected && (
                             <div className="badge badge-danger" style={{ fontSize: 10 }}>Cancelled</div>

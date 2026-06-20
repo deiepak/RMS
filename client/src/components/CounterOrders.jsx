@@ -26,6 +26,7 @@ export default function CounterOrders({ isAdminView = false }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [orderSearch, setOrderSearch] = useState('');
   const [cameFromTables, setCameFromTables] = useState(false);
+  const [waiterStep, setWaiterStep] = useState(1);
   const cartEndRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -61,7 +62,7 @@ export default function CounterOrders({ isAdminView = false }) {
       setCustomerName('Admin');
       setShowAddModal(true);
       setCameFromTables(true);
-      window.history.replaceState({}, document.title);
+      navigate('.', { replace: true, state: {} });
     }
   }, [location.state]);
 
@@ -231,7 +232,16 @@ export default function CounterOrders({ isAdminView = false }) {
           <button className="btn btn-secondary" onClick={() => setShowActiveOrdersModal(true)} style={{ whiteSpace: 'nowrap' }}>
             Active Orders
           </button>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} style={{ whiteSpace: 'nowrap' }}>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => {
+              setSelectedTableId('');
+              setCustomerName('');
+              setCart([]);
+              setShowAddModal(true);
+            }} 
+            style={{ whiteSpace: 'nowrap' }}
+          >
             <Plus size={18} /> New Order
           </button>
         </div>
@@ -277,9 +287,23 @@ export default function CounterOrders({ isAdminView = false }) {
           <div className="modal-content" style={{ maxWidth: 1100, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
             <div className="modal-header">
               <h2>New Counter Order</h2>
-              <button className="btn btn-icon" onClick={() => setShowAddModal(false)}><X size={20} /></button>
+              <button 
+                className="btn btn-icon" 
+                onClick={() => {
+                  setShowAddModal(false);
+                  setSelectedTableId('');
+                  setCustomerName('');
+                  setCart([]);
+                  if (cameFromTables) {
+                    navigate('/admin/tables');
+                  }
+                  setCameFromTables(false);
+                }}
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', padding: 0 }}>
+            <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', overflowX: 'auto', padding: 0 }}>
               {isAdminView ? (
                 <AdminCounterOrderModal
                   tables={tables}
@@ -297,12 +321,42 @@ export default function CounterOrders({ isAdminView = false }) {
                     setCustomerName('');
                     if (cameFromTables) {
                       navigate('/admin/tables');
+                      setCameFromTables(false);
                     }
                   }}
                 />
+              ) : waiterStep === 1 ? (
+                <div style={{ padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
+                  <h2 style={{ marginBottom: '32px', fontSize: '28px', color: 'var(--text-primary)' }}>Select a Table</h2>
+                  
+                  <div style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-secondary)', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                    <div style={{ marginBottom: '24px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontWeight: 500 }}>Table Number</label>
+                      <select 
+                        className="form-select" 
+                        value={selectedTableId || ''}
+                        onChange={e => setSelectedTableId(e.target.value)}
+                        style={{ padding: '16px', fontSize: '18px', width: '100%', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border)' }}
+                      >
+                        <option value="" disabled>Choose table...</option>
+                        {tables.map(t => (
+                          <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <button 
+                      className="btn btn-primary" 
+                      disabled={!selectedTableId}
+                      onClick={() => setWaiterStep(2)}
+                      style={{ padding: '16px', fontSize: '18px', width: '100%', borderRadius: '8px', fontWeight: 'bold' }}
+                    >
+                      Next: Select Items
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <MenuTab 
-                  isAdminMode={true}
+                <AdminCounterOrderModal
                   tables={tables}
                   adminTableId={selectedTableId}
                   setAdminTableId={setSelectedTableId}
@@ -316,9 +370,7 @@ export default function CounterOrders({ isAdminView = false }) {
                     setCart([]);
                     setSelectedTableId('');
                     setCustomerName('');
-                    if (cameFromTables) {
-                      navigate('/admin/tables');
-                    }
+                    setWaiterStep(1);
                   }}
                 />
               )}

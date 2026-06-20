@@ -445,6 +445,19 @@ export default function AdventurePOS() {
             color: #000000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Force all parent containers to be static and visible so absolute positioning or normal flow doesn't get clipped */
+          #root, .app-container, .main-content, .modal-overlay, .modal-container, .modal-content, .modal {
+            display: block !important;
+            position: static !important;
+            height: auto !important;
+            overflow: visible !important;
+            transform: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
 
           body * {
@@ -458,6 +471,9 @@ export default function AdventurePOS() {
           .adventure-ticket {
             page-break-after: always !important;
             break-after: page !important;
+            /* In Webkit, page breaks inside flex containers might fail, ensure block display */
+            display: block !important;
+            clear: both;
           }
           
           .adventure-ticket:last-child {
@@ -470,8 +486,12 @@ export default function AdventurePOS() {
             left: 0;
             top: 0;
             width: 72mm;
-            padding: 0;
-            margin: 0;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            border: none !important;
           }
 
           .ticket-print-area img {

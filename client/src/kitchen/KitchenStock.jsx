@@ -20,6 +20,9 @@ export default function StockManagement() {
   const [form, setForm] = useState({
     name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: ''
   });
+  const [bulkForm, setBulkForm] = useState({
+    vendor_id: '', items: [{ name: '', quantity: '', unit: 'kg', low_threshold: '' }]
+  });
 
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const [globalPurchaseModalOpen, setGlobalPurchaseModalOpen] = useState(false);
@@ -77,24 +80,27 @@ export default function StockManagement() {
 
   const handleSave = async () => {
     try {
-      const payload = {
-        ...form,
-        vendor_id: form.vendor_id || null,
-        department: activeTab
-      };
-      
-      const validLinks = menuLinks.filter(link => link.menu_item_id);
-
       if (editingItem) {
+        const payload = {
+          ...form,
+          vendor_id: form.vendor_id || null,
+          department: activeTab
+        };
+        const validLinks = menuLinks.filter(link => link.menu_item_id);
         await api.put(`/stock/${editingItem.id}`, payload);
         await api.put(`/stock/${editingItem.id}/links`, { links: validLinks });
         showToast('Stock item updated', 'success');
       } else {
-        const res = await api.post('/stock', payload);
-        if (validLinks.length > 0) {
-          await api.put(`/stock/${res.data.id}/links`, { links: validLinks });
-        }
-        showToast('Stock item added', 'success');
+        const validItems = bulkForm.items.filter(i => i.name && i.quantity);
+        if (validItems.length === 0) return showToast('Please add at least one valid stock item', 'error');
+
+        const payload = {
+          vendor_id: bulkForm.vendor_id || null,
+          department: activeTab,
+          items: validItems
+        };
+        await api.post('/stock', payload);
+        showToast('Stock items added', 'success');
       }
       setIsModalOpen(false);
       fetchData();
@@ -203,6 +209,9 @@ export default function StockManagement() {
       }
     } else {
       setEditingItem(null);
+      setBulkForm({
+        vendor_id: '', items: [{ name: '', quantity: '', unit: 'kg', low_threshold: '' }]
+      });
       setForm({ name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: '' });
       setMenuLinks([]);
     }
@@ -324,7 +333,8 @@ export default function StockManagement() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        title={editingItem ? "Edit Stock Item" : "Add Stock Item"}
+        title={editingItem ? "Edit Stock Item" : "Add Stock Items"}
+        maxWidth={!editingItem ? "900px" : "500px"}
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
@@ -332,99 +342,165 @@ export default function StockManagement() {
           </>
         }
       >
-        <div className="form-group">
-          <label className="form-label">Item Name</label>
-          <input type="text" className="form-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-        </div>
-        <div className="flex gap-md">
-          <div className="form-group flex-1">
-            <label className="form-label">Current Quantity</label>
-            <input type="number" step="0.01" className="form-input" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} required disabled={!!editingItem} title={editingItem ? "Use stock actions (Purchase/Consume) to modify quantity" : ""} />
-            {editingItem && <small className="text-muted mt-sm">Use stock actions to modify quantity.</small>}
-          </div>
-          <div className="form-group flex-1">
-            <label className="form-label">Unit</label>
-            <select className="form-select" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-              <option value="kg">kg</option>
-              <option value="g">grams</option>
-              <option value="L">Liters</option>
-              <option value="ml">ml</option>
-              <option value="pcs">Pieces</option>
-              <option value="pkt">Packets</option>
-            </select>
-          </div>
-        </div>
-        <div className="form-group">
-          <label className="form-label">Low Stock Threshold</label>
-          <input type="number" step="0.01" className="form-input" value={form.low_threshold} onChange={e => setForm({...form, low_threshold: e.target.value})} required />
-          <small className="text-muted mt-sm">Alert will be shown when quantity falls below this value.</small>
-        </div>
-        <div className="form-group mt-md">
-          <label className="form-label">Vendor (Optional)</label>
-          <select className="form-select" value={form.vendor_id} onChange={e => setForm({...form, vendor_id: e.target.value})}>
-            <option value="">No vendor assigned</option>
-            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-          </select>
-        </div>
-
-        <div className="mt-lg pt-md" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <div className="flex justify-between align-center mb-sm">
-            <h4 style={{ margin: 0 }}>Recipe Mapping</h4>
-            <button className="btn btn-secondary btn-sm flex align-center gap-xs" onClick={() => setMenuLinks([...menuLinks, { menu_item_id: '', quantity_consumed: 1 }])}>
-              <Plus size={14} /> Add Link
-            </button>
-          </div>
-          <p className="text-secondary mb-md" style={{ fontSize: 13 }}>Link this stock to menu items. When the menu item is delivered, this stock will auto-deduct.</p>
-          
-          {menuLinks.map((link, index) => (
-            <div key={index} className="flex gap-sm mb-sm align-end">
-              <div className="form-group flex-1" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 12 }}>Menu Item</label>
-                <select 
-                  className="form-select" 
-                  value={link.menu_item_id}
-                  onChange={e => {
-                    const newLinks = [...menuLinks];
-                    newLinks[index].menu_item_id = e.target.value;
-                    setMenuLinks(newLinks);
-                  }}
-                >
-                  <option value="">Select menu item...</option>
-                  {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+        {!editingItem ? (
+          <>
+            <div className="form-group mb-md">
+              <label className="form-label">Vendor (Optional)</label>
+              <select className="form-select" value={bulkForm.vendor_id} onChange={e => setBulkForm({...bulkForm, vendor_id: e.target.value})}>
+                <option value="">No vendor assigned</option>
+                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group mb-md">
+              <label className="form-label">Stock Items</label>
+              <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <table className="data-table" style={{ minWidth: '600px' }}>
+                  <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1 }}>
+                    <tr>
+                      <th style={{ width: '40px' }}>S.No</th>
+                      <th>Item Name</th>
+                      <th style={{ width: '120px' }}>Current Qty</th>
+                      <th style={{ width: '100px' }}>Unit</th>
+                      <th style={{ width: '120px' }}>Low Threshold</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkForm.items.map((item, index) => {
+                      const updateItem = (field, value) => {
+                        const newItems = [...bulkForm.items];
+                        newItems[index][field] = value;
+                        if (index === newItems.length - 1 && newItems[index].name && newItems[index].quantity) {
+                          newItems.push({ name: '', quantity: '', unit: 'kg', low_threshold: '' });
+                        }
+                        setBulkForm({ ...bulkForm, items: newItems });
+                      };
+                      return (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <input type="text" className="form-input w-full" style={{ padding: '4px' }} value={item.name} onChange={e => updateItem('name', e.target.value)} placeholder="Item name" />
+                          </td>
+                          <td>
+                            <input type="number" step="0.01" className="form-input w-full" style={{ padding: '4px' }} value={item.quantity} onChange={e => updateItem('quantity', e.target.value)} placeholder="0" min="0" />
+                          </td>
+                          <td>
+                            <select className="form-select w-full" style={{ padding: '4px' }} value={item.unit} onChange={e => updateItem('unit', e.target.value)}>
+                              <option value="kg">kg</option>
+                              <option value="g">grams</option>
+                              <option value="L">Liters</option>
+                              <option value="ml">ml</option>
+                              <option value="pcs">Pieces</option>
+                              <option value="pkt">Packets</option>
+                            </select>
+                          </td>
+                          <td>
+                            <input type="number" step="0.01" className="form-input w-full" style={{ padding: '4px' }} value={item.low_threshold} onChange={e => updateItem('low_threshold', e.target.value)} placeholder="0" min="0" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="form-group">
+              <label className="form-label">Item Name</label>
+              <input type="text" className="form-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            </div>
+            <div className="flex gap-md">
+              <div className="form-group flex-1">
+                <label className="form-label">Current Quantity</label>
+                <input type="number" step="0.01" className="form-input" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} required disabled={!!editingItem} title={editingItem ? "Use stock actions (Purchase/Consume) to modify quantity" : ""} />
+                {editingItem && <small className="text-muted mt-sm">Use stock actions to modify quantity.</small>}
+              </div>
+              <div className="form-group flex-1">
+                <label className="form-label">Unit</label>
+                <select className="form-select" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
+                  <option value="kg">kg</option>
+                  <option value="g">grams</option>
+                  <option value="L">Liters</option>
+                  <option value="ml">ml</option>
+                  <option value="pcs">Pieces</option>
+                  <option value="pkt">Packets</option>
                 </select>
               </div>
-              <div className="form-group" style={{ width: 120, marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 12 }}>Consumption</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  className="form-input" 
-                  value={link.quantity_consumed}
-                  onChange={e => {
-                    const newLinks = [...menuLinks];
-                    newLinks[index].quantity_consumed = e.target.value;
-                    setMenuLinks(newLinks);
-                  }}
-                />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Low Stock Threshold</label>
+              <input type="number" step="0.01" className="form-input" value={form.low_threshold} onChange={e => setForm({...form, low_threshold: e.target.value})} required />
+              <small className="text-muted mt-sm">Alert will be shown when quantity falls below this value.</small>
+            </div>
+            <div className="form-group mt-md">
+              <label className="form-label">Vendor (Optional)</label>
+              <select className="form-select" value={form.vendor_id} onChange={e => setForm({...form, vendor_id: e.target.value})}>
+                <option value="">No vendor assigned</option>
+                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+
+            <div className="mt-lg pt-md" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <div className="flex justify-between align-center mb-sm">
+                <h4 style={{ margin: 0 }}>Recipe Mapping</h4>
+                <button className="btn btn-secondary btn-sm flex align-center gap-xs" onClick={() => setMenuLinks([...menuLinks, { menu_item_id: '', quantity_consumed: 1 }])}>
+                  <Plus size={14} /> Add Link
+                </button>
               </div>
-              <button 
-                className="btn btn-icon btn-secondary" 
-                style={{ padding: '8px' }}
-                onClick={() => {
-                  const newLinks = menuLinks.filter((_, i) => i !== index);
-                  setMenuLinks(newLinks);
-                }}
-              >
-                <Trash2 size={16} className="text-danger" />
-              </button>
+              <p className="text-secondary mb-md" style={{ fontSize: 13 }}>Link this stock to menu items. When the menu item is delivered, this stock will auto-deduct.</p>
+              
+              {menuLinks.map((link, index) => (
+                <div key={index} className="flex gap-sm mb-sm align-end">
+                  <div className="form-group flex-1" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Menu Item</label>
+                    <select 
+                      className="form-select" 
+                      value={link.menu_item_id}
+                      onChange={e => {
+                        const newLinks = [...menuLinks];
+                        newLinks[index].menu_item_id = e.target.value;
+                        setMenuLinks(newLinks);
+                      }}
+                    >
+                      <option value="">Select menu item...</option>
+                      {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ width: 120, marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Consumption</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="form-input" 
+                      value={link.quantity_consumed}
+                      onChange={e => {
+                        const newLinks = [...menuLinks];
+                        newLinks[index].quantity_consumed = e.target.value;
+                        setMenuLinks(newLinks);
+                      }}
+                    />
+                  </div>
+                  <button 
+                    className="btn btn-icon btn-secondary" 
+                    style={{ padding: '8px' }}
+                    onClick={() => {
+                      const newLinks = menuLinks.filter((_, i) => i !== index);
+                      setMenuLinks(newLinks);
+                    }}
+                  >
+                    <Trash2 size={16} className="text-danger" />
+                  </button>
+                </div>
+              ))}
+              {menuLinks.length === 0 && (
+                <div className="text-center text-secondary bg-secondary" style={{ padding: 12, borderRadius: 'var(--radius)', fontSize: 13 }}>
+                  No menu items linked to this stock.
+                </div>
+              )}
             </div>
-          ))}
-          {menuLinks.length === 0 && (
-            <div className="text-center text-secondary bg-secondary" style={{ padding: 12, borderRadius: 'var(--radius)', fontSize: 13 }}>
-              No menu items linked to this stock.
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </Modal>
 
       {/* Transaction Modal */}
@@ -498,6 +574,7 @@ export default function StockManagement() {
         isOpen={globalPurchaseModalOpen} 
         onClose={() => setGlobalPurchaseModalOpen(false)}
         title="Purchase Stock"
+        maxWidth="900px"
         footer={
           <div className="flex justify-between w-full">
             <div className="font-bold text-lg">

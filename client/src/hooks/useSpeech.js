@@ -23,13 +23,36 @@ export default function useSpeech() {
     utterance.volume = options?.volume || 1.0;
     utterance.lang = options?.lang || 'en-US';
 
-    // Try to find a matching voice if lang is specified
+    // Detect if message contains Devanagari script
+    const hasDevanagari = /[\u0900-\u097F]/.test(message);
+
+    // Try to find explicitly requested language first
+    let match = null;
+    const voices = window.speechSynthesis.getVoices();
+    
     if (options?.lang) {
-      const voices = window.speechSynthesis.getVoices();
-      const match = voices.find(v => v.lang === options.lang || v.lang.startsWith(options.lang.split('-')[0]));
-      if (match) {
-        utterance.voice = match;
+      match = voices.find(v => v.lang === options.lang || v.lang.startsWith(options.lang.split('-')[0]));
+    }
+    
+    if (!match) {
+      if (hasDevanagari) {
+        // If Devanagari script is detected, prefer Nepali or Hindi
+        match = voices.find(v => v.lang === 'ne-NP' || v.lang.startsWith('ne')) || 
+                voices.find(v => v.lang === 'hi-IN' || v.lang.startsWith('hi'));
+      } else {
+        // Otherwise, default to English
+        match = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
       }
+    }
+    
+    // Ultimate fallback if nothing else matched
+    if (!match && voices.length > 0) {
+      match = voices[0];
+    }
+
+    if (match) {
+      utterance.voice = match;
+      utterance.lang = match.lang;
     }
 
     let timeoutId = null;

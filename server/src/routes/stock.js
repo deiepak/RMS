@@ -30,17 +30,36 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, quantity, unit, low_threshold, vendor_id, department } = req.body;
-    const [id] = await db('stock_items').insert({ 
-      name, 
-      quantity, 
-      unit, 
-      low_threshold, 
-      vendor_id, 
-      department: department || 'general' 
-    });
-    const newItem = await db('stock_items').where({ id }).first();
-    res.status(201).json(newItem);
+    const { items, vendor_id, department, name, quantity, unit, low_threshold } = req.body;
+    
+    if (items && Array.isArray(items) && items.length > 0) {
+      const insertedItems = [];
+      for (const item of items) {
+        if (!item.name || !item.quantity) continue;
+        const [id] = await db('stock_items').insert({ 
+          name: item.name, 
+          quantity: item.quantity, 
+          unit: item.unit || 'kg', 
+          low_threshold: item.low_threshold || 0, 
+          vendor_id: vendor_id || null, 
+          department: department || 'general' 
+        });
+        const newItem = await db('stock_items').where({ id }).first();
+        insertedItems.push(newItem);
+      }
+      return res.status(201).json(insertedItems);
+    } else {
+      const [id] = await db('stock_items').insert({ 
+        name, 
+        quantity, 
+        unit: unit || 'kg', 
+        low_threshold: low_threshold || 0, 
+        vendor_id: vendor_id || null, 
+        department: department || 'general' 
+      });
+      const newItem = await db('stock_items').where({ id }).first();
+      return res.status(201).json(newItem);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -20,6 +20,8 @@ export default function AcceptPayment() {
   const [discountReason, setDiscountReason] = useState('');
   const [waiters, setWaiters] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashTendered, setCashTendered] = useState('');
   
   const { user } = useAuth();
   const { settings } = useSettings();
@@ -86,7 +88,7 @@ export default function AcceptPayment() {
     setPaymentModalOpen(true);
   };
 
-  const handleConfirmPayment = async () => {
+  const handlePreConfirm = () => {
     const cash = parseFloat(paymentAmounts.cash) || 0;
     const card = parseFloat(paymentAmounts.card) || 0;
     const online = parseFloat(paymentAmounts.online) || 0;
@@ -102,6 +104,20 @@ export default function AcceptPayment() {
       return showToast(`Payment sum (${sum}) must perfectly match the grand total (${total}).`, 'warning');
     }
 
+    if (cash > 0) {
+      setCashTendered(cash.toString());
+      setShowCashModal(true);
+    } else {
+      finalizePayment(0, 0);
+    }
+  };
+
+  const finalizePayment = async (tendered, changeDue) => {
+    const cash = parseFloat(paymentAmounts.cash) || 0;
+    const card = parseFloat(paymentAmounts.card) || 0;
+    const online = parseFloat(paymentAmounts.online) || 0;
+    const md = parseFloat(manualDiscount || 0);
+
     try {
       setIsProcessing(true);
       const payments = [
@@ -114,12 +130,20 @@ export default function AcceptPayment() {
         payments,
         collected_by: collectedBy || user.name,
         manual_discount: md,
-        discount_reason: discountReason
+        discount_reason: discountReason,
+        cash_tendered: tendered,
+        change_due: changeDue
       });
       
       showToast('Order fully paid and completed!', 'success');
       setPaymentModalOpen(false);
-      fetchOrders();
+      setShowCashModal(false);
+      
+      if (window.confirm("Payment successful! Do you want to print the bill now?")) {
+        navigate('/admin/orders', { state: { autoPrintOrderId: selectedOrder.id } });
+      } else {
+        fetchOrders();
+      }
     } catch (error) {
       showToast(error.response?.data?.error || 'Failed to process payment', 'error');
     } finally {
@@ -205,7 +229,7 @@ export default function AcceptPayment() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setPaymentModalOpen(false)} disabled={isProcessing}>Cancel</button>
-            <button className="btn btn-success" onClick={handleConfirmPayment} disabled={!isMatch || !isDiscountValid || isProcessing}>
+            <button className="btn btn-success" onClick={handlePreConfirm} disabled={!isMatch || !isDiscountValid || isProcessing}>
               {isProcessing ? 'Processing...' : 'Settle Bill'}
             </button>
           </>
@@ -332,6 +356,48 @@ export default function AcceptPayment() {
               </select>
             )}
           </div>
+        </div>
+      </Modal>
+
+      {/* Cash Tendered Modal */}
+      <Modal
+        isOpen={showCashModal}
+        onClose={() => setShowCashModal(false)}
+        title="Cash Tendered"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowCashModal(false)} disabled={isProcessing}>Back</button>
+            <button 
+              className="btn btn-success" 
+              onClick={() => finalizePayment(parseFloat(cashTendered) || 0, Math.max(0, (parseFloat(cashTendered) || 0) - (parseFloat(paymentAmounts.cash) || 0)))}
+              disabled={isProcessing || (parseFloat(cashTendered) || 0) < parseFloat(paymentAmounts.cash)}
+            >
+              Confirm & Settle
+            </button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Cash Tendered by Customer</label>
+          <input 
+            type="number" 
+            className="form-input"
+            value={cashTendered}
+            onChange={(e) => setCashTendered(e.target.value)}
+            min={parseFloat(paymentAmounts.cash) || 0}
+            step="0.01"
+            autoFocus
+          />
+        </div>
+        <div className="flex justify-between mt-md p-md" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+          <span style={{ fontSize: 16 }}>Cash Required:</span>
+          <span style={{ fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(parseFloat(paymentAmounts.cash) || 0)}</span>
+        </div>
+        <div className="flex justify-between mt-md p-md" style={{ background: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius)', border: `1px solid ${((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)'}` }}>
+          <span style={{ fontSize: 18, fontWeight: 'bold' }}>Change Due:</span>
+          <span style={{ fontSize: 22, fontWeight: 'bold', color: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)' }}>
+            {formatCurrency(Math.max(0, (parseFloat(cashTendered) || 0) - (parseFloat(paymentAmounts.cash) || 0)))}
+          </span>
         </div>
       </Modal>
     </div>

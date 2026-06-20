@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import SearchBar from '../components/SearchBar';
 import { Minus, Plus, ShoppingBag, X, Receipt, Search } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MenuTab({ 
   tableId, 
@@ -21,6 +22,7 @@ export default function MenuTab({
   setAdminCustomerName,
   onAdminSubmitSuccess
 }) {
+  const { user } = useAuth();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -28,6 +30,7 @@ export default function MenuTab({
   const [isVegOnly, setIsVegOnly] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(user?.role === 'waiter' && !adminTableId ? 1 : 2);
   const { showToast } = useToast();
 
   const stripRef = useRef(null);
@@ -130,6 +133,12 @@ export default function MenuTab({
       const effectiveTableId = isAdminMode ? adminTableId : tableId;
       const effectiveCustomerName = isAdminMode ? adminCustomerName : customerName;
 
+      if (user?.role === 'waiter' && !effectiveTableId) {
+        showToast('Waiters must assign a table.', 'error');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         table_id: effectiveTableId || null,
         order_type: effectiveTableId ? 'table' : 'counter',
@@ -150,8 +159,8 @@ export default function MenuTab({
             await api.post('/orders', payload);
           }
         } catch (err) {
-          // No active order, create new
-          await api.post('/orders', payload);
+          console.error("Error adding items to table order:", err);
+          throw new Error('Failed to update existing table order. Please try again.');
         }
       } else {
         // Counter order (no table)
@@ -251,21 +260,62 @@ export default function MenuTab({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [categories]);
 
+  if (step === 1) {
+    return (
+      <div style={{ padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
+        <h2 style={{ marginBottom: '32px', fontSize: '28px', color: 'var(--text-primary)' }}>Select a Table</h2>
+        
+        <div style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-secondary)', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontWeight: 500 }}>Table Number</label>
+            <select 
+              className="form-select" 
+              value={adminTableId || ''}
+              onChange={e => setAdminTableId(e.target.value)}
+              style={{ padding: '16px', fontSize: '18px', width: '100%', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border)' }}
+            >
+              <option value="" disabled>Choose table...</option>
+              {tables.map(t => (
+                <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
+              ))}
+            </select>
+          </div>
+          
+          <button 
+            className="btn btn-primary" 
+            disabled={!adminTableId}
+            onClick={() => setStep(2)}
+            style={{ padding: '16px', fontSize: '18px', width: '100%', borderRadius: '8px', fontWeight: 'bold' }}
+          >
+            Next: Select Items
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {isAdminMode && (
         <div style={{ padding: '16px 20px', background: 'var(--bg-secondary)', display: 'flex', gap: '16px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 60 }}>
-          <select 
-            className="form-select flex-1" 
-            value={adminTableId || ''}
-            onChange={e => setAdminTableId(e.target.value)}
-            style={{ padding: '12px', background: 'var(--bg-primary)' }}
-          >
-            <option value="">Counter Order (No Table)</option>
-            {tables.map(t => (
-              <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
-            ))}
-          </select>
+          {user?.role === 'waiter' ? (
+            <div className="flex align-center justify-between flex-1" style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+              <span style={{ fontWeight: 600 }}>Table {tables.find(t => t.id == adminTableId)?.number}</span>
+              <button className="btn btn-sm" style={{ padding: '4px 12px' }} onClick={() => setStep(1)}>Change</button>
+            </div>
+          ) : (
+            <select 
+              className="form-select flex-1" 
+              value={adminTableId || ''}
+              onChange={e => setAdminTableId(e.target.value)}
+              style={{ padding: '12px', background: 'var(--bg-primary)' }}
+            >
+              <option value="">Counter Order (No Table)</option>
+              {tables.map(t => (
+                <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
+              ))}
+            </select>
+          )}
           <input 
             type="text"
             className="form-input flex-1"
@@ -486,7 +536,12 @@ export default function MenuTab({
                 <span>Total to Pay</span>
                 <span style={{ color: 'var(--accent-primary)', fontSize: 22 }}>{formatCurrency(cartTotal)}</span>
               </div>
-              <button className="btn btn-primary w-full" style={{ padding: 16, fontSize: 16, borderRadius: '12px' }} onClick={submitOrder} disabled={isSubmitting}>
+              <button 
+                className="btn btn-primary w-full" 
+                style={{ padding: 16, fontSize: 16, borderRadius: '12px' }} 
+                onClick={submitOrder} 
+                disabled={isSubmitting || (user?.role === 'waiter' && !(isAdminMode ? adminTableId : tableId))}
+              >
                 {isSubmitting ? 'Sending Order...' : 'Place Order Now'}
               </button>
             </div>

@@ -26,6 +26,12 @@ function setupSocketHandlers(io) {
       }
     });
 
+    // Voice chunk stream
+    socket.on('chat:voice-chunk', (payload) => {
+      // payload = { target_role, target_stations, chunk, streamId, isFirstChunk }
+      io.emit('chat:voice-chunk:receive', payload); // For walkie talkie, broadcast to everyone, and client filters
+    });
+
     // TV & Cameraman WebRTC Signaling
     socket.on('tv:register', (data) => {
       activeTVs.set(socket.id, { id: socket.id, name: data.name || 'Unnamed TV' });
