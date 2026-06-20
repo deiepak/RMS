@@ -316,7 +316,7 @@ router.post('/:id/items', async (req, res) => {
       io.emit('order:new', { 
         ...updatedOrder, 
         items: recentlyAddedItems,
-        table_number: table?.number,
+        table_number: table?.number || updatedOrder.order_name,
         source: req.user?.role || 'unknown'
       });
     }
