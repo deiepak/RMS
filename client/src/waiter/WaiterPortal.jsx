@@ -154,7 +154,7 @@ export default function WaiterPortal() {
           onClick={() => setActiveTab('counter')}
         >
           <ShoppingBag size={24} />
-          <span style={{ fontSize: 12 }}>Counter</span>
+          <span style={{ fontSize: 12 }}>Tables</span>
         </button>
         <button 
           className="btn" 

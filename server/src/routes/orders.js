@@ -401,18 +401,32 @@ router.patch('/items/:itemId/status', async (req, res) => {
       .first();
 
     const order = await db('orders').where({ id: item.order_id }).first();
-    const table = await db('restaurant_tables').where({ id: order.table_id }).first();
-    const tableRoom = `table-${table.number}`;
+    const table = order.table_id ? await db('restaurant_tables').where({ id: order.table_id }).first() : null;
+    const tableRoom = table ? `table-${table.number}` : null;
+
+    // Check if all items are rejected or cancelled
+    if (status === 'rejected' || status === 'cancelled') {
+      const allOrderItems = await db('order_items').where({ order_id: item.order_id });
+      const allCancelledOrRejected = allOrderItems.every(i => i.status === 'rejected' || i.status === 'cancelled');
+      
+      if (allCancelledOrRejected && order.status !== 'cancelled' && order.status !== 'completed') {
+        // Auto-cancel the order
+        await db('orders').where({ id: order.id }).update({ status: 'cancelled', updated_at: db.fn.now() });
+        if (order.table_id) {
+          await db('restaurant_tables').where({ id: order.table_id }).update({ status: 'available', updated_at: db.fn.now() });
+        }
+      }
+    }
 
     const io = req.app.get('io');
     if (io) {
       // Always emit to the table room
-      io.to(tableRoom).emit('order:item-status', updatedItem);
+      if (tableRoom) io.to(tableRoom).emit('order:item-status', updatedItem);
       // Emit to kitchen so they can update UI or announce cancellation
       io.emit('order:item-status', updatedItem);
 
       // Additional emissions based on status
-      if (status === 'prepared') {
+      if (status === 'prepared' && table) {
         io.to('waiter').emit('order:ready-for-pickup', {
           item: updatedItem,
           table_number: table.number,

@@ -164,6 +164,20 @@ router.post('/items', verifyToken, requireRole(['admin']), upload.single('image'
   }
 });
 
+// PATCH /api/menu/clear-item-stations - clear all item-level stations (admin)
+router.patch('/clear-item-stations', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const count = await db('menu_items').update({
+      station_ids: '[]',
+      updated_at: db.fn.now()
+    });
+    res.json({ message: `Successfully cleared station assignments from ${count} menu items.` });
+  } catch (err) {
+    console.error('Clear item stations error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // PUT /api/menu/items/:id - update item (admin)
 router.put('/items/:id', verifyToken, requireRole(['admin']), upload.single('image'), async (req, res) => {
   try {

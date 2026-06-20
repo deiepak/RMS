@@ -27,6 +27,7 @@ export default function CounterOrders({ isAdminView = false }) {
   const [orderSearch, setOrderSearch] = useState('');
   const [cameFromTables, setCameFromTables] = useState(false);
   const [waiterStep, setWaiterStep] = useState(1);
+  const [expandedTableId, setExpandedTableId] = useState(null);
   const cartEndRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -122,8 +123,11 @@ export default function CounterOrders({ isAdminView = false }) {
   const handleCreateOrder = async () => {
     if (cart.length === 0) return;
     try {
-      if (selectedTableId && tables.find(t => t.id === parseInt(selectedTableId))?.status === 'occupied') {
-        const activeOrderForTable = allOrders.find(o => String(o.table_id) === String(selectedTableId) && ['active', 'checkout_requested'].includes(o.status));
+      if (selectedTableId) {
+        // ALWAYS check backend for an active order to avoid race conditions
+        const activeRes = await api.get(`/orders/table/${selectedTableId}/active`).catch(() => null);
+        const activeOrderForTable = activeRes?.data;
+        
         if (activeOrderForTable) {
           const items = cart.map(i => ({ menu_item_id: i.id, quantity: i.quantity, price_at_order: i.price, notes: i.notes }));
           await api.post(`/orders/${activeOrderForTable.id}/items`, { items });
@@ -132,6 +136,7 @@ export default function CounterOrders({ isAdminView = false }) {
           setCart([]);
           setCustomerName('');
           setSelectedTableId('');
+          setWaiterStep(1);
           fetchOrders();
           return;
         }
@@ -215,8 +220,8 @@ export default function CounterOrders({ isAdminView = false }) {
     <div style={{ padding: '24px' }}>
       <div className="flex justify-between mb-xl" style={{ flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ margin: 0 }}>Counter Orders</h1>
-          <p className="text-secondary" style={{ margin: 0, marginTop: 4 }}>Manage walk-in and takeaway orders</p>
+          <h1 style={{ margin: 0 }}>{isAdminView ? 'Counter Orders' : 'Table Orders'}</h1>
+          <p className="text-secondary" style={{ margin: 0, marginTop: 4 }}>{isAdminView ? 'Manage walk-in and takeaway orders' : 'Select a table and place orders'}</p>
         </div>
         <div className="flex gap-md" style={{ flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
           <div className="input-with-icon" style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
@@ -281,12 +286,12 @@ export default function CounterOrders({ isAdminView = false }) {
         </div>
       )}
 
-      {/* Add Counter Order Modal */}
+      {/* Add Counter Order / Table Selection Modal */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: 1100, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
             <div className="modal-header">
-              <h2>New Counter Order</h2>
+              <h2>{isAdminView ? 'New Counter Order' : (waiterStep === 1 ? 'Table Selection' : `Order for Table ${tables.find(t => t.id === parseInt(selectedTableId))?.number}`)}</h2>
               <button 
                 className="btn btn-icon" 
                 onClick={() => {
@@ -326,33 +331,81 @@ export default function CounterOrders({ isAdminView = false }) {
                   }}
                 />
               ) : waiterStep === 1 ? (
-                <div style={{ padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
-                  <h2 style={{ marginBottom: '32px', fontSize: '28px', color: 'var(--text-primary)' }}>Select a Table</h2>
+                <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
+                  <h2 style={{ marginBottom: '24px', fontSize: '24px', color: 'var(--text-primary)' }}>Select a Table</h2>
                   
-                  <div style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-secondary)', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-                    <div style={{ marginBottom: '24px' }}>
-                      <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontWeight: 500 }}>Table Number</label>
-                      <select 
-                        className="form-select" 
-                        value={selectedTableId || ''}
-                        onChange={e => setSelectedTableId(e.target.value)}
-                        style={{ padding: '16px', fontSize: '18px', width: '100%', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border)' }}
-                      >
-                        <option value="" disabled>Choose table...</option>
-                        {tables.map(t => (
-                          <option key={t.id} value={t.id}>Table {t.number} {t.status === 'occupied' ? '(Occupied)' : ''}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <button 
-                      className="btn btn-primary" 
-                      disabled={!selectedTableId}
-                      onClick={() => setWaiterStep(2)}
-                      style={{ padding: '16px', fontSize: '18px', width: '100%', borderRadius: '8px', fontWeight: 'bold' }}
-                    >
-                      Next: Select Items
-                    </button>
+                  <div style={{ width: '100%', maxWidth: '800px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                    {tables.map(t => {
+                      const isOccupied = t.status === 'occupied';
+                      const isExpanded = expandedTableId === t.id;
+                      const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
+
+                      return (
+                        <div 
+                          key={t.id}
+                          style={{ 
+                            background: 'var(--bg-primary)', 
+                            borderRadius: '12px', 
+                            borderLeft: `6px solid ${isOccupied ? 'var(--danger)' : 'var(--success)'}`,
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                            overflow: 'hidden',
+                            transition: 'all 0.2s',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div 
+                            style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            onClick={() => {
+                              if (isOccupied) {
+                                setExpandedTableId(isExpanded ? null : t.id);
+                              } else {
+                                setSelectedTableId(t.id);
+                                setWaiterStep(2);
+                              }
+                            }}
+                          >
+                            <div>
+                              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Table {t.number}</h3>
+                              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{isOccupied ? 'Occupied' : 'Available'}</span>
+                            </div>
+                            {isOccupied && (
+                              <div style={{ padding: '6px 12px', background: 'var(--bg-secondary)', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
+                                {isExpanded ? 'Hide' : 'View'}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {isOccupied && isExpanded && (
+                            <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg-secondary)' }}>
+                              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Active Order Items</h4>
+                              {activeOrder?.items?.length > 0 ? (
+                                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', fontSize: '14px' }}>
+                                  {activeOrder.items.map(item => (
+                                    <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                                      <span>{item.quantity}x {item.item_name}</span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(item.price_at_order * item.quantity)}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No items found.</p>
+                              )}
+                              <button 
+                                className="btn btn-primary"
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTableId(t.id);
+                                  setWaiterStep(2);
+                                }}
+                              >
+                                Place New Order
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

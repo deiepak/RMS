@@ -320,9 +320,24 @@ export default function MenuManagement() {
       >
         <div className="flex justify-between align-center mb-md">
           <p className="text-secondary m-0">Organize your menu categories</p>
-          <button className="btn btn-primary btn-sm flex align-center gap-sm" onClick={() => openCategoryModal()}>
-            <Plus size={16} /> Add Category
-          </button>
+          <div className="flex gap-sm">
+            <button className="btn btn-secondary btn-sm flex align-center gap-sm" onClick={async () => {
+              if (window.confirm('Are you sure you want to clear station assignments from ALL individual items? Items will then follow their Category stations.')) {
+                try {
+                  const res = await api.patch('/menu/clear-item-stations');
+                  showToast(res.data.message || 'Item stations cleared', 'success');
+                  fetchData();
+                } catch (err) {
+                  showToast('Failed to clear item stations', 'error');
+                }
+              }
+            }}>
+              Clear All Item Stations
+            </button>
+            <button className="btn btn-primary btn-sm flex align-center gap-sm" onClick={() => openCategoryModal()}>
+              <Plus size={16} /> Add Category
+            </button>
+          </div>
         </div>
         
         <div className="card" style={{ padding: 0, maxHeight: '400px', overflowY: 'auto' }}>
