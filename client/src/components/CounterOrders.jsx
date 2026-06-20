@@ -409,6 +409,8 @@ export default function CounterOrders({ isAdminView = false }) {
           ))}
         </div>
       )}
+      </>
+      )}
 
       {/* Add Counter Order / Table Selection Modal (Admin only) */}
       {showAddModal && isAdminView && (
