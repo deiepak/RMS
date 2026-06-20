@@ -63,31 +63,17 @@ export default function ChatInterface({ fullHeight = true }) {
         options = { mimeType: 'audio/webm; codecs="opus"' };
       } else if (MediaRecorder.isTypeSupported('audio/webm')) {
         options = { mimeType: 'audio/webm' };
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
       }
+      
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      const streamId = Math.random().toString(36).substring(7); // unique id for this stream
-      let chunkIndex = 0;
 
-      mediaRecorder.ondataavailable = async (event) => {
+      mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          // Send live chunk over socket
-          const reader = new FileReader();
-          reader.readAsDataURL(event.data);
-          reader.onloadend = () => {
-            const base64Data = reader.result;
-            const { socket } = require('../api/socket');
-            socket.emit('chat:voice-chunk', {
-              target_role: targetRole,
-              target_stations: targetRole !== 'Everyone' && targetStations.length > 0 ? targetStations : null,
-              chunk: base64Data,
-              streamId,
-              isFirstChunk: chunkIndex === 0
-            });
-            chunkIndex++;
-          };
         }
       };
 
@@ -95,7 +81,6 @@ export default function ChatInterface({ fullHeight = true }) {
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
         
-        // Also save the whole audio message to history
         if (audioBlob.size > 0) {
           try {
             setIsSending(true);
@@ -114,17 +99,22 @@ export default function ChatInterface({ fullHeight = true }) {
             showToast('Voice message sent!', 'success');
             fetchMessages(); 
           } catch (error) {
-            showToast('Failed to save voice message history', 'error');
+            showToast('Failed to send voice message', 'error');
           } finally {
             setIsSending(false);
           }
         }
       };
 
-      mediaRecorder.start(250); // Emit chunks every 250ms for live walkie-talkie feel
+      mediaRecorder.start(); 
       setIsRecording(true);
     } catch (err) {
-      showToast('Microphone access denied or not available', 'error');
+      console.error(err);
+      if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+        showToast('Microphone access requires HTTPS!', 'error');
+      } else {
+        showToast('Microphone access denied or not available', 'error');
+      }
     }
   };
 

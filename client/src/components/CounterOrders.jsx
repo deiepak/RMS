@@ -25,6 +25,7 @@ export default function CounterOrders({ isAdminView = false }) {
   const [menuSearch, setMenuSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [orderSearch, setOrderSearch] = useState('');
+  const [tableSearch, setTableSearch] = useState('');
   const [cameFromTables, setCameFromTables] = useState(false);
   const [waiterStep, setWaiterStep] = useState(1);
   const [expandedTableId, setExpandedTableId] = useState(null);
@@ -332,10 +333,24 @@ export default function CounterOrders({ isAdminView = false }) {
                 />
               ) : waiterStep === 1 ? (
                 <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', background: 'var(--bg-base)' }}>
-                  <h2 style={{ marginBottom: '24px', fontSize: '24px', color: 'var(--text-primary)' }}>Select a Table</h2>
+                  <h2 style={{ marginBottom: '16px', fontSize: '24px', color: 'var(--text-primary)' }}>Select a Table</h2>
                   
+                  <div style={{ width: '100%', maxWidth: '800px', marginBottom: '24px' }}>
+                    <div className="input-with-icon" style={{ width: '100%', background: 'var(--bg-primary)', borderRadius: '12px', padding: '8px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                      <Search size={20} color="var(--text-secondary)" />
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="Search table number..." 
+                        style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '16px', padding: '8px' }}
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div style={{ width: '100%', maxWidth: '800px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                    {tables.map(t => {
+                    {tables.filter(t => t.number.toString().toLowerCase().includes((tableSearch || '').toLowerCase())).map(t => {
                       const isOccupied = t.status === 'occupied';
                       const isExpanded = expandedTableId === t.id;
                       const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
