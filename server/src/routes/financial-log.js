@@ -8,7 +8,7 @@ router.use(requireRole(['admin']));
 
 router.get('/', async (req, res) => {
   try {
-    const { from, to, type = 'all' } = req.query; // type: 'income' | 'expense' | 'all'
+    const { from, to, type = 'all' } = req.query; // type: 'income' | 'expense' | 'cash_flow' | 'all'
 
     // INCOME
     let orderPaymentsQuery = db('payments')
@@ -39,6 +39,7 @@ router.get('/', async (req, res) => {
     let vendorPurchasesQuery = db('vendor_ledgers')
       .join('vendors', 'vendor_ledgers.vendor_id', 'vendors.id')
       .where('vendor_ledgers.transaction_type', 'purchase')
+      .whereNot('vendor_ledgers.notes', 'like', 'Maintenance Repair:%')
       .select(
         'vendor_ledgers.created_at',
         db.raw("'expense' as type"),
@@ -48,13 +49,27 @@ router.get('/', async (req, res) => {
         'vendor_ledgers.amount as amount_out',
         db.raw("'cash' as payment_method") // Or null
       );
-      
+
+    let vendorReturnsQuery = db('vendor_ledgers')
+      .join('vendors', 'vendor_ledgers.vendor_id', 'vendors.id')
+      .where('vendor_ledgers.transaction_type', 'return')
+      .select(
+        'vendor_ledgers.created_at',
+        db.raw("'income' as type"),
+        db.raw("'vendor_return' as category"),
+        db.raw("CONCAT('Return to ', vendors.name) as description"),
+        'vendor_ledgers.amount as amount_in',
+        db.raw('0 as amount_out'),
+        db.raw("'cash' as payment_method")
+      );
+
+    // CASH FLOW (visible for tracking, does not affect income/expense totals)
     let vendorPaymentsQuery = db('vendor_ledgers')
       .join('vendors', 'vendor_ledgers.vendor_id', 'vendors.id')
       .where('vendor_ledgers.transaction_type', 'payment')
       .select(
         'vendor_ledgers.created_at',
-        db.raw("'expense' as type"),
+        db.raw("'cash_flow' as type"),
         db.raw("'vendor_payment' as category"),
         db.raw("CONCAT('Payment to ', vendors.name) as description"),
         db.raw('0 as amount_in'),
@@ -70,7 +85,7 @@ router.get('/', async (req, res) => {
         db.raw("'salary' as category"),
         db.raw("CONCAT('Salary: ', employees.name) as description"),
         db.raw('0 as amount_in'),
-        'employee_payments.amount as amount_out',
+        db.raw('(employee_payments.amount + COALESCE(employee_payments.bonus, 0) - COALESCE(employee_payments.deduction, 0)) as amount_out'),
         'employee_payments.payment_method'
       );
 
@@ -117,6 +132,7 @@ router.get('/', async (req, res) => {
     orderPaymentsQuery = applyDateFilterJoined(orderPaymentsQuery, 'payments');
     packagePaymentsQuery = applyDateFilterJoined(packagePaymentsQuery, 'package_payments');
     vendorPurchasesQuery = applyDateFilterJoined(vendorPurchasesQuery, 'vendor_ledgers');
+    vendorReturnsQuery = applyDateFilterJoined(vendorReturnsQuery, 'vendor_ledgers');
     vendorPaymentsQuery = applyDateFilterJoined(vendorPaymentsQuery, 'vendor_ledgers');
     hrQuery = applyDateFilterJoined(hrQuery, 'employee_payments');
     maintenanceQuery = applyDateFilter(maintenanceQuery);
@@ -125,10 +141,13 @@ router.get('/', async (req, res) => {
     let allQueries = [];
 
     if (type === 'income' || type === 'all') {
-      allQueries.push(orderPaymentsQuery, packagePaymentsQuery);
+      allQueries.push(orderPaymentsQuery, packagePaymentsQuery, vendorReturnsQuery);
     }
     if (type === 'expense' || type === 'all') {
-      allQueries.push(vendorPurchasesQuery, vendorPaymentsQuery, hrQuery, maintenanceQuery, customQuery);
+      allQueries.push(vendorPurchasesQuery, hrQuery, maintenanceQuery, customQuery);
+    }
+    if (type === 'cash_flow' || type === 'all') {
+      allQueries.push(vendorPaymentsQuery);
     }
 
     const results = await Promise.all(allQueries);

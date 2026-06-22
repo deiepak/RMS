@@ -17,7 +17,7 @@ async function test() {
         db.raw("CONCAT('Order #', orders.id) as description"),
         'payments.amount as amount_in',
         db.raw('0 as amount_out'),
-        'payments.payment_method'
+        'payments.method as payment_method'
       );
 
     let packagePaymentsQuery = db('package_payments')

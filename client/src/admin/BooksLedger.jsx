@@ -75,7 +75,7 @@ export default function BooksLedger() {
       const [paymentsRes, summaryRes, catRes] = await Promise.all([
         api.get(`/ledger${queryParams}`),
         api.get(`/ledger/summary?from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`),
-        api.get(`/ledger/by-category?from=${filters.from}&to=${filters.to}`)
+        api.get(`/ledger/by-category?from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`)
       ]);
       
       setPayments(paymentsRes.data);

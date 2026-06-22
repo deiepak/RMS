@@ -36,7 +36,7 @@ async function recalculateOrderTotals(orderId) {
   await db('orders').where({ id: orderId }).update({
     subtotal: subtotal.toFixed(2),
     discount: discount.toFixed(2),
-    tax: 0,
+    tax: 0, // Tax is intentionally zero — no tax regime configured. Update recalculateOrderTotals if tax is ever needed.
     total,
     updated_at: db.fn.now(),
   });
@@ -648,15 +648,6 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
 
     // Insert all valid payments
     const validPayments = payments.filter(p => parseFloat(p.amount) > 0);
-    if (validPayments.length > 0) {
-      const paymentRecords = validPayments.map(p => ({
-        order_id: orderId,
-        amount: parseFloat(p.amount),
-        method: p.method,
-        collected_by: order.waiter_name || collected_by,
-      }));
-      await db('payments').insert(paymentRecords);
-    }
 
     // Update order to completed and record discount
     const orderUpdates = {
@@ -673,15 +664,27 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
       orderUpdates.discount_reason = discount_reason || 'Manual Discount';
     }
 
-    await db('orders').where({ id: orderId }).update(orderUpdates);
+    // Wrap payment + order update + table release in a single transaction
+    await db.transaction(async trx => {
+      if (validPayments.length > 0) {
+        const paymentRecords = validPayments.map(p => ({
+          order_id: orderId,
+          amount: parseFloat(p.amount),
+          method: p.method,
+          collected_by: order.waiter_name || collected_by,
+        }));
+        await trx('payments').insert(paymentRecords);
+      }
 
-    if (order.table_id) {
-      // Free the table
-      await db('restaurant_tables').where({ id: order.table_id }).update({
-        status: 'available',
-        updated_at: db.fn.now(),
-      });
-    }
+      await trx('orders').where({ id: orderId }).update(orderUpdates);
+
+      if (order.table_id) {
+        await trx('restaurant_tables').where({ id: order.table_id }).update({
+          status: 'available',
+          updated_at: db.fn.now(),
+        });
+      }
+    });
 
     const updatedOrder = await db('orders').where({ id: orderId }).first();
     let table = null;

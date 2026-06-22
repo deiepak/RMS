@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
-import { BookOpen, Download, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react';
+import { BookOpen, Download, TrendingUp, TrendingDown, ArrowRightLeft, Wallet } from 'lucide-react';
 
 export default function FinancialLog() {
   const [logs, setLogs] = useState([]);
@@ -13,7 +13,7 @@ export default function FinancialLog() {
     period: 'month',
     from: '',
     to: '',
-    type: 'all' // all, income, expense
+    type: 'all' // all, income, expense, cash_flow
   });
 
   const setDateRange = (period) => {
@@ -95,8 +95,9 @@ export default function FinancialLog() {
     document.body.removeChild(link);
   };
 
-  const totalIncome = logs.reduce((sum, l) => sum + parseFloat(l.amount_in || 0), 0);
-  const totalExpense = logs.reduce((sum, l) => sum + parseFloat(l.amount_out || 0), 0);
+  const totalIncome = logs.filter(l => l.type !== 'cash_flow').reduce((sum, l) => sum + parseFloat(l.amount_in || 0), 0);
+  const totalExpense = logs.filter(l => l.type !== 'cash_flow').reduce((sum, l) => sum + parseFloat(l.amount_out || 0), 0);
+  const totalCashFlow = logs.filter(l => l.type === 'cash_flow').reduce((sum, l) => sum + parseFloat(l.amount_out || 0), 0);
   const net = totalIncome - totalExpense;
 
   return (
@@ -131,12 +132,13 @@ export default function FinancialLog() {
               <option value="all">All</option>
               <option value="income">Income Only</option>
               <option value="expense">Expenses Only</option>
+              <option value="cash_flow">Cash Flow Only</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-lg mb-lg">
+      <div className="grid grid-cols-4 gap-lg mb-lg">
         <div className="card" style={{ padding: 20 }}>
           <div className="text-secondary mb-sm flex justify-between">
             <span>Total Income</span>
@@ -150,6 +152,14 @@ export default function FinancialLog() {
             <TrendingDown size={18} className="text-danger" />
           </div>
           <h2 className="text-danger">{formatCurrency(totalExpense)}</h2>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <div className="text-secondary mb-sm flex justify-between">
+            <span>Cash Flow Out</span>
+            <Wallet size={18} style={{ color: '#6366f1' }} />
+          </div>
+          <h2 style={{ color: '#6366f1' }}>{formatCurrency(totalCashFlow)}</h2>
+          <div className="text-secondary" style={{ fontSize: 11, marginTop: 4 }}>Vendor payments (not an expense)</div>
         </div>
         <div className="card" style={{ padding: 20 }}>
           <div className="text-secondary mb-sm flex justify-between">
@@ -185,11 +195,11 @@ export default function FinancialLog() {
                 </thead>
                 <tbody>
                   {logs.map((log, index) => (
-                    <tr key={index} style={{ backgroundColor: log.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)' }}>
+                    <tr key={index} style={{ backgroundColor: log.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : log.type === 'cash_flow' ? 'rgba(99, 102, 241, 0.05)' : 'rgba(239, 68, 68, 0.05)' }}>
                       <td>{formatDateTime(log.created_at)}</td>
                       <td>
-                        <span className={`badge ${log.type === 'income' ? 'badge-success' : 'badge-danger'}`}>
-                          {log.type.toUpperCase()}
+                        <span className={`badge ${log.type === 'income' ? 'badge-success' : log.type === 'cash_flow' ? 'badge-info' : 'badge-danger'}`}>
+                          {log.type === 'cash_flow' ? 'CASH FLOW' : log.type.toUpperCase()}
                         </span>
                       </td>
                       <td>{(log.category || '').replace(/_/g, ' ')}</td>

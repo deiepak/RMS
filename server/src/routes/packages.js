@@ -89,6 +89,19 @@ router.post('/:id/payments', async (req, res) => {
       return res.status(400).json({ error: 'Amount and payment method are required.' });
     }
 
+    const pkg = await db('packages').where({ id: req.params.id }).first();
+    if (!pkg) return res.status(404).json({ error: 'Package not found.' });
+
+    const existingPayments = await db('package_payments').where({ package_id: req.params.id });
+    const totalPaid = existingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const newAmount = parseFloat(amount);
+
+    if (totalPaid + newAmount > parseFloat(pkg.total_amount) + 0.01) {
+      return res.status(400).json({ 
+        error: `Payment exceeds package total. Package total: ${pkg.total_amount}, Already paid: ${totalPaid.toFixed(2)}, Remaining: ${(parseFloat(pkg.total_amount) - totalPaid).toFixed(2)}` 
+      });
+    }
+
     await db('package_payments').insert({
       package_id: req.params.id,
       amount,

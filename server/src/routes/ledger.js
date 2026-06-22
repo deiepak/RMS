@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
     const formattedPayments = payments.map(p => ({
       ...p,
       order_refund: p.order_status === 'cancelled' 
-        ? parseFloat(p.amount) 
+        ? parseFloat(p.total_order_paid) 
         : Math.max(0, parseFloat(p.total_order_paid) - parseFloat(p.order_total))
     }));
 
@@ -90,15 +90,20 @@ router.get('/summary', async (req, res) => {
   try {
     const { from, to } = req.query;
     
-    let query = db('payments');
+    let query = db('payments')
+      .whereExists(function() {
+        this.select(1).from('orders')
+          .whereRaw('orders.id = payments.order_id')
+          .whereNot('orders.status', 'cancelled');
+      });
     let pkgQuery = db('package_payments');
 
     if (from) {
-      query = query.where('created_at', '>=', from);
+      query = query.where('payments.created_at', '>=', from);
       pkgQuery = pkgQuery.where('created_at', '>=', from);
     }
     if (to) {
-      query = query.where('created_at', '<=', to);
+      query = query.where('payments.created_at', '<=', to);
       pkgQuery = pkgQuery.where('created_at', '<=', to);
     }
 
@@ -177,16 +182,17 @@ router.get('/by-category', async (req, res) => {
       .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('orders.status', 'completed')
       .where('order_items.status', '!=', 'rejected')
+      .whereNot('order_items.status', 'cancelled')
       .select('menu_categories.name as category')
       .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as total'))
       .count('order_items.id as items_count')
       .groupBy('menu_categories.id', 'menu_categories.name');
 
     if (from) {
-      query = query.where('orders.created_at', '>=', `${from} 00:00:00`);
+      query = query.where('orders.created_at', '>=', from);
     }
     if (to) {
-      query = query.where('orders.created_at', '<=', `${to} 23:59:59`);
+      query = query.where('orders.created_at', '<=', to);
     }
 
     const results = await query;
@@ -200,10 +206,10 @@ router.get('/by-category', async (req, res) => {
       );
 
     if (from) {
-      discountQuery = discountQuery.where('orders.created_at', '>=', `${from} 00:00:00`);
+      discountQuery = discountQuery.where('orders.created_at', '>=', from);
     }
     if (to) {
-      discountQuery = discountQuery.where('orders.created_at', '<=', `${to} 23:59:59`);
+      discountQuery = discountQuery.where('orders.created_at', '<=', to);
     }
 
     const [discountData] = await discountQuery;

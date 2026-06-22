@@ -26,6 +26,21 @@ router.get('/overview', async (req, res) => {
       revenueBreakdown.total += amt;
     });
 
+    // Include package payments in today's revenue
+    const pkgRevenueMethods = await db('package_payments')
+      .where('created_at', '>=', today)
+      .select('payment_method as method')
+      .sum('amount as total')
+      .groupBy('payment_method');
+
+    pkgRevenueMethods.forEach(r => {
+      const amt = parseFloat(r.total || 0);
+      if (r.method === 'online') revenueBreakdown.online += amt;
+      else if (r.method === 'card') revenueBreakdown.card += amt;
+      else revenueBreakdown.cash += amt;
+      revenueBreakdown.total += amt;
+    });
+
     const [orders] = await db('orders')
       .where('created_at', '>=', today)
       .count('id as count');
@@ -52,12 +67,25 @@ router.get('/overview', async (req, res) => {
 
 router.get('/revenue', async (req, res) => {
   try {
-    const revenueByDay = await db('payments')
+    const orderRevenue = await db('payments')
       .select(db.raw('DATE(created_at) as date'))
       .sum('amount as revenue')
-      .groupBy(db.raw('DATE(created_at)'))
-      .orderBy('date', 'desc')
-      .limit(7);
+      .groupBy(db.raw('DATE(created_at)'));
+
+    const pkgRevenue = await db('package_payments')
+      .select(db.raw('DATE(created_at) as date'))
+      .sum('amount as revenue')
+      .groupBy(db.raw('DATE(created_at)'));
+
+    // Merge both revenue sources by date
+    const revenueMap = {};
+    [...orderRevenue, ...pkgRevenue].forEach(r => {
+      if (!revenueMap[r.date]) revenueMap[r.date] = { date: r.date, revenue: 0 };
+      revenueMap[r.date].revenue += parseFloat(r.revenue || 0);
+    });
+    const revenueByDay = Object.values(revenueMap)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 7);
 
     res.json(revenueByDay.reverse());
   } catch (error) {
