@@ -14,24 +14,54 @@ export default function Analytics() {
   const [paymentStats, setPaymentStats] = useState([]);
   const [categoryRevenue, setCategoryRevenue] = useState([]);
   const [dayOfWeekStats, setDayOfWeekStats] = useState([]);
+  const [filters, setFilters] = useState({ period: '7d', from: '', to: '' });
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
   useEffect(() => {
-    fetchData();
+    // Initialize default date range on mount
+    setDateRange('7d');
   }, []);
+
+  useEffect(() => {
+    if (filters.period === 'custom' && (!filters.from || !filters.to)) return;
+    fetchData();
+  }, [filters.from, filters.to]);
+
+  const setDateRange = (period) => {
+    if (period === 'custom') {
+      setFilters(prev => ({ ...prev, period }));
+      return;
+    }
+    const to = new Date().toISOString().split('T')[0];
+    let from = new Date();
+    if (period === 'today') {
+      from = to;
+    } else if (period === '7d') {
+      from.setDate(from.getDate() - 7);
+      from = from.toISOString().split('T')[0];
+    } else if (period === 'month') {
+      from.setMonth(from.getMonth() - 1);
+      from = from.toISOString().split('T')[0];
+    } else if (period === 'year') {
+      from.setFullYear(from.getFullYear() - 1);
+      from = from.toISOString().split('T')[0];
+    }
+    setFilters({ period, from, to });
+  };
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      const queryStr = `?from=${filters.from}&to=${filters.to}`;
       const [revRes, popRes, peakRes, tableRes, ledgerRes, catRes, dayRes] = await Promise.all([
-        api.get('/analytics/revenue'),
-        api.get('/analytics/popular-items'),
-        api.get('/analytics/peak-hours'),
-        api.get('/analytics/table-utilization'),
-        api.get('/ledger/summary'), // Using ledger summary for payment breakdown
-        api.get('/analytics/category-revenue'),
-        api.get('/analytics/day-of-week')
+        api.get(`/analytics/revenue${queryStr}`),
+        api.get(`/analytics/popular-items${queryStr}`),
+        api.get(`/analytics/peak-hours${queryStr}`),
+        api.get(`/analytics/table-utilization${queryStr}`),
+        api.get(`/ledger/summary${queryStr}`), // Using ledger summary for payment breakdown
+        api.get(`/analytics/category-revenue${queryStr}`),
+        api.get(`/analytics/day-of-week${queryStr}`)
       ]);
 
       // Format dates for revenue
@@ -128,9 +158,29 @@ export default function Analytics() {
         <h2>Analytics & Reports</h2>
       </div>
 
+      <div className="card mb-lg" style={{ padding: 20 }}>
+        <div className="flex gap-lg flex-wrap align-center">
+          <div className="flex gap-sm bg-secondary" style={{ padding: 4, borderRadius: 'var(--radius)' }}>
+            <button className={`btn ${filters.period === 'today' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('today')}>Today</button>
+            <button className={`btn ${filters.period === '7d' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('7d')}>7 Days</button>
+            <button className={`btn ${filters.period === 'month' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('month')}>1 Month</button>
+            <button className={`btn ${filters.period === 'year' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('year')}>1 Year</button>
+            <button className={`btn ${filters.period === 'custom' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => setDateRange('custom')}>Custom</button>
+          </div>
+
+          {filters.period === 'custom' && (
+            <div className="flex gap-md align-center">
+              <input type="date" className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
+              <span>to</span>
+              <input type="date" className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="card mb-lg">
         <div className="card-header">
-          <h3 style={{ fontSize: 18 }}>Revenue Trend (Last 7 Days)</h3>
+          <h3 style={{ fontSize: 18 }}>Revenue Trend</h3>
         </div>
         <div className="card-body" style={{ height: 350 }}>
           <ResponsiveContainer width="100%" height="100%">
