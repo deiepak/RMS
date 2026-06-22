@@ -221,7 +221,7 @@ router.get('/by-category', async (req, res) => {
       const discountRatio = totalDiscount / totalSubtotal;
       results.forEach(r => {
         const rawTotal = parseFloat(r.total || 0);
-        r.total = Math.max(0, rawTotal - (rawTotal * discountRatio));
+        r.total = parseFloat(Math.max(0, rawTotal - (rawTotal * discountRatio)).toFixed(2));
       });
     }
 
