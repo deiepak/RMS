@@ -68,14 +68,14 @@ router.get('/overview', async (req, res) => {
 router.get('/revenue', async (req, res) => {
   try {
     const orderRevenue = await db('payments')
-      .select(db.raw('DATE(created_at) as date'))
+      .select(db.raw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+05:45'), '%Y-%m-%d') as date"))
       .sum('amount as revenue')
-      .groupBy(db.raw('DATE(created_at)'));
+      .groupBy(db.raw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+05:45'), '%Y-%m-%d')"));
 
     const pkgRevenue = await db('package_payments')
-      .select(db.raw('DATE(created_at) as date'))
+      .select(db.raw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+05:45'), '%Y-%m-%d') as date"))
       .sum('amount as revenue')
-      .groupBy(db.raw('DATE(created_at)'));
+      .groupBy(db.raw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+05:45'), '%Y-%m-%d')"));
 
     // Merge both revenue sources by date
     const revenueMap = {};
@@ -97,8 +97,11 @@ router.get('/popular-items', async (req, res) => {
   try {
     const popularItems = await db('order_items')
       .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .where('order_items.status', '!=', 'rejected')
+      .whereNot('order_items.status', 'cancelled')
       .select('menu_items.name')
       .sum('order_items.quantity as count')
+      .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as revenue'))
       .groupBy('menu_items.id', 'menu_items.name')
       .orderBy('count', 'desc')
       .limit(10);
@@ -112,9 +115,9 @@ router.get('/popular-items', async (req, res) => {
 router.get('/peak-hours', async (req, res) => {
   try {
     const peakHours = await db('orders')
-      .select(db.raw('HOUR(created_at) as hour'))
+      .select(db.raw("HOUR(CONVERT_TZ(created_at, '+00:00', '+05:45')) as hour"))
       .count('id as count')
-      .groupBy(db.raw('HOUR(created_at)'))
+      .groupBy(db.raw("HOUR(CONVERT_TZ(created_at, '+00:00', '+05:45'))"))
       .orderBy('hour', 'asc');
 
     res.json(peakHours);
@@ -133,6 +136,37 @@ router.get('/table-utilization', async (req, res) => {
       .orderBy('count', 'desc');
 
     res.json(tableStats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/category-revenue', async (req, res) => {
+  try {
+    const results = await db('order_items')
+      .join('orders', 'order_items.order_id', 'orders.id')
+      .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
+      .where('orders.status', 'completed')
+      .where('order_items.status', '!=', 'rejected')
+      .whereNot('order_items.status', 'cancelled')
+      .select('menu_categories.name as name')
+      .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as value'))
+      .groupBy('menu_categories.id', 'menu_categories.name');
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/day-of-week', async (req, res) => {
+  try {
+    const days = await db('orders')
+      .select(db.raw("DAYOFWEEK(CONVERT_TZ(created_at, '+00:00', '+05:45')) as day"))
+      .count('id as count')
+      .groupBy(db.raw("DAYOFWEEK(CONVERT_TZ(created_at, '+00:00', '+05:45'))"))
+      .orderBy('day', 'asc');
+    res.json(days);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

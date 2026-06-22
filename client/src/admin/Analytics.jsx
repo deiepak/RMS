@@ -12,6 +12,8 @@ export default function Analytics() {
   const [peakHours, setPeakHours] = useState([]);
   const [tableStats, setTableStats] = useState([]);
   const [paymentStats, setPaymentStats] = useState([]);
+  const [categoryRevenue, setCategoryRevenue] = useState([]);
+  const [dayOfWeekStats, setDayOfWeekStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -22,12 +24,14 @@ export default function Analytics() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [revRes, popRes, peakRes, tableRes, ledgerRes] = await Promise.all([
+      const [revRes, popRes, peakRes, tableRes, ledgerRes, catRes, dayRes] = await Promise.all([
         api.get('/analytics/revenue'),
         api.get('/analytics/popular-items'),
         api.get('/analytics/peak-hours'),
         api.get('/analytics/table-utilization'),
-        api.get('/ledger/summary') // Using ledger summary for payment breakdown
+        api.get('/ledger/summary'), // Using ledger summary for payment breakdown
+        api.get('/analytics/category-revenue'),
+        api.get('/analytics/day-of-week')
       ]);
 
       // Format dates for revenue
@@ -40,7 +44,8 @@ export default function Analytics() {
       // Format popular items
       const formattedPop = popRes.data.map(item => ({
         name: item.name,
-        Orders: parseInt(item.count)
+        Orders: parseInt(item.count),
+        Revenue: parseFloat(item.revenue || 0)
       }));
       setPopularItems(formattedPop);
 
@@ -70,6 +75,21 @@ export default function Analytics() {
         { name: 'Card', value: pData.card },
         { name: 'Online', value: pData.online }
       ].filter(i => i.value > 0));
+
+      // Format category revenue
+      const formattedCat = catRes.data.map(item => ({
+        name: item.name || 'Uncategorized',
+        value: parseFloat(item.value || 0)
+      })).filter(i => i.value > 0);
+      setCategoryRevenue(formattedCat);
+
+      // Format Day of Week
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const formattedDays = dayRes.data.map(item => ({
+        name: dayNames[item.day - 1] || 'Unknown',
+        Orders: parseInt(item.count || 0)
+      }));
+      setDayOfWeekStats(formattedDays);
 
     } catch (error) {
       showToast('Failed to load analytics data', 'error');
@@ -175,7 +195,57 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="flex gap-lg flex-wrap">
+      <div className="flex gap-lg flex-wrap mb-lg">
+        <div className="card flex-1" style={{ minWidth: 300 }}>
+          <div className="card-header">
+            <h3 style={{ fontSize: 18 }}>Revenue by Category</h3>
+          </div>
+          <div className="card-body flex-center" style={{ height: 300 }}>
+            {categoryRevenue.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryRevenue}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryRevenue.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatCurrency(value)} />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-muted">No category data available</div>
+            )}
+          </div>
+        </div>
+
+        <div className="card flex-1" style={{ minWidth: 300 }}>
+          <div className="card-header">
+            <h3 style={{ fontSize: 18 }}>Busiest Days of Week</h3>
+          </div>
+          <div className="card-body" style={{ height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dayOfWeekStats}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Bar dataKey="Orders" fill="var(--info)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-lg flex-wrap mb-lg">
         <div className="card flex-1" style={{ minWidth: 300 }}>
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Top 10 Popular Items</h3>
@@ -187,7 +257,8 @@ export default function Analytics() {
                 <XAxis type="number" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)' }} />
                 <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-primary)' }} width={100} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                <Bar dataKey="Orders" fill="var(--info)" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="Orders" fill="var(--info)" radius={[0, 4, 4, 0]} barSize={15} />
+                <Bar dataKey="Revenue" fill="var(--accent-secondary)" radius={[0, 4, 4, 0]} barSize={15} />
               </BarChart>
             </ResponsiveContainer>
           </div>
