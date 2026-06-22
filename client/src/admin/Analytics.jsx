@@ -73,7 +73,8 @@ export default function Analytics() {
 
       // Format popular items
       const formattedPop = popRes.data.map(item => ({
-        name: item.name,
+        name: item.name.length > 12 ? item.name.substring(0, 10) + '...' : item.name,
+        fullName: item.name,
         Orders: parseInt(item.count),
         Revenue: parseFloat(item.revenue || 0)
       }));
@@ -93,7 +94,8 @@ export default function Analytics() {
 
       // Format table stats
       const formattedTables = tableRes.data.map(item => ({
-        name: `Table ${item.number}`,
+        name: String(item.number).length > 12 ? String(item.number).substring(0, 10) + '...' : item.number,
+        fullName: item.number,
         Usage: parseInt(item.count)
       })).slice(0, 10);
       setTableStats(formattedTables);
@@ -130,12 +132,13 @@ export default function Analytics() {
 
   const CustomTooltip = ({ active, payload, label, isCurrency }) => {
     if (active && payload && payload.length) {
+      const fullLabel = payload[0].payload.fullName || label;
       return (
-        <div className="card" style={{ padding: '10px 15px', border: '1px solid var(--glass-border)' }}>
-          <p className="text-secondary" style={{ marginBottom: 5 }}>{label}</p>
+        <div className="card" style={{ padding: '10px 15px', border: '1px solid var(--glass-border)', zIndex: 100 }}>
+          <p className="text-secondary" style={{ marginBottom: 5 }}>{fullLabel}</p>
           {payload.map((p, i) => (
             <p key={i} style={{ color: p.color, fontWeight: 600 }}>
-              {p.name}: {isCurrency ? formatCurrency(p.value) : p.value}
+              {p.name}: {isCurrency || p.dataKey === 'Revenue' ? formatCurrency(p.value) : p.value}
             </p>
           ))}
         </div>
@@ -200,7 +203,7 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Peak Ordering Hours</h3>
           </div>
-          <div className="card-body" style={{ height: 300 }}>
+          <div className="card-body" style={{ height: 350 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={peakHours}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
@@ -217,7 +220,7 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Payment Methods</h3>
           </div>
-          <div className="card-body flex-center" style={{ height: 300 }}>
+          <div className="card-body flex-center" style={{ height: 350 }}>
             {paymentStats.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -235,7 +238,7 @@ export default function Analytics() {
                     ))}
                   </Pie>
                   <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Legend verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -250,7 +253,7 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Revenue by Category</h3>
           </div>
-          <div className="card-body flex-center" style={{ height: 300 }}>
+          <div className="card-body flex-center" style={{ height: 350 }}>
             {categoryRevenue.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -268,7 +271,7 @@ export default function Analytics() {
                     ))}
                   </Pie>
                   <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Legend verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -281,7 +284,7 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Busiest Days of Week</h3>
           </div>
-          <div className="card-body" style={{ height: 300 }}>
+          <div className="card-body" style={{ height: 350 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dayOfWeekStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
@@ -300,12 +303,12 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Top 10 Popular Items</h3>
           </div>
-          <div className="card-body" style={{ height: 350 }}>
+          <div className="card-body" style={{ height: 400 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={popularItems} layout="vertical" margin={{ left: 40, right: 20 }}>
+              <BarChart data={popularItems} layout="vertical" margin={{ left: 10, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" horizontal={false} />
                 <XAxis type="number" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)' }} />
-                <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-primary)' }} width={100} />
+                <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-primary)' }} width={80} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                 <Bar dataKey="Orders" fill="var(--info)" radius={[0, 4, 4, 0]} barSize={15} />
                 <Bar dataKey="Revenue" fill="var(--accent-secondary)" radius={[0, 4, 4, 0]} barSize={15} />
@@ -318,12 +321,12 @@ export default function Analytics() {
           <div className="card-header">
             <h3 style={{ fontSize: 18 }}>Top Utilized Tables</h3>
           </div>
-          <div className="card-body" style={{ height: 350 }}>
+          <div className="card-body" style={{ height: 400 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tableStats} layout="vertical" margin={{ left: 10, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" horizontal={false} />
                 <XAxis type="number" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)' }} />
-                <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-primary)' }} width={60} />
+                <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" tick={{ fontSize: 12, fill: 'var(--text-primary)' }} width={80} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                 <Bar dataKey="Usage" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20}>
                   {tableStats.map((entry, index) => (
