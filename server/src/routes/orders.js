@@ -163,18 +163,15 @@ router.get('/', async (req, res) => {
       query.where('orders.table_id', req.query.table_id);
     }
     if (req.query.date) {
-      query.whereRaw('DATE(orders.created_at) = ?', [req.query.date]);
+      query.where(function() {
+        this.whereRaw('DATE(orders.created_at) = ?', [req.query.date])
+            .orWhereNotIn('orders.status', ['completed', 'cancelled']);
+      });
     }
 
-    // Default Admin View: Show all active orders + completed orders from the last 5 hours
+    // Safety limit to prevent memory crashes when fetching all history (date cleared)
     if (!req.query.date && !req.query.status && !req.query.table_id) {
-      query.where(function() {
-        this.whereNotIn('orders.status', ['completed', 'cancelled'])
-            .orWhere(function() {
-              this.whereIn('orders.status', ['completed', 'cancelled'])
-                  .whereRaw("orders.updated_at >= DATE_SUB(NOW(), INTERVAL 5 HOUR)");
-            });
-      });
+      query.limit(200);
     }
 
     query.orderBy('orders.created_at', 'desc');

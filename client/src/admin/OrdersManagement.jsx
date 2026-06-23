@@ -62,7 +62,7 @@ export default function OrdersManagement() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
   const [showAdventureOnly, setShowAdventureOnly] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
