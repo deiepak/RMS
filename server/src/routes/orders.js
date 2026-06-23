@@ -166,9 +166,15 @@ router.get('/', async (req, res) => {
       query.whereRaw('DATE(orders.created_at) = ?', [req.query.date]);
     }
 
-    // Safety limit to prevent memory crashes when fetching history
+    // Default Admin View: Show all active orders + completed orders from the last 5 hours
     if (!req.query.date && !req.query.status && !req.query.table_id) {
-      query.limit(200);
+      query.where(function() {
+        this.whereNotIn('orders.status', ['completed', 'cancelled'])
+            .orWhere(function() {
+              this.whereIn('orders.status', ['completed', 'cancelled'])
+                  .whereRaw("orders.updated_at >= DATE_SUB(NOW(), INTERVAL 5 HOUR)");
+            });
+      });
     }
 
     query.orderBy('orders.created_at', 'desc');
