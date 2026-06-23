@@ -43,6 +43,7 @@ import AdventurePOS from './admin/AdventurePOS';
 import ScanAdventure from './admin/ScanAdventure';
 import VideoManagement from './admin/VideoManagement';
 import TVContentManagement from './admin/TVContentManagement';
+import SocialMediaManagement from './admin/SocialMediaManagement';
 
 const App = () => {
   return (
@@ -120,6 +121,7 @@ const App = () => {
                   <Route path="adventures/scan" element={<ScanAdventure />} />
                   <Route path="adventures/videos" element={<VideoManagement />} />
                   <Route path="tv-content" element={<TVContentManagement />} />
+                  <Route path="social-media" element={<SocialMediaManagement />} />
                 </Route>
               </Routes>
             </SocketProvider>

@@ -4,7 +4,7 @@
  */
 exports.up = function(knex) {
   return knex.schema.table('menu_categories', table => {
-    table.json('station_ids').defaultTo('[]');
+    table.json('station_ids').nullable();
   });
 };
 

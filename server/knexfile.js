@@ -9,6 +9,7 @@ module.exports = {
       user: process.env.DB_USER || 'rms_user',
       password: process.env.DB_PASSWORD || 'rms_pass_2026',
       database: process.env.DB_NAME || 'rms_db',
+      timezone: 'Z'
     },
     migrations: {
       directory: './src/migrations',
@@ -29,6 +30,7 @@ module.exports = {
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
+      timezone: 'Z'
     },
     migrations: {
       directory: './src/migrations',
