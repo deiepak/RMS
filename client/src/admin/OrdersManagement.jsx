@@ -116,9 +116,9 @@ export default function OrdersManagement() {
     });
   };
 
-  const fetchOrders = useCallback(async (reset = false) => {
+  const fetchOrders = useCallback(async (reset = false, silent = false) => {
     try {
-      if (reset) setLoading(true);
+      if (reset && !silent) setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
       if (dateFilter) params.append('date', dateFilter);
@@ -154,7 +154,7 @@ export default function OrdersManagement() {
   // Auto-refresh every 30s
   useEffect(() => {
     refreshInterval.current = setInterval(() => {
-      fetchOrders(true);
+      fetchOrders(true, true);
     }, 30000);
     return () => clearInterval(refreshInterval.current);
   }, [statusFilter, dateFilter, searchTerm]);
