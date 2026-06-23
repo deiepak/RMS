@@ -146,6 +146,7 @@ router.get('/', async (req, res) => {
           this.whereIn('orders.status', statuses)
             .orWhere(function() {
               this.whereIn('orders.status', ['completed'])
+                .whereRaw('orders.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')
                 .whereExists(function() {
                   this.select(1)
                     .from('order_items')
@@ -163,6 +164,11 @@ router.get('/', async (req, res) => {
     }
     if (req.query.date) {
       query.whereRaw('DATE(orders.created_at) = ?', [req.query.date]);
+    }
+
+    // Safety limit to prevent memory crashes when fetching history
+    if (!req.query.date && !req.query.status && !req.query.table_id) {
+      query.limit(200);
     }
 
     query.orderBy('orders.created_at', 'desc');
