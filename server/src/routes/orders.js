@@ -146,7 +146,7 @@ router.get('/', async (req, res) => {
           this.whereIn('orders.status', statuses)
             .orWhere(function() {
               this.whereIn('orders.status', ['completed'])
-                .whereRaw('orders.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')
+                .whereRaw('orders.updated_at >= DATE_SUB(NOW(), INTERVAL 5 HOUR)')
                 .whereExists(function() {
                   this.select(1)
                     .from('order_items')
