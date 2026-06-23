@@ -165,7 +165,7 @@ router.get('/', async (req, res) => {
     if (req.query.date) {
       query.where(function() {
         this.whereRaw('DATE(orders.created_at) = ?', [req.query.date])
-            .orWhereNotIn('orders.status', ['completed', 'cancelled']);
+            .orWhereNotIn('orders.status', ['completed', 'cancelled', 'merged']);
       });
     }
 
