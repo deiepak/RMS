@@ -13,11 +13,12 @@ router.get('/', async (req, res) => {
     // INCOME
     let orderPaymentsQuery = db('payments')
       .join('orders', 'payments.order_id', 'orders.id')
+      .where('payments.amount', '>', 0)
       .select(
         'payments.created_at',
-        db.raw("IF(payments.amount < 0, 'income_reduction', 'income') as type"),
-        db.raw("IF(payments.amount < 0, 'sales_return', 'order_payment') as category"),
-        db.raw("IF(payments.amount < 0, CONCAT('Sales Return (Order #', orders.id, ')'), CONCAT('Order #', orders.id)) as description"),
+        db.raw("'income' as type"),
+        db.raw("'order_payment' as category"),
+        db.raw("CONCAT('Order #', orders.id) as description"),
         'payments.amount as amount_in',
         db.raw('0 as amount_out'),
         'payments.method as payment_method'

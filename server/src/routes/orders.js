@@ -1072,14 +1072,13 @@ router.post('/:id/sales-return', verifyToken, requireRole(['admin']), async (req
     const returnAmount = itemPrice * returnQty;
 
     await db.transaction(async trx => {
-      // 1. Record negative payment
-      await trx('payments').insert({
-        order_id: orderId,
-        amount: -returnAmount,
-        method: 'cash',
-        collected_by: req.user?.name || 'Admin',
-        created_at: new Date()
-      });
+      // 1. Adjust existing payment record instead of inserting a negative row
+      const existingPayment = await trx('payments').where({ order_id: orderId }).where('amount', '>', 0).first();
+      if (existingPayment) {
+        await trx('payments')
+          .where({ id: existingPayment.id })
+          .update({ amount: Math.max(0, parseFloat(existingPayment.amount) - returnAmount) });
+      }
 
       // 2. Insert audit log into sales_return_logs
       await trx('sales_return_logs').insert({

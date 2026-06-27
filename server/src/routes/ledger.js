@@ -13,6 +13,7 @@ router.get('/', async (req, res) => {
     let query = db('payments')
       .join('orders', 'payments.order_id', 'orders.id')
       .leftJoin('restaurant_tables', 'orders.table_id', 'restaurant_tables.id')
+      .where('payments.amount', '>', 0)
       .select(
         'payments.*',
         'orders.id as order_id',
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
         db.raw(`(
           SELECT COALESCE(SUM(amount), 0)
           FROM payments p2
-          WHERE p2.order_id = orders.id
+          WHERE p2.order_id = orders.id AND p2.amount > 0
         ) as total_order_paid`)
       );
 
@@ -97,6 +98,7 @@ router.get('/summary', async (req, res) => {
     const { from, to } = req.query;
     
     let query = db('payments')
+      .where('payments.amount', '>', 0)
       .whereExists(function() {
         this.select(1).from('orders')
           .whereRaw('orders.id = payments.order_id')
@@ -151,7 +153,7 @@ router.get('/summary', async (req, res) => {
         db.raw(`(
           SELECT COALESCE(SUM(amount), 0)
           FROM payments
-          WHERE payments.order_id = orders.id
+          WHERE payments.order_id = orders.id AND payments.amount > 0
         ) as total_paid`)
       );
 
