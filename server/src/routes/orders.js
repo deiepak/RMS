@@ -319,6 +319,36 @@ router.get('/cancel-discount-report', verifyToken, requireRole(['admin']), async
   }
 });
 
+// GET /api/orders/sales-return-logs - fetch sales return logs
+router.get('/sales-return-logs', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { from, to, search } = req.query;
+    let query = db('sales_return_logs').select('*');
+
+    if (from) {
+      query = query.where('created_at', '>=', from);
+    }
+    if (to) {
+      query = query.where('created_at', '<=', to);
+    }
+    if (search) {
+      query = query.where(function() {
+        this.where('order_id', 'like', `%${search}%`)
+            .orWhere('item_name', 'like', `%${search}%`)
+            .orWhere('processed_by', 'like', `%${search}%`)
+            .orWhere('reason', 'like', `%${search}%`);
+      });
+    }
+
+    query = query.orderBy('created_at', 'desc');
+    const logs = await query;
+    res.json(logs);
+  } catch (err) {
+    console.error('Fetch sales return logs error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // GET /api/orders/:id - single order
 router.get('/:id', async (req, res) => {
   try {
@@ -1007,36 +1037,6 @@ router.delete('/:id', verifyToken, requireRole(['admin']), async (req, res) => {
     res.json({ message: 'Order deleted successfully.' });
   } catch (err) {
     console.error('Delete order error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-});
-
-// GET /api/orders/sales-return-logs - fetch sales return logs
-router.get('/sales-return-logs', verifyToken, requireRole(['admin']), async (req, res) => {
-  try {
-    const { from, to, search } = req.query;
-    let query = db('sales_return_logs').select('*');
-
-    if (from) {
-      query = query.where('created_at', '>=', from);
-    }
-    if (to) {
-      query = query.where('created_at', '<=', to);
-    }
-    if (search) {
-      query = query.where(function() {
-        this.where('order_id', 'like', `%${search}%`)
-            .orWhere('item_name', 'like', `%${search}%`)
-            .orWhere('processed_by', 'like', `%${search}%`)
-            .orWhere('reason', 'like', `%${search}%`);
-      });
-    }
-
-    query = query.orderBy('created_at', 'desc');
-    const logs = await query;
-    res.json(logs);
-  } catch (err) {
-    console.error('Fetch sales return logs error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
