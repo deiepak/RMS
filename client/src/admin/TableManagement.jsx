@@ -350,8 +350,104 @@ export default function TableManagement() {
     }
   };
 
+  const getSectionHeaderStyle = (section) => {
+    const s = (section || 'Main Hall').toLowerCase().trim();
+    if (s.includes('picnic')) {
+      return { 
+        background: '#10b981', 
+        borderBottom: '1px solid #059669', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    if (s.includes('upstairs') || s.includes('up ')) {
+      return { 
+        background: '#8b5cf6', 
+        borderBottom: '1px solid #7c3aed', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    if (s.includes('main') || s.includes('hall')) {
+      return { 
+        background: '#2563eb', 
+        borderBottom: '1px solid #1d4ed8', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    if (s.includes('ground') || s.includes('downstairs')) {
+      return { 
+        background: '#ea580c', 
+        borderBottom: '1px solid #c2410c', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    if (s.includes('garden') || s.includes('outdoor')) {
+      return { 
+        background: '#ca8a04', 
+        borderBottom: '1px solid #a16207', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    if (s.includes('vip') || s.includes('lounge')) {
+      return { 
+        background: '#db2777', 
+        borderBottom: '1px solid #be185d', 
+        color: '#ffffff',
+        borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+        borderTopRightRadius: 'calc(var(--radius) - 1px)'
+      };
+    }
+    // Default fallback using Premium Slate Grey
+    return { 
+      background: '#475569', 
+      borderBottom: '1px solid #334155', 
+      color: '#ffffff',
+      borderTopLeftRadius: 'calc(var(--radius) - 1px)',
+      borderTopRightRadius: 'calc(var(--radius) - 1px)'
+    };
+  };
+
   return (
     <div className="table-mgmt-page">
+      <style>
+        {`
+          @keyframes pulseRedGreen {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); border-color: var(--danger); }
+            50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.9); border-color: var(--success); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); border-color: var(--danger); }
+          }
+          .alert-pending {
+            animation: pulseRedGreen 1.5s infinite;
+            border-width: 2px !important;
+          }
+          @keyframes fullscreenPulseRedGreen {
+            0% { box-shadow: inset 0 0 50px 20px rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.05); }
+            50% { box-shadow: inset 0 0 100px 40px rgba(16, 185, 129, 0.5); background-color: rgba(16, 185, 129, 0.05); }
+            100% { box-shadow: inset 0 0 50px 20px rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.05); }
+          }
+          .fullscreen-alert {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            animation: fullscreenPulseRedGreen 1.5s infinite;
+          }
+        `}
+      </style>
+
+      {Object.values(activeOrders).some(order => order?.items?.some(item => item.status === 'pending')) && (
+        <div className="fullscreen-alert" />
+      )}
+
       {/* Header */}
       <div className="page-actions" style={{ flexWrap: 'wrap', gap: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div className="page-info">
@@ -414,11 +510,12 @@ export default function TableManagement() {
             .map((table) => {
               const hasActiveOrder = !!activeOrders[table.id];
               const displayStatus = hasActiveOrder ? 'occupied' : (table.status || 'available');
+              const hasPending = activeOrders[table.id]?.items?.some(item => item.status === 'pending');
               
               return (
             <div 
               key={table.id} 
-              className={`card table-card ${getStatusClass(displayStatus)}`}
+              className={`card table-card ${getStatusClass(displayStatus)} ${hasPending ? 'alert-pending' : ''}`}
               onMouseEnter={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const spaceBelow = window.innerHeight - rect.bottom;
@@ -442,7 +539,7 @@ export default function TableManagement() {
                 position: 'relative'
               }}
             >
-              <div className="table-card-header">
+              <div className="table-card-header" style={getSectionHeaderStyle(table.section)}>
                 <span className="table-number">{table.number}</span>
                 <span className={getStatusBadge(displayStatus)}>
                   {displayStatus}
@@ -813,8 +910,8 @@ export default function TableManagement() {
                     Order by Admin
                   </button>
                   <button 
-                    className="btn flex-1" 
-                    style={{ fontSize: '1rem', padding: '12px', background: 'var(--primary)', color: 'white', minWidth: '140px' }} 
+                    className="btn btn-primary flex-1" 
+                    style={{ fontSize: '1rem', padding: '12px', minWidth: '140px' }} 
                     onClick={(e) => { e.stopPropagation(); navigate('/admin/orders', { state: { autoPrintOrderId: viewOrderDetails.id } }); }}
                   >
                     Print Bill

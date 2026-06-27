@@ -37,17 +37,16 @@ export default function AdminCounterOrderModal({
         api.get('/menu/categories')
       ]);
       
+      const filteredItems = itemsRes.data.filter(i => i.category_name?.toLowerCase() !== 'adventures');
+
       const filteredCats = catsRes.data
         .filter(c => c.name.toLowerCase() !== 'adventures')
+        .filter(c => filteredItems.some(i => i.category_id === c.id))
         .sort((a, b) => a.name.localeCompare(b.name));
-        
-      const filteredItems = itemsRes.data.filter(i => i.category_name?.toLowerCase() !== 'adventures');
 
       setMenuItems(filteredItems);
       setCategories(filteredCats);
-      if (filteredCats.length > 0) {
-        setActiveCategory(filteredCats[0].id); // default to first category
-      }
+      setActiveCategory('all');
     } catch (error) {
       showToast('Failed to load menu', 'error');
     }
@@ -139,6 +138,21 @@ export default function AdminCounterOrderModal({
       <div style={{ width: '220px', minWidth: '220px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
         <div style={{ padding: '20px', fontWeight: 'bold', fontSize: '18px', borderBottom: '1px solid var(--border-color)' }}>Categories</div>
         <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+          <div 
+            onClick={() => setActiveCategory('all')}
+            style={{
+              padding: '12px 16px',
+              marginBottom: '8px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              background: activeCategory === 'all' ? 'var(--primary)' : 'transparent',
+              color: activeCategory === 'all' ? 'var(--primary-content)' : 'var(--text-primary)',
+              fontWeight: activeCategory === 'all' ? 'bold' : 'normal',
+              transition: 'all 0.2s'
+            }}
+          >
+            All Categories
+          </div>
           {categories.map(cat => (
             <div 
               key={cat.id}

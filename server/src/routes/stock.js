@@ -96,11 +96,22 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/transactions', async (req, res) => {
   try {
     const { id } = req.params;
-    const transactions = await db('stock_transactions')
+    const { from, to } = req.query;
+
+    let query = db('stock_transactions')
       .leftJoin('vendors', 'stock_transactions.vendor_id', 'vendors.id')
       .where('stock_transactions.stock_item_id', id)
       .select('stock_transactions.*', 'vendors.name as vendor_name')
       .orderBy('stock_transactions.created_at', 'desc');
+
+    if (from) {
+      query = query.where('stock_transactions.created_at', '>=', from);
+    }
+    if (to) {
+      query = query.where('stock_transactions.created_at', '<=', to);
+    }
+
+    const transactions = await query;
 
     // Enrich consume transactions with order details
     for (const tx of transactions) {

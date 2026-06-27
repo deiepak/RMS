@@ -7,7 +7,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { DollarSign, CreditCard, Smartphone, CheckCircle, Clock } from 'lucide-react';
 import Modal from '../components/Modal';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function AcceptPayment() {
   const [orders, setOrders] = useState([]);
@@ -15,6 +15,7 @@ export default function AcceptPayment() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentAmounts, setPaymentAmounts] = useState({ cash: '', card: '', online: '' });
+  const [customDiscountType, setCustomDiscountType] = useState('');
   const [collectedBy, setCollectedBy] = useState('');
   const [manualDiscount, setManualDiscount] = useState('');
   const [discountReason, setDiscountReason] = useState('');
@@ -27,6 +28,7 @@ export default function AcceptPayment() {
   const { settings } = useSettings();
   const { showToast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchOrders();
@@ -85,6 +87,8 @@ export default function AcceptPayment() {
     setCollectedBy(order.waiter_name || '');
     setManualDiscount('');
     setDiscountReason('');
+    setCashTendered('');
+    setCustomDiscountType('');
     setPaymentModalOpen(true);
   };
 
@@ -100,13 +104,20 @@ export default function AcceptPayment() {
       return showToast('Please select a discount reason.', 'warning');
     }
 
-    if (Math.abs(sum - total) > 0.01) {
+    if (md > 0 && discountReason === 'Custom' && !customDiscountType.trim()) {
+      return showToast('Please specify the Custom Discount Type (e.g. VIP, Staff, Festival).', 'warning');
+    }
+
+    if (Math.abs(sum - total) > 0.1) {
       return showToast(`Payment sum (${sum}) must perfectly match the grand total (${total}).`, 'warning');
     }
 
     if (cash > 0) {
-      setCashTendered(cash.toString());
-      setShowCashModal(true);
+      const tendered = parseFloat(cashTendered) || 0;
+      if (tendered < cash) {
+        return showToast('Cash tendered cannot be less than the cash payment amount.', 'warning');
+      }
+      finalizePayment(tendered, Math.max(0, tendered - cash));
     } else {
       finalizePayment(0, 0);
     }
@@ -130,7 +141,7 @@ export default function AcceptPayment() {
         payments,
         collected_by: collectedBy || user.name,
         manual_discount: md,
-        discount_reason: discountReason,
+        discount_reason: discountReason === 'Custom' ? `Custom: ${customDiscountType.trim()}` : discountReason,
         cash_tendered: tendered,
         change_due: changeDue
       });
@@ -142,7 +153,7 @@ export default function AcceptPayment() {
       if (window.confirm("Payment successful! Do you want to print the bill now?")) {
         navigate('/admin/orders', { state: { autoPrintOrderId: selectedOrder.id } });
       } else {
-        fetchOrders();
+        navigate('/admin/tables');
       }
     } catch (error) {
       showToast(error.response?.data?.error || 'Failed to process payment', 'error');
@@ -155,7 +166,7 @@ export default function AcceptPayment() {
   const currentSum = (parseFloat(paymentAmounts.cash) || 0) + (parseFloat(paymentAmounts.card) || 0) + (parseFloat(paymentAmounts.online) || 0);
   const totalBill = Math.max(0, (selectedOrder ? parseFloat(selectedOrder.total) : 0) - md);
   const remainingSum = Math.max(0, totalBill - currentSum);
-  const isMatch = Math.abs(currentSum - totalBill) < 0.01;
+  const isMatch = Math.abs(currentSum - totalBill) < 0.1;
   
   const maxPercent = parseFloat(settings?.max_discount_percent || '100');
   const subtotal = parseFloat(selectedOrder?.subtotal || 0);
@@ -229,7 +240,7 @@ export default function AcceptPayment() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setPaymentModalOpen(false)} disabled={isProcessing}>Cancel</button>
-            <button className="btn btn-success" onClick={handlePreConfirm} disabled={!isMatch || !isDiscountValid || isProcessing}>
+            <button className="btn btn-success" onClick={handlePreConfirm} disabled={!isMatch || !isDiscountValid || (parseFloat(paymentAmounts.cash) > 0 && (parseFloat(cashTendered) || 0) < parseFloat(paymentAmounts.cash)) || isProcessing}>
               {isProcessing ? 'Processing...' : 'Settle Bill'}
             </button>
           </>
@@ -274,7 +285,21 @@ export default function AcceptPayment() {
                 <option value="Quality issue">Quality issue</option>
                 <option value="Round off discount">Round off discount</option>
                 <option value="Personal discount">Personal discount</option>
+                <option value="Custom">Custom</option>
               </select>
+            </div>
+          )}
+          {parseFloat(manualDiscount) > 0 && discountReason === 'Custom' && (
+            <div className="form-group mb-0 mt-sm" style={{ paddingLeft: '16px', borderLeft: '3px solid var(--accent-primary)' }}>
+              <label className="form-label">Custom Discount Type</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="e.g. VIP Guest, Festival Offer, Staff Offer" 
+                value={customDiscountType}
+                onChange={e => setCustomDiscountType(e.target.value)} 
+                required
+              />
             </div>
           )}
         </div>
@@ -292,6 +317,29 @@ export default function AcceptPayment() {
               min="0"
               step="0.01"
             />
+            {parseFloat(paymentAmounts.cash) > 0 && (
+              <div className="flex-col gap-sm mt-md" style={{ paddingLeft: '16px', borderLeft: '3px solid var(--accent-primary)' }}>
+                <div className="form-group mb-0">
+                  <label className="form-label">Amount Tendered</label>
+                  <input 
+                    type="number" 
+                    className="form-input"
+                    value={cashTendered}
+                    onChange={(e) => setCashTendered(e.target.value)}
+                    onWheel={e => e.target.blur()}
+                    placeholder="0.00"
+                    min={parseFloat(paymentAmounts.cash) || 0}
+                    step="0.01"
+                  />
+                </div>
+                <div className="flex justify-between align-center p-sm" style={{ background: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius)', border: `1px solid ${((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)'}` }}>
+                  <span style={{ fontSize: 14, fontWeight: 'bold' }}>Return Amount:</span>
+                  <span style={{ fontSize: 16, fontWeight: 'bold', color: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)' }}>
+                    {((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? formatCurrency(Math.max(0, (parseFloat(cashTendered) || 0) - (parseFloat(paymentAmounts.cash) || 0))) : 'Enter valid tender'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="form-group mb-0">
             <label className="form-label flex align-center gap-sm"><CreditCard size={16} /> Card</label>
@@ -359,47 +407,7 @@ export default function AcceptPayment() {
         </div>
       </Modal>
 
-      {/* Cash Tendered Modal */}
-      <Modal
-        isOpen={showCashModal}
-        onClose={() => setShowCashModal(false)}
-        title="Cash Tendered"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setShowCashModal(false)} disabled={isProcessing}>Back</button>
-            <button 
-              className="btn btn-success" 
-              onClick={() => finalizePayment(parseFloat(cashTendered) || 0, Math.max(0, (parseFloat(cashTendered) || 0) - (parseFloat(paymentAmounts.cash) || 0)))}
-              disabled={isProcessing || (parseFloat(cashTendered) || 0) < parseFloat(paymentAmounts.cash)}
-            >
-              Confirm & Settle
-            </button>
-          </>
-        }
-      >
-        <div className="form-group">
-          <label className="form-label">Cash Tendered by Customer</label>
-          <input 
-            type="number" 
-            className="form-input"
-            value={cashTendered}
-            onChange={(e) => setCashTendered(e.target.value)}
-            min={parseFloat(paymentAmounts.cash) || 0}
-            step="0.01"
-            autoFocus
-          />
-        </div>
-        <div className="flex justify-between mt-md p-md" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 16 }}>Cash Required:</span>
-          <span style={{ fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(parseFloat(paymentAmounts.cash) || 0)}</span>
-        </div>
-        <div className="flex justify-between mt-md p-md" style={{ background: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius)', border: `1px solid ${((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)'}` }}>
-          <span style={{ fontSize: 18, fontWeight: 'bold' }}>Change Due:</span>
-          <span style={{ fontSize: 22, fontWeight: 'bold', color: ((parseFloat(cashTendered) || 0) >= (parseFloat(paymentAmounts.cash) || 0)) ? 'var(--success)' : 'var(--danger)' }}>
-            {formatCurrency(Math.max(0, (parseFloat(cashTendered) || 0) - (parseFloat(paymentAmounts.cash) || 0)))}
-          </span>
-        </div>
-      </Modal>
+
     </div>
   );
 }

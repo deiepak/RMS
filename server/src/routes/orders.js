@@ -217,6 +217,102 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/orders/cancel-discount-report - fetch cancelled and discounted orders with details
+router.get('/cancel-discount-report', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { from, to, discount_reason, custom_type } = req.query;
+
+    let cancelledQuery = db('orders')
+      .leftJoin('restaurant_tables', 'orders.table_id', 'restaurant_tables.id')
+      .leftJoin('order_items', 'orders.id', 'order_items.order_id')
+      .where(function() {
+        this.where('orders.status', 'cancelled')
+            .orWhere('order_items.status', 'rejected')
+            .orWhere('order_items.status', 'cancelled');
+      })
+      .select('orders.*', 'restaurant_tables.number as table_number')
+      .distinct();
+
+    let discountedQuery = db('orders')
+      .leftJoin('restaurant_tables', 'orders.table_id', 'restaurant_tables.id')
+      .where('orders.discount', '>', 0)
+      .select('orders.*', 'restaurant_tables.number as table_number');
+
+    if (from) {
+      cancelledQuery = cancelledQuery.where(function() {
+        this.where('orders.updated_at', '>=', from).orWhere('orders.created_at', '>=', from);
+      });
+      discountedQuery = discountedQuery.where(function() {
+        this.where('orders.updated_at', '>=', from).orWhere('orders.created_at', '>=', from);
+      });
+    }
+    if (to) {
+      cancelledQuery = cancelledQuery.where(function() {
+        this.where('orders.updated_at', '<=', to).orWhere('orders.created_at', '<=', to);
+      });
+      discountedQuery = discountedQuery.where(function() {
+        this.where('orders.updated_at', '<=', to).orWhere('orders.created_at', '<=', to);
+      });
+    }
+
+    if (discount_reason && discount_reason !== 'all') {
+      if (discount_reason === 'Custom') {
+        discountedQuery = discountedQuery.where('orders.discount_reason', 'like', 'Custom:%');
+      } else {
+        discountedQuery = discountedQuery.where('orders.discount_reason', discount_reason);
+      }
+    }
+
+    const [cancelledOrders, discountedOrders] = await Promise.all([cancelledQuery, discountedQuery]);
+
+    // Fetch order items for all matching orders to get full details and rejection/cancellation reasons
+    const allOrderIds = [...new Set([...cancelledOrders.map(o => o.id), ...discountedOrders.map(o => o.id)])];
+    let allItems = [];
+    if (allOrderIds.length > 0) {
+      allItems = await db('order_items')
+        .leftJoin('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+        .whereIn('order_items.order_id', allOrderIds)
+        .select('order_items.*', 'menu_items.name as item_name', 'menu_items.price as item_price');
+    }
+
+    // Attach items and derive cancel reason
+    cancelledOrders.forEach(order => {
+      const items = allItems.filter(i => i.order_id === order.id);
+      order.items = items;
+      const reasons = items.filter(i => i.status === 'rejected' || i.status === 'cancelled' || order.status === 'cancelled')
+                           .map(i => i.reject_reason || i.notes).filter(Boolean);
+      order.cancel_reason = reasons.length > 0 ? reasons.join(', ') : (order.status === 'cancelled' ? 'Cancelled by Kitchen / Admin' : 'Item(s) cancelled/rejected by Kitchen');
+      if (order.discount_reason?.startsWith('Custom:')) {
+        order.custom_discount_type = order.discount_reason.split('Custom:')[1].trim();
+      }
+    });
+
+    // Attach custom discount type logic for discounted orders
+    discountedOrders.forEach(order => {
+      const items = allItems.filter(i => i.order_id === order.id);
+      order.items = items;
+      if (order.discount_reason?.startsWith('Custom:')) {
+        order.custom_discount_type = order.discount_reason.split('Custom:')[1].trim();
+      }
+    });
+
+    // Filter by custom_type if specified
+    let finalDiscounted = discountedOrders;
+    if (discount_reason === 'Custom' && custom_type) {
+      finalDiscounted = discountedOrders.filter(o => o.custom_discount_type?.toLowerCase().includes(custom_type.toLowerCase()));
+    }
+
+    // Sort descending by date
+    cancelledOrders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    finalDiscounted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({ cancelled: cancelledOrders, discounted: finalDiscounted });
+  } catch (err) {
+    console.error('Cancel discount report error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // GET /api/orders/:id - single order
 router.get('/:id', async (req, res) => {
   try {
@@ -610,7 +706,7 @@ router.patch('/:id/payment-ready', verifyToken, requireRole(['waiter', 'admin'])
 // PATCH /api/orders/:id/payment - record payment (Admin)
 router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const { payments, collected_by, manual_discount, discount_reason, cash_tendered, change_due } = req.body;
+    const { payments, collected_by, manual_discount, discount_reason, cash_tendered, change_due, custom_payment_type } = req.body;
     const orderId = req.params.id;
 
     if (!payments || !Array.isArray(payments) || !collected_by) {
@@ -664,7 +760,8 @@ router.patch('/:id/payment', verifyToken, requireRole(['admin']), async (req, re
       payment_method: validPayments.length > 1 ? 'split' : (validPayments[0]?.method || 'cash'),
       updated_at: db.fn.now(),
       cash_tendered: parseFloat(cash_tendered || 0),
-      change_due: parseFloat(change_due || 0)
+      change_due: parseFloat(change_due || 0),
+      custom_payment_type: custom_payment_type || null
     };
     
     if (md > 0) {
@@ -880,6 +977,161 @@ router.post('/merge-table', verifyToken, requireRole(['admin']), async (req, res
   } catch (err) {
     console.error('Merge table error:', err);
     res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// DELETE /api/orders/:id - delete order by id from db
+router.delete('/:id', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await db('orders').where({ id }).first();
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    await db('orders').where({ id }).del();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('order:new'); // trigger general refresh
+    }
+
+    res.json({ message: 'Order deleted successfully.' });
+  } catch (err) {
+    console.error('Delete order error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// GET /api/orders/sales-return-logs - fetch sales return logs
+router.get('/sales-return-logs', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { from, to, search } = req.query;
+    let query = db('sales_return_logs').select('*');
+
+    if (from) {
+      query = query.where('created_at', '>=', from);
+    }
+    if (to) {
+      query = query.where('created_at', '<=', to);
+    }
+    if (search) {
+      query = query.where(function() {
+        this.where('order_id', 'like', `%${search}%`)
+            .orWhere('item_name', 'like', `%${search}%`)
+            .orWhere('processed_by', 'like', `%${search}%`)
+            .orWhere('reason', 'like', `%${search}%`);
+      });
+    }
+
+    query = query.orderBy('created_at', 'desc');
+    const logs = await query;
+    res.json(logs);
+  } catch (err) {
+    console.error('Fetch sales return logs error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// POST /api/orders/:id/sales-return - Process sales return for an order item
+router.post('/:id/sales-return', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { order_item_id, quantity, reason } = req.body;
+
+    const order = await db('orders').where({ id: orderId }).first();
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    const item = await db('order_items')
+      .join('menu_items', 'order_items.menu_item_id', 'menu_items.id')
+      .where('order_items.id', order_item_id)
+      .where('order_items.order_id', orderId)
+      .select('order_items.*', 'menu_items.name as item_name', 'menu_items.price')
+      .first();
+
+    if (!item) {
+      return res.status(404).json({ error: 'Order item not found.' });
+    }
+
+    const returnQty = parseInt(quantity || item.quantity);
+    if (returnQty <= 0 || returnQty > item.quantity) {
+      return res.status(400).json({ error: 'Invalid return quantity.' });
+    }
+
+    const itemPrice = parseFloat(item.price_at_order || item.price);
+    const returnAmount = itemPrice * returnQty;
+
+    await db.transaction(async trx => {
+      // 1. Record negative payment
+      await trx('payments').insert({
+        order_id: orderId,
+        amount: -returnAmount,
+        method: 'cash',
+        collected_by: req.user?.name || 'Admin',
+        created_at: new Date()
+      });
+
+      // 2. Insert audit log into sales_return_logs
+      await trx('sales_return_logs').insert({
+        order_id: orderId,
+        item_name: item.item_name || 'Item',
+        quantity: returnQty,
+        refund_amount: returnAmount,
+        reason: reason || 'No reason provided',
+        processed_by: req.user?.name || 'Admin',
+        created_at: new Date()
+      });
+
+      // 3. Adjust or delete order item
+      if (returnQty === item.quantity) {
+        await trx('order_items').where({ id: order_item_id }).delete();
+      } else {
+        await trx('order_items').where({ id: order_item_id }).update({
+          quantity: item.quantity - returnQty,
+          updated_at: trx.fn.now()
+        });
+      }
+
+      // 4. Restock inventory
+      const links = await trx('stock_menu_links').where({ menu_item_id: item.menu_item_id });
+      if (links.length > 0) {
+        for (const link of links) {
+          const addition = link.quantity_consumed * returnQty;
+          
+          await trx('stock_transactions').insert({
+            stock_item_id: link.stock_id,
+            transaction_type: 'return',
+            quantity: addition,
+            notes: `Sales return restock for Order #${orderId} (${reason || 'No reason provided'})`
+          });
+
+          const stockItem = await trx('stock_items').where({ id: link.stock_id }).first();
+          if (stockItem) {
+            await trx('stock_items')
+              .where({ id: link.stock_id })
+              .update({ 
+                quantity: Number(stockItem.quantity) + addition, 
+                updated_at: trx.fn.now() 
+              });
+          }
+        }
+      }
+    });
+
+    // 5. Recalculate order totals
+    await recalculateOrderTotals(orderId);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('order:new'); // trigger general refresh
+    }
+
+    res.json({ message: 'Sales return processed successfully', returnAmount });
+  } catch (error) {
+    console.error('Sales Return Error:', error);
+    res.status(500).json({ error: 'Failed to process sales return.' });
   }
 });
 

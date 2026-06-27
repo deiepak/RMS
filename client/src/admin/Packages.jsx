@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, X, Download, Package as PackageIcon, BookOpen, Calendar, User, Phone } from 'lucide-react';
+import { Plus, X, Download, Package as PackageIcon, BookOpen, Calendar, User, Phone, Banknote } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';

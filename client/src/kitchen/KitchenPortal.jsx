@@ -24,6 +24,12 @@ export default function KitchenPortal() {
   const [activeTab, setActiveTab] = useState('pending');
   const [counts, setCounts] = useState({ pending: 0, accepted: 0 });
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState([{ item_name: '', quantity: '', notes: '' }]);
@@ -56,7 +62,7 @@ export default function KitchenPortal() {
 
     const handleMessage = (msg) => {
       if (msg.target_stations && msg.target_stations.length > 0) {
-        if (!user?.station_id || !checkStationMatch(msg.target_stations, null, user.station_id)) {
+        if (!checkStationMatch(msg.target_stations, null, user?.station_id)) {
           return;
         }
       }
@@ -72,7 +78,7 @@ export default function KitchenPortal() {
 
     const handleVoiceChunk = (payload) => {
       if (payload.target_stations && payload.target_stations.length > 0) {
-        if (!user?.station_id || !checkStationMatch(payload.target_stations, null, user.station_id)) return;
+        if (!checkStationMatch(payload.target_stations, null, user?.station_id)) return;
       }
       import('../utils/audioStreamer').then(({ playAudioChunk }) => {
         playAudioChunk(payload.streamId, payload.chunk, payload.isFirstChunk);
@@ -140,6 +146,10 @@ export default function KitchenPortal() {
         <div className="flex align-center gap-md" onClick={() => setActiveTab('pending')} style={{ cursor: 'pointer' }}>
           <h2 style={{ fontFamily: 'Outfit', margin: 0, color: 'var(--warning)' }}>{user?.name || 'Kitchen'}</h2>
           {user?.station_id && <span className="badge badge-warning">Station Assigned</span>}
+          <div className="flex align-center gap-sm bg-secondary text-primary" style={{ padding: '6px 12px', borderRadius: 'var(--radius)', fontWeight: 600, fontSize: 16 }}>
+            <Clock size={18} className="text-warning" />
+            {currentTime.toLocaleTimeString()}
+          </div>
         </div>
         <div className="flex align-center gap-md">
           <button className="btn btn-primary flex align-center gap-sm btn-sm" onClick={() => setIsRequestModalOpen(true)}>

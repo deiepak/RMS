@@ -28,7 +28,8 @@ import {
   Tv,
   Volume2,
   VolumeX,
-  Share2
+  Share2,
+  Ban
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -45,6 +46,8 @@ const NAV_CATEGORIES = [
       { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
       { to: '/admin/counter', icon: ShoppingBag, label: 'Counter Orders' },
       { to: '/admin/payments', icon: DollarSign, label: 'Accept Payments' },
+      { to: '/admin/cancel-discount-orders', icon: Ban, label: 'Cancel / Discount Orders' },
+      { to: '/admin/sales-return', icon: Ban, label: 'Sales Return' },
       { to: '/admin/tables', icon: Grid3X3, label: 'Tables' },
       { to: '/admin/packages', icon: Package, label: 'Packages' },
     ]
@@ -112,6 +115,8 @@ const SECTION_TITLES = {
   '/admin/adventures/videos': 'Video Requests',
   '/admin/tv-content': 'TV Content Management',
   '/admin/social-media': 'Social Media & Marketing',
+  '/admin/cancel-discount-orders': 'Cancel / Discount Orders',
+  '/admin/sales-return': 'Sales Return Management',
 };
 
 export default function AdminPortal() {

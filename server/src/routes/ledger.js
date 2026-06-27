@@ -151,6 +151,7 @@ router.get('/summary', async (req, res) => {
 
     const ordersWithRefunds = await refundsQuery;
     let total_refunds = 0;
+    let partial_refunds_to_deduct = 0;
     ordersWithRefunds.forEach(o => {
       const paid = parseFloat(o.total_paid);
       if (o.status === 'cancelled') {
@@ -159,10 +160,12 @@ router.get('/summary', async (req, res) => {
         const expected = parseFloat(o.total);
         if (paid > expected) {
           total_refunds += (paid - expected);
+          partial_refunds_to_deduct += (paid - expected);
         }
       }
     });
 
+    summary.total_revenue = Math.max(0, summary.total_revenue - partial_refunds_to_deduct);
     summary.total_refunds = total_refunds;
 
     res.json(summary);

@@ -275,13 +275,23 @@ router.get('/stats', verifyToken, requireRole(['admin']), async (req, res) => {
 // GET /api/adventures/videos
 router.get('/videos', verifyToken, requireRole(['admin']), async (req, res) => {
   try {
-    const videos = await db('adventure_videos')
+    const { from, to } = req.query;
+    let query = db('adventure_videos')
       .join('orders', 'adventure_videos.order_id', 'orders.id')
       .select(
         'adventure_videos.*',
         'orders.order_name as customer_name',
         'orders.total as order_total'
-      )
+      );
+
+    if (from) {
+      query = query.where('adventure_videos.created_at', '>=', from);
+    }
+    if (to) {
+      query = query.where('adventure_videos.created_at', '<=', to);
+    }
+
+    const videos = await query
       .orderBy('adventure_videos.is_sent', 'asc') // Unsent first
       .orderBy('adventure_videos.created_at', 'desc');
     res.json(videos);

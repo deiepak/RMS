@@ -43,7 +43,7 @@ export default function WaiterPortal() {
     const handleMessage = (msg) => {
       if (msg.target_stations && msg.target_stations.length > 0) {
         import('../utils/helpers').then(({ checkStationMatch }) => {
-          if (!user?.station_id || !checkStationMatch(msg.target_stations, null, user.station_id)) return;
+          if (!checkStationMatch(msg.target_stations, null, user?.station_id)) return;
           processMessage(msg);
         });
         return;
@@ -65,7 +65,7 @@ export default function WaiterPortal() {
     const handleVoiceChunk = (payload) => {
       if (payload.target_stations && payload.target_stations.length > 0) {
         import('../utils/helpers').then(({ checkStationMatch }) => {
-          if (!user?.station_id || !checkStationMatch(payload.target_stations, null, user.station_id)) return;
+          if (!checkStationMatch(payload.target_stations, null, user?.station_id)) return;
           import('../utils/audioStreamer').then(({ playAudioChunk }) => {
             playAudioChunk(payload.streamId, payload.chunk, payload.isFirstChunk);
           });

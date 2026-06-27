@@ -14,6 +14,7 @@ const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981'];
 export default function ExpensesReport() {
   const [summary, setSummary] = useState(null);
   const [dailyData, setDailyData] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
   
@@ -22,6 +23,7 @@ export default function ExpensesReport() {
     category: '',
     amount: '',
     payment_method: 'cash',
+    vendor_id: '',
     description: ''
   });
 
@@ -75,13 +77,15 @@ export default function ExpensesReport() {
       setIsLoading(true);
       const queryParams = `?from=${filters.from} 00:00:00&to=${filters.to} 23:59:59`;
       
-      const [summaryRes, dailyRes] = await Promise.all([
+      const [summaryRes, dailyRes, vendorsRes] = await Promise.all([
         api.get(`/expenses/summary${queryParams}`),
-        api.get(`/expenses/daily${queryParams}`)
+        api.get(`/expenses/daily${queryParams}`),
+        api.get('/vendors')
       ]);
       
       setSummary(summaryRes.data);
       setDailyData(dailyRes.data);
+      setVendors(vendorsRes.data);
     } catch (error) {
       showToast('Failed to load expenses data', 'error');
     } finally {
@@ -91,14 +95,22 @@ export default function ExpensesReport() {
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
+    if (!newExpense.vendor_id) {
+      showToast('Vendor is required. No vendor means no payment.', 'error');
+      return;
+    }
+    if (!newExpense.description || !newExpense.description.trim()) {
+      showToast('Description is compulsory.', 'error');
+      return;
+    }
     try {
       await api.post('/expenses/custom', newExpense);
       showToast('Expense recorded successfully', 'success');
       setIsModalOpen(false);
-      setNewExpense({ category: '', amount: '', payment_method: 'cash', description: '' });
+      setNewExpense({ category: '', amount: '', payment_method: 'cash', vendor_id: '', description: '' });
       fetchData();
     } catch (error) {
-      showToast('Failed to record expense', 'error');
+      showToast(error.response?.data?.error || 'Failed to record expense', 'error');
     }
   };
 
@@ -248,6 +260,20 @@ export default function ExpensesReport() {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Custom Expense">
         <form onSubmit={handleAddExpense} className="flex-col gap-md">
           <div className="form-group">
+            <label>Vendor (Compulsory - No vendor means no payment)</label>
+            <select 
+              className="form-select" 
+              required
+              value={newExpense.vendor_id}
+              onChange={e => setNewExpense({...newExpense, vendor_id: e.target.value})}
+            >
+              <option value="">Select Vendor</option>
+              {vendors.map(v => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
             <label>Category</label>
             <input 
               type="text" 
@@ -284,10 +310,12 @@ export default function ExpensesReport() {
             </select>
           </div>
           <div className="form-group">
-            <label>Description (Optional)</label>
+            <label>Description (Compulsory)</label>
             <textarea 
               className="form-input" 
               rows="3"
+              required
+              placeholder="Provide expense details..."
               value={newExpense.description}
               onChange={e => setNewExpense({...newExpense, description: e.target.value})}
             ></textarea>

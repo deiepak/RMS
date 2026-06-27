@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDragScroll } from '../hooks/useDragScroll';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Settings, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Settings, CheckCircle, XCircle, Search } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function MenuManagement() {
@@ -10,6 +10,7 @@ export default function MenuManagement() {
   const [categories, setCategories] = useState([]);
   const [stations, setStations] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -176,18 +177,30 @@ export default function MenuManagement() {
     setIsCategoryModalOpen(true);
   };
 
-  const filteredItems = activeCategory === 'all' 
-    ? items 
-    : items.filter(i => i.category_id === activeCategory);
+  const filteredItems = items.filter(i => {
+    const matchCategory = activeCategory === 'all' || i.category_id === activeCategory;
+    const matchSearch = !searchQuery || i.name?.toLowerCase().includes(searchQuery.toLowerCase()) || i.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   return (
     <div className="admin-content" style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
-      <div className="admin-header flex justify-between align-center mb-lg">
+      <div className="admin-header flex justify-between align-center mb-lg flex-wrap gap-md">
         <div>
           <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '24px', fontWeight: 600 }}>Menu Management</h2>
           <p className="text-secondary" style={{ margin: '5px 0 0 0', fontSize: '14px' }}>Manage categories, items, and availability</p>
         </div>
-        <div className="flex gap-md">
+        <div className="flex gap-md align-center flex-wrap">
+          <div className="input-with-icon" style={{ width: '280px' }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search items by name or description..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
           <button className="btn btn-secondary flex align-center gap-sm" onClick={() => setIsCategoryManageModalOpen(true)} style={{ transition: 'all 0.2s' }}>
             <Settings size={18} /> Manage Categories
           </button>

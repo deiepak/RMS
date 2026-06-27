@@ -195,18 +195,18 @@ export default function FinancialLog() {
                 </thead>
                 <tbody>
                   {logs.map((log, index) => (
-                    <tr key={index} style={{ backgroundColor: log.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : log.type === 'cash_flow' ? 'rgba(99, 102, 241, 0.05)' : 'rgba(239, 68, 68, 0.05)' }}>
+                    <tr key={index} style={{ backgroundColor: log.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : log.type === 'income_reduction' ? 'rgba(245, 158, 11, 0.05)' : log.type === 'cash_flow' ? 'rgba(99, 102, 241, 0.05)' : 'rgba(239, 68, 68, 0.05)' }}>
                       <td>{formatDateTime(log.created_at)}</td>
                       <td>
-                        <span className={`badge ${log.type === 'income' ? 'badge-success' : log.type === 'cash_flow' ? 'badge-info' : 'badge-danger'}`}>
-                          {log.type === 'cash_flow' ? 'CASH FLOW' : log.type.toUpperCase()}
+                        <span className={`badge ${log.type === 'income' ? 'badge-success' : log.type === 'income_reduction' ? 'badge-warning' : log.type === 'cash_flow' ? 'badge-info' : 'badge-danger'}`}>
+                          {log.type === 'cash_flow' ? 'CASH FLOW' : log.type === 'income_reduction' ? 'SALES RETURN' : log.type.toUpperCase()}
                         </span>
                       </td>
                       <td>{(log.category || '').replace(/_/g, ' ')}</td>
                       <td>{log.description}</td>
                       <td><span style={{ textTransform: 'capitalize' }}>{log.payment_method || '-'}</span></td>
-                      <td style={{ textAlign: 'right', fontWeight: 500 }} className="text-success">
-                        {parseFloat(log.amount_in) > 0 ? formatCurrency(log.amount_in) : '-'}
+                      <td style={{ textAlign: 'right', fontWeight: 500 }} className={log.type === 'income_reduction' ? "text-warning" : "text-success"}>
+                        {parseFloat(log.amount_in) !== 0 ? formatCurrency(log.amount_in) : '-'}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 500 }} className="text-danger">
                         {parseFloat(log.amount_out) > 0 ? formatCurrency(log.amount_out) : '-'}

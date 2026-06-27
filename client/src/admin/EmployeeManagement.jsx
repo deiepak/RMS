@@ -44,7 +44,8 @@ export default function EmployeeManagement() {
     { id: '/admin/adventures/sell', label: 'Sell Adventure' },
     { id: '/admin/adventures/scan', label: 'Scan Adventure' },
     { id: '/admin/adventures/videos', label: 'Adventure Videos' },
-    { id: '/admin/tv-content', label: 'TV Content' }
+    { id: '/admin/tv-content', label: 'TV Content' },
+    { id: '/admin/cancel-discount-orders', label: 'Cancel / Discount Orders' }
   ];
 
   const initialFormState = { 

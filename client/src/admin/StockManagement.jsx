@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, Edit2, Trash2, AlertTriangle, ShoppingBag, History } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle, ShoppingBag, History, Download } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function StockManagement() {
@@ -41,6 +41,43 @@ export default function StockManagement() {
   const [itemHistory, setItemHistory] = useState([]);
   const [historyLinks, setHistoryLinks] = useState([]);
   const [historyStockItem, setHistoryStockItem] = useState(null);
+  const [historyFilters, setHistoryFilters] = useState({
+    period: 'today',
+    from: '',
+    to: ''
+  });
+
+  const setHistoryDateRange = (period) => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23,59,59,999);
+    
+    let fromDate = new Date(today);
+    
+    if (period === 'today') {
+      fromDate = today;
+    } else if (period === 'week') {
+      fromDate.setDate(today.getDate() - 7);
+    } else if (period === 'month') {
+      fromDate.setMonth(today.getMonth() - 1);
+    }
+
+    if (period !== 'custom') {
+      setHistoryFilters(prev => ({
+        ...prev,
+        period,
+        from: fromDate.toISOString().split('T')[0],
+        to: endOfDay.toISOString().split('T')[0]
+      }));
+    } else {
+      setHistoryFilters(prev => ({ ...prev, period }));
+    }
+  };
+
+  useEffect(() => {
+    setHistoryDateRange('today');
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -221,9 +258,13 @@ export default function StockManagement() {
     setIsModalOpen(true);
   };
 
-  const fetchHistory = async (item) => {
+  const fetchHistory = async (item, customFilters = historyFilters) => {
     try {
-      const res = await api.get(`/stock/${item.id}/transactions`);
+      const queryParams = new URLSearchParams();
+      if (customFilters.from) queryParams.append('from', `${customFilters.from} 00:00:00`);
+      if (customFilters.to) queryParams.append('to', `${customFilters.to} 23:59:59`);
+
+      const res = await api.get(`/stock/${item.id}/transactions?${queryParams.toString()}`);
       setItemHistory(res.data.transactions || []);
       setHistoryLinks(res.data.links || []);
       setHistoryStockItem(res.data.stockItem || null);
@@ -232,6 +273,45 @@ export default function StockManagement() {
     } catch (error) {
       showToast('Failed to load history', 'error');
     }
+  };
+
+  useEffect(() => {
+    if (historyModalOpen && historyItem) {
+      fetchHistory(historyItem, historyFilters);
+    }
+  }, [historyFilters]);
+
+  const handleExportHistoryCsv = () => {
+    if (itemHistory.length === 0) {
+      showToast('No transaction data to export', 'error');
+      return;
+    }
+
+    const headers = ['Date', 'Type', 'Quantity', 'Details'];
+    const rows = itemHistory.map(tx => {
+      let details = '';
+      if (tx.order) {
+        details = `"${(tx.order.order_type === 'counter' ? tx.order.order_name : `Table ${tx.order.table_number}`) || ''} - Order #${tx.order.id} - ${tx.order.status}"`;
+      } else {
+        details = `"${tx.notes?.replace(/"/g, '""') || ''}"`;
+      }
+      return [
+        new Date(tx.created_at).toLocaleString().replace(/,/g, ''),
+        tx.transaction_type.toUpperCase(),
+        (tx.transaction_type === 'purchase' || tx.transaction_type === 'return' ? '+' : '-') + tx.quantity,
+        details
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `stock-transactions_${historyItem?.name}_${historyFilters.from}_to_${historyFilters.to}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDismissRequest = async (id) => {
@@ -258,9 +338,9 @@ export default function StockManagement() {
         </div>
       </div>
 
-      <div className="tabs mb-lg">
-        <button className={`tab ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>General Stock</button>
-        <button className={`tab ${activeTab === 'kitchen' ? 'active' : ''}`} onClick={() => setActiveTab('kitchen')}>Kitchen Stock</button>
+      <div className="tab-bar mb-lg" style={{ display: 'inline-flex' }}>
+        <button className={`tab-item ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>General Stock</button>
+        <button className={`tab-item ${activeTab === 'kitchen' ? 'active' : ''}`} onClick={() => setActiveTab('kitchen')}>Kitchen Stock</button>
       </div>
 
       {/* Kitchen Requests Section */}
@@ -722,9 +802,17 @@ export default function StockManagement() {
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
         title={historyItem ? `Stock Details — ${historyItem.name}` : 'Stock Details'}
-        footer={<button className="btn btn-secondary" onClick={() => setHistoryModalOpen(false)}>Close</button>}
+        maxWidth="850px"
+        footer={
+          <div className="flex justify-between w-full align-center">
+            <button className="btn btn-secondary flex align-center gap-sm" onClick={handleExportHistoryCsv} disabled={itemHistory.length === 0}>
+              <Download size={16} /> Export CSV
+            </button>
+            <button className="btn btn-secondary ml-auto" onClick={() => setHistoryModalOpen(false)}>Close</button>
+          </div>
+        }
       >
-        <div style={{ maxHeight: '65vh', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '85vh', overflowY: 'auto', paddingRight: '4px' }}>
           {/* Stock Item Summary */}
           {historyStockItem && (
             <div className="flex gap-lg mb-lg p-md bg-secondary" style={{ borderRadius: 'var(--radius)' }}>
@@ -759,8 +847,23 @@ export default function StockManagement() {
             </div>
           )}
 
-          {/* Transaction History */}
-          <h4 className="mb-sm">Transaction History</h4>
+          {/* Transaction History Header & Filters */}
+          <div className="flex justify-between align-center mb-md mt-md flex-wrap gap-md">
+            <h4 className="mb-0">Transaction History</h4>
+            <div className="filter-bar">
+              <button className={`filter-btn ${historyFilters.period === 'today' ? 'active' : ''}`} onClick={() => setHistoryDateRange('today')}>Today</button>
+              <button className={`filter-btn ${historyFilters.period === 'week' ? 'active' : ''}`} onClick={() => setHistoryDateRange('week')}>This Week</button>
+              <button className={`filter-btn ${historyFilters.period === 'month' ? 'active' : ''}`} onClick={() => setHistoryDateRange('month')}>This Month</button>
+              <button className={`filter-btn ${historyFilters.period === 'custom' ? 'active' : ''}`} onClick={() => setHistoryDateRange('custom')}>Custom</button>
+            </div>
+          </div>
+          {historyFilters.period === 'custom' && (
+            <div className="flex gap-md align-center mb-md justify-end">
+              <input type="date" className="form-input w-auto" value={historyFilters.from} onChange={e => setHistoryFilters(prev => ({...prev, from: e.target.value}))} />
+              <span>to</span>
+              <input type="date" className="form-input w-auto" value={historyFilters.to} onChange={e => setHistoryFilters(prev => ({...prev, to: e.target.value}))} />
+            </div>
+          )}
           {itemHistory.length === 0 ? (
             <div className="text-center text-secondary p-xl">No transactions recorded for this item.</div>
           ) : (

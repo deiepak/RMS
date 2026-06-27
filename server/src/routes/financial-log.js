@@ -15,9 +15,9 @@ router.get('/', async (req, res) => {
       .join('orders', 'payments.order_id', 'orders.id')
       .select(
         'payments.created_at',
-        db.raw("'income' as type"),
-        db.raw("'order_payment' as category"),
-        db.raw("CONCAT('Order #', orders.id) as description"),
+        db.raw("IF(payments.amount < 0, 'income_reduction', 'income') as type"),
+        db.raw("IF(payments.amount < 0, 'sales_return', 'order_payment') as category"),
+        db.raw("IF(payments.amount < 0, CONCAT('Sales Return (Order #', orders.id, ')'), CONCAT('Order #', orders.id)) as description"),
         'payments.amount as amount_in',
         db.raw('0 as amount_out'),
         'payments.method as payment_method'
@@ -40,6 +40,7 @@ router.get('/', async (req, res) => {
       .join('vendors', 'vendor_ledgers.vendor_id', 'vendors.id')
       .where('vendor_ledgers.transaction_type', 'purchase')
       .whereNot('vendor_ledgers.notes', 'like', 'Maintenance Repair:%')
+      .whereNot('vendor_ledgers.notes', 'like', 'Custom Expense%')
       .select(
         'vendor_ledgers.created_at',
         db.raw("'expense' as type"),
@@ -101,17 +102,6 @@ router.get('/', async (req, res) => {
         db.raw("'cash' as payment_method")
       );
 
-    let customQuery = db('expense_logs')
-      .select(
-        'created_at',
-        db.raw("'expense' as type"),
-        'category',
-        'description',
-        db.raw('0 as amount_in'),
-        'amount as amount_out',
-        'payment_method'
-      );
-
     // Apply Date Filters
     const applyDateFilter = (query) => {
       let q = query;
@@ -136,7 +126,6 @@ router.get('/', async (req, res) => {
     vendorPaymentsQuery = applyDateFilterJoined(vendorPaymentsQuery, 'vendor_ledgers');
     hrQuery = applyDateFilterJoined(hrQuery, 'employee_payments');
     maintenanceQuery = applyDateFilter(maintenanceQuery);
-    customQuery = applyDateFilter(customQuery);
 
     let allQueries = [];
 
@@ -144,7 +133,7 @@ router.get('/', async (req, res) => {
       allQueries.push(orderPaymentsQuery, packagePaymentsQuery, vendorReturnsQuery);
     }
     if (type === 'expense' || type === 'all') {
-      allQueries.push(vendorPurchasesQuery, hrQuery, maintenanceQuery, customQuery);
+      allQueries.push(vendorPurchasesQuery, hrQuery, maintenanceQuery);
     }
     if (type === 'cash_flow' || type === 'all') {
       allQueries.push(vendorPaymentsQuery);

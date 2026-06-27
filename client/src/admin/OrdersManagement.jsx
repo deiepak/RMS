@@ -17,7 +17,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { numberToWords } from '../utils/helpers';
 import { formatToBS } from '../utils/nepaliDate';
 import Modal from '../components/Modal';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../index.css';
 
 const STATUS_OPTIONS = [
@@ -76,34 +76,41 @@ export default function OrdersManagement() {
   const { settings } = useSettings();
   const refreshInterval = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const hasAutoPrinted = useRef(false);
 
   useEffect(() => {
-    if (location.state?.autoPrintOrderId && !loading) {
-      const order = orders.find(o => (o.id || o._id) === location.state.autoPrintOrderId);
-      if (order) {
-        setPrintOrderModal(order);
-        // Clear state to prevent reopening on refresh
-        window.history.replaceState({}, document.title);
-        // Slight delay to allow the modal to render before triggering print
+    if (location.state?.autoPrintOrderId && !loading && !hasAutoPrinted.current) {
+      hasAutoPrinted.current = true;
+      const orderId = location.state.autoPrintOrderId;
+      // Clear location state in React Router immediately so it never re-triggers on re-renders
+      navigate('.', { replace: true, state: {} });
+
+      const executePrint = (orderData) => {
+        setPrintOrderModal(orderData);
         setTimeout(() => {
           window.print();
+          // After print dialog closes (whether printed or cancelled), navigate back to tables
+          setTimeout(() => {
+            navigate('/admin/tables');
+          }, 500);
         }, 500);
+      };
+
+      const order = orders.find(o => (o.id || o._id) === orderId);
+      if (order) {
+        executePrint(order);
       } else {
-        // If the order isn't in the current view, we might need to fetch it
-        api.get(`/orders/${location.state.autoPrintOrderId}`)
+        api.get(`/orders/${orderId}`)
           .then(res => {
             if (res.data) {
-              setPrintOrderModal(res.data);
-              window.history.replaceState({}, document.title);
-              setTimeout(() => {
-                window.print();
-              }, 500);
+              executePrint(res.data);
             }
           })
           .catch(err => console.error("Could not fetch order for auto-print", err));
       }
     }
-  }, [location.state, orders, loading]);
+  }, [location.state, orders, loading, navigate]);
 
   const handleToggleKOTItem = (orderId, itemId) => {
     setSelectedForKOT(prev => {
@@ -230,6 +237,9 @@ export default function OrdersManagement() {
   };
 
   const filteredOrders = orders.filter((o) => {
+    if (statusFilter && o.status !== statusFilter) return false;
+    if (dateFilter && o.created_at && !o.created_at.startsWith(dateFilter)) return false;
+
     const isAdventureOrder = 
       (o.items || []).some(i => i.category_name?.toLowerCase() === 'adventures') ||
       (o.order_name && o.order_name.toLowerCase().includes('adventure'));
