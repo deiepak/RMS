@@ -25,7 +25,7 @@ export default function SalesReturn() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [logsSearch, setLogsSearch] = useState('');
   const [filters, setFilters] = useState({
-    period: 'month',
+    period: 'today',
     from: '',
     to: ''
   });
@@ -62,7 +62,7 @@ export default function SalesReturn() {
   };
 
   useEffect(() => {
-    setDateRange('month');
+    setDateRange('today');
     fetchRecentOrders();
     // eslint-disable-next-line
   }, []);
@@ -215,8 +215,8 @@ export default function SalesReturn() {
             </form>
           </div>
 
-          <div className="grid grid-cols-12 gap-lg">
-            <div className={`col-span-${selectedOrder ? '5' : '12'}`}>
+          <div style={{ display: 'flex', gap: '24px', flexDirection: window.innerWidth < 1024 ? 'column' : 'row' }}>
+            <div style={{ flex: selectedOrder ? '1 1 40%' : '1 1 100%', minWidth: 0 }}>
               <div className="card">
                 <div className="card-header">
                   <h3>{searchTerm ? 'Search Results' : 'Recent Orders'}</h3>
@@ -270,7 +270,7 @@ export default function SalesReturn() {
             </div>
 
             {selectedOrder && (
-              <div className="col-span-7">
+              <div style={{ flex: '1 1 60%', minWidth: 0 }}>
                 <div className="card">
                   <div className="card-header flex justify-between align-center">
                     <h3>Order Details - ORD-{selectedOrder.id}</h3>
