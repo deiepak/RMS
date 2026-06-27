@@ -71,11 +71,17 @@ router.get('/', async (req, res) => {
       is_package: true
     }));
 
+    const salesReturnsByOrder = await db('sales_return_logs')
+      .select('order_id', db.raw('SUM(refund_amount) as refund_total'))
+      .groupBy('order_id');
+    const returnMap = {};
+    salesReturnsByOrder.forEach(r => { returnMap[r.order_id] = parseFloat(r.refund_total); });
+
     const formattedPayments = payments.map(p => ({
       ...p,
-      order_refund: p.order_status === 'cancelled' 
+      order_refund: (p.order_status === 'cancelled' 
         ? parseFloat(p.total_order_paid) 
-        : Math.max(0, parseFloat(p.total_order_paid) - parseFloat(p.order_total))
+        : Math.max(0, parseFloat(p.total_order_paid) - parseFloat(p.order_total))) + (returnMap[p.order_id] || 0)
     }));
 
     const allPayments = [...formattedPayments, ...formattedPkgPayments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -165,8 +171,15 @@ router.get('/summary', async (req, res) => {
       }
     });
 
+    const salesReturns = await db('sales_return_logs')
+      .where(function() {
+        if (from) this.where('created_at', '>=', from);
+        if (to) this.where('created_at', '<=', to);
+      })
+      .select(db.raw('COALESCE(SUM(refund_amount), 0) as total_sales_return'));
+
     summary.total_revenue = Math.max(0, summary.total_revenue - partial_refunds_to_deduct);
-    summary.total_refunds = total_refunds;
+    summary.total_refunds = total_refunds + parseFloat(salesReturns[0]?.total_sales_return || 0);
 
     res.json(summary);
   } catch (error) {

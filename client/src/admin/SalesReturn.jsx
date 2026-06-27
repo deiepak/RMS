@@ -63,20 +63,24 @@ export default function SalesReturn() {
 
   useEffect(() => {
     setDateRange('today');
-    fetchRecentOrders();
     // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
-    if (filters.from && filters.to && activeTab === 'logs') {
-      fetchLogs();
+    if (filters.from && filters.to) {
+      if (activeTab === 'logs') {
+        fetchLogs();
+      } else if (activeTab === 'process' && !searchTerm.trim()) {
+        fetchRecentOrders();
+      }
     }
   }, [filters, activeTab, logsSearch]);
 
   const fetchRecentOrders = async () => {
+    if (!filters.from || !filters.to) return;
     try {
       setSearching(true);
-      const res = await api.get('/orders?status=completed,active&limit=20');
+      const res = await api.get(`/orders?status=completed,active&from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`);
       setOrders(res.data || []);
     } catch (error) {
       showToast('Failed to load recent orders', 'error');
@@ -156,7 +160,7 @@ export default function SalesReturn() {
         await fetchRecentOrders();
         if (selectedOrder) {
           // Update selected order reference if it exists in recent orders
-          const searchRes = await api.get('/orders?status=completed,active&limit=20');
+          const searchRes = await api.get(`/orders?status=completed,active&from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`);
           const updated = (searchRes.data || []).find(o => o.id === selectedOrder.id);
           setSelectedOrder(updated || null);
         }
@@ -193,6 +197,23 @@ export default function SalesReturn() {
       {activeTab === 'process' && (
         <div>
           <div className="card mb-lg" style={{ padding: 20 }}>
+            <div className="flex gap-lg flex-wrap align-center mb-md">
+              <div className="flex gap-sm bg-secondary" style={{ padding: 4, borderRadius: 'var(--radius)' }}>
+                <button className={`btn ${filters.period === 'today' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => { setSearchTerm(''); setDateRange('today'); }}>Today</button>
+                <button className={`btn ${filters.period === 'week' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => { setSearchTerm(''); setDateRange('week'); }}>This Week</button>
+                <button className={`btn ${filters.period === 'month' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => { setSearchTerm(''); setDateRange('month'); }}>This Month</button>
+                <button className={`btn ${filters.period === 'custom' ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ border: 'none' }} onClick={() => { setSearchTerm(''); setDateRange('custom'); }}>Custom Range</button>
+              </div>
+
+              {filters.period === 'custom' && (
+                <div className="flex gap-md align-center">
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
+                  <span className="text-secondary">to</span>
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleSearchOrder} className="flex gap-md align-center">
               <div className="input-with-icon flex-1">
                 <Search size={18} />

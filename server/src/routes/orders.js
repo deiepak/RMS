@@ -168,9 +168,15 @@ router.get('/', async (req, res) => {
             .orWhereNotIn('orders.status', ['completed', 'cancelled', 'merged']);
       });
     }
+    if (req.query.from) {
+      query.where('orders.created_at', '>=', req.query.from);
+    }
+    if (req.query.to) {
+      query.where('orders.created_at', '<=', req.query.to);
+    }
 
     // Safety limit to prevent memory crashes when fetching all history (date cleared)
-    if (!req.query.date && !req.query.status && !req.query.table_id) {
+    if (!req.query.date && !req.query.from && !req.query.status && !req.query.table_id) {
       query.limit(200);
     }
 
@@ -332,6 +338,8 @@ router.get('/:id', async (req, res) => {
       .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
       .where('order_items.order_id', order.id)
       .select('order_items.*', 'menu_items.name as item_name', 'menu_items.name_np as item_name_np', 'menu_items.price', 'menu_items.station_ids', 'menu_categories.name as category_name');
+
+    order.sales_returns = await db('sales_return_logs').where('order_id', order.id);
 
     res.json(order);
   } catch (err) {

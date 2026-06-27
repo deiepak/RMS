@@ -435,6 +435,15 @@ export default function BooksLedger() {
                   <div>{formatCurrency((item.price_at_order || item.price) * item.quantity)}</div>
                 </div>
               ))}
+              {selectedOrder.sales_returns?.map(ret => (
+                <div key={ret.id} className="flex justify-between align-center mb-sm text-secondary" style={{ textDecoration: 'line-through' }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{ret.quantity}x</span> {ret.item_name}
+                    <span className="badge badge-warning ml-sm" style={{ textDecoration: 'none', display: 'inline-block' }}>Sales Return</span>
+                  </div>
+                  <div>-{formatCurrency(ret.refund_amount)}</div>
+                </div>
+              ))}
             </div>
 
             <div className="flex-col gap-sm">
