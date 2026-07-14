@@ -46,6 +46,7 @@ import TVContentManagement from './admin/TVContentManagement';
 import SocialMediaManagement from './admin/SocialMediaManagement';
 import CancelDiscountOrders from './admin/CancelDiscountOrders';
 import SalesReturn from './admin/SalesReturn';
+import CCTVMonitoring from './admin/CCTVMonitoring';
 
 const App = () => {
   return (
@@ -126,6 +127,7 @@ const App = () => {
                   <Route path="social-media" element={<SocialMediaManagement />} />
                   <Route path="cancel-discount-orders" element={<CancelDiscountOrders />} />
                   <Route path="sales-return" element={<SalesReturn />} />
+                  <Route path="cctv" element={<CCTVMonitoring />} />
                 </Route>
               </Routes>
             </SocketProvider>

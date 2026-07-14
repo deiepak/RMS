@@ -29,7 +29,8 @@ import {
   Volume2,
   VolumeX,
   Share2,
-  Ban
+  Ban,
+  Video
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -88,6 +89,7 @@ const NAV_CATEGORIES = [
       { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
       { to: '/admin/stations', icon: Settings, label: 'Stations' },
       { to: '/admin/tv-content', icon: Tv, label: 'TV Content' },
+      { to: '/admin/cctv', icon: Video, label: 'CCTV Monitoring' },
       { to: '/admin/social-media', icon: Share2, label: 'Social Media' },
       { to: '/admin/communication', icon: MessageSquare, label: 'Communication' },
       { to: '/admin/settings', icon: Settings, label: 'Settings' },
@@ -117,6 +119,7 @@ const SECTION_TITLES = {
   '/admin/social-media': 'Social Media & Marketing',
   '/admin/cancel-discount-orders': 'Cancel / Discount Orders',
   '/admin/sales-return': 'Sales Return Management',
+  '/admin/cctv': 'CCTV Monitoring',
 };
 
 export default function AdminPortal() {
