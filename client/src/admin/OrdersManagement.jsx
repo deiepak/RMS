@@ -63,7 +63,7 @@ export default function OrdersManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState(new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
-  const [showAdventureOnly, setShowAdventureOnly] = useState(false);
+  const [orderType, setOrderType] = useState('both');
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
   const [printOrderModal, setPrintOrderModal] = useState(null);
@@ -244,8 +244,8 @@ export default function OrdersManagement() {
       (o.items || []).some(i => i.category_name?.toLowerCase() === 'adventures') ||
       (o.order_name && o.order_name.toLowerCase().includes('adventure'));
       
-    if (showAdventureOnly && !isAdventureOrder) return false;
-    if (!showAdventureOnly && isAdventureOrder) return false;
+    if (orderType === 'adventure' && !isAdventureOrder) return false;
+    if (orderType === 'restaurant' && isAdventureOrder) return false;
 
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -291,59 +291,55 @@ export default function OrdersManagement() {
   return (
     <div className="orders-page">
       {/* Filter Bar */}
-      <div className="card filter-bar">
-        <div className="filter-row">
-          <div className="form-group filter-search">
-            <div className="input-with-icon">
-              <Search size={16} />
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Search by table, order ID, or item name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <select
-              className="form-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
+      <div className="card mb-md" style={{ padding: '16px 24px' }}>
+        <div className="flex flex-wrap gap-md align-center w-full">
+          <div className="input-with-icon" style={{ flex: '1 1 250px' }}>
+            <Search size={16} />
             <input
-              type="date"
-              className="form-input"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              type="text"
+              className="form-input w-full"
+              placeholder="Search by table, order ID, or item name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%' }}
             />
           </div>
 
-          <div className="form-group flex align-center gap-sm" style={{ paddingLeft: '12px' }}>
-            <input 
-              type="checkbox" 
-              id="adventureToggle"
-              checked={showAdventureOnly}
-              onChange={(e) => setShowAdventureOnly(e.target.checked)}
-              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-            />
-            <label htmlFor="adventureToggle" style={{ margin: 0, cursor: 'pointer', userSelect: 'none', fontWeight: 600 }}>
-              Adventures Only
-            </label>
-          </div>
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ flex: '1 1 150px' }}
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+
+          <input
+            type="date"
+            className="form-input"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            style={{ flex: '0 0 auto' }}
+          />
+
+          <select
+            className="form-select"
+            value={orderType}
+            onChange={(e) => setOrderType(e.target.value)}
+            style={{ flex: '0 0 auto' }}
+          >
+            <option value="both">Both</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="adventure">Adventure</option>
+          </select>
 
           <button
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary"
             onClick={() => fetchOrders(true)}
             title="Refresh"
+            style={{ flex: '0 0 auto' }}
           >
             <RefreshCw size={16} />
             Refresh
