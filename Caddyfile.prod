@@ -1,4 +1,8 @@
-:80 {
+{
+    auto_https disable_redirects
+}
+
+http://{$DOMAIN_NAME}, https://{$DOMAIN_NAME} {
     # Proxy API and Socket requests to the Node backend
     handle /api/* {
         reverse_proxy server:3001
