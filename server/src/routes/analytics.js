@@ -353,5 +353,27 @@ router.get('/popular-combos', async (req, res) => {
   }
 });
 
+router.get('/waiter-performance', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    let query = db('order_items')
+      .whereNotNull('order_items.assigned_waiter');
+      
+    query = applyDateFilter(query, 'order_items.created_at', from, to);
+
+    const stats = await query
+      .select('order_items.assigned_waiter as name')
+      .count('order_items.id as items_handled')
+      .sum(db.raw("CASE WHEN order_items.status = 'rejected' THEN 1 ELSE 0 END as items_rejected"))
+      .sum(db.raw("CASE WHEN order_items.status = 'delivered' THEN 1 ELSE 0 END as items_delivered"))
+      .select(db.raw('SUM(CASE WHEN order_items.status != \'rejected\' AND order_items.status != \'cancelled\' THEN (order_items.quantity * COALESCE(order_items.price_at_order, 0)) ELSE 0 END) as revenue_handled'))
+      .groupBy('order_items.assigned_waiter')
+      .orderBy('revenue_handled', 'desc');
+
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;

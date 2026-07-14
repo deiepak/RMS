@@ -44,6 +44,7 @@ export default function Analytics() {
   const [revenueByHour, setRevenueByHour] = useState([]);
   const [categoryRevenue, setCategoryRevenue] = useState([]);
   const [popularCombos, setPopularCombos] = useState([]);
+  const [staffPerformance, setStaffPerformance] = useState([]);
   const [filters, setFilters] = useState({ period: '7d', from: '', to: '' });
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
@@ -84,7 +85,7 @@ export default function Analytics() {
       setIsLoading(true);
       const queryStr = `?from=${filters.from}&to=${filters.to}`;
       
-      const [sumRes, revRes, popRes, leastRes, peakRes, revHourRes, catRes, combosRes] = await Promise.all([
+      const [sumRes, revRes, popRes, leastRes, peakRes, revHourRes, catRes, combosRes, staffRes] = await Promise.all([
         api.get(`/analytics/summary-metrics${queryStr}`),
         api.get(`/analytics/revenue${queryStr}`),
         api.get(`/analytics/popular-items${queryStr}`),
@@ -92,7 +93,8 @@ export default function Analytics() {
         api.get(`/analytics/peak-hours${queryStr}`),
         api.get(`/analytics/revenue-by-hour${queryStr}`),
         api.get(`/analytics/category-revenue${queryStr}`),
-        api.get(`/analytics/popular-combos${queryStr}`)
+        api.get(`/analytics/popular-combos${queryStr}`),
+        api.get(`/analytics/waiter-performance${queryStr}`)
       ]);
 
       setSummary(sumRes.data);
@@ -137,6 +139,7 @@ export default function Analytics() {
       })).filter(i => i.value > 0));
 
       setPopularCombos(combosRes.data);
+      setStaffPerformance(staffRes.data);
 
     } catch (error) {
       showToast('Failed to load analytics data', 'error');
@@ -408,6 +411,49 @@ export default function Analytics() {
                     <Bar dataKey="Revenue" fill="var(--warning)" radius={[0, 4, 4, 0]} barSize={12} />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Staff Performance (Table) */}
+            <div className="card" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header border-bottom">
+                <h3 style={{ fontSize: '18px', margin: 0 }}>Staff Performance (Waiters)</h3>
+              </div>
+              <div className="card-body p-0" style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ background: 'var(--bg-tertiary)' }}>
+                    <tr>
+                      <th style={{ padding: '12px 16px', textAlign: 'left' }}>Waiter Name</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Items Handled</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Delivered</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Rejected</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Revenue Handled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffPerformance.length > 0 ? staffPerformance.map((staff, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{staff.name}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <span className="badge badge-info">{staff.items_handled}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <span className="badge badge-success">{staff.items_delivered}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <span className="badge badge-danger">{staff.items_rejected}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>
+                          {formatCurrency(staff.revenue_handled || 0)}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="5" className="text-center text-muted" style={{ padding: '20px' }}>No staff performance data in this period</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
