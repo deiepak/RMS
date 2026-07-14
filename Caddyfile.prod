@@ -1,4 +1,4 @@
-http://{$DOMAIN_NAME}, :80 {
+{$DOMAIN_NAME} {
     # Proxy API and Socket requests to the Node backend
     handle /api/* {
         reverse_proxy server:3001

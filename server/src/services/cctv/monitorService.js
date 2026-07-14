@@ -38,15 +38,19 @@ class MonitorService {
 
       if (!isConnected) {
         this.reconnectAttempts++;
-        console.warn(`[MonitorService] DVR connection lost. Attempting auto-reconnect (Attempt ${this.reconnectAttempts})...`);
         
-        await loggingService.logEvent({
-          userId: 'system',
-          eventType: 'stream_failure',
-          description: `DVR connection unreachable. Reconnect attempt ${this.reconnectAttempts}`
-        });
+        // Suppress aggressive logging by only logging on specific attempts
+        const shouldLog = [1, 5, 10, 20, 50].includes(this.reconnectAttempts) || this.reconnectAttempts % 100 === 0;
 
-        // Exponential backoff or max attempts logic could be tied here
+        if (shouldLog) {
+          console.warn(`[MonitorService] DVR connection unreachable (Attempt ${this.reconnectAttempts}). Fallback mode active. Suppressing further spam...`);
+          
+          await loggingService.logEvent({
+            userId: 'system',
+            eventType: 'stream_failure',
+            description: `DVR connection unreachable. Reconnect attempt ${this.reconnectAttempts}`
+          });
+        }
       } else {
         if (this.reconnectAttempts > 0) {
           console.log('[MonitorService] DVR connection re-established successfully.');

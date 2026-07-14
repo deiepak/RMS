@@ -6,7 +6,7 @@ SERVER_USER="adventinfosys"
 
 echo "🚀 Syncing local changes to the Copy VPS..."
 # This will copy any modified files from your computer to the server
-rsync -avz --exclude 'node_modules' --exclude '.git' ./ ${SERVER_USER}@${SERVER_IP}:~/RMS/
+rsync -avz -e "ssh -o ServerAliveInterval=60" --exclude 'node_modules' --exclude '.git' --exclude 'uploads_backup/' --exclude '*.sql' ./ ${SERVER_USER}@${SERVER_IP}:~/RMS/
 
 echo "⚙️ Rebuilding and restarting the application on the Copy VPS..."
 # This logs into the server and runs the deployment script to apply the changes

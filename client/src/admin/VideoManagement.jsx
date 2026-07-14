@@ -163,12 +163,12 @@ export default function VideoManagement() {
       ) : (
         <div className="card flex-1 flex flex-col" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', minHeight: 0 }}>
           {activeTab === 'pending' ? (
-            <div>
+            <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
               <h3 className="flex align-center gap-sm m-0 mb-md" style={{ color: 'var(--warning)', fontWeight: 700 }}>
                 <Clock size={20} /> Pending Requests ({pendingVideos.length})
               </h3>
               
-              <div className="flex-1 overflow-y-auto" style={{ border: '1px solid var(--glass-border)', borderRadius: '12px' }}>
+              <div className="flex-1 overflow-y-auto" style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', minHeight: 0 }}>
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-tertiary)', zIndex: 1 }}>
                     <tr>
@@ -226,12 +226,12 @@ export default function VideoManagement() {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
               <h3 className="flex align-center gap-sm m-0 mb-md" style={{ color: 'var(--success)', fontWeight: 700 }}>
                 <CheckCircle size={20} /> Sent History ({sentVideos.length})
               </h3>
 
-              <div className="flex-1 overflow-y-auto" style={{ border: '1px solid var(--glass-border)', borderRadius: '12px' }}>
+              <div className="flex-1 overflow-y-auto" style={{ border: '1px solid var(--glass-border)', borderRadius: '12px', minHeight: 0 }}>
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-tertiary)', zIndex: 1 }}>
                     <tr>
