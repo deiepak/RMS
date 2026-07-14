@@ -117,7 +117,7 @@ export default function VideoManagement() {
   };
 
   return (
-    <div className="admin-content" style={{ animation: 'fadeIn 0.3s ease-in-out', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="admin-content" style={{ animation: 'fadeIn 0.3s ease-in-out', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div className="admin-header flex justify-between align-center mb-lg">
         <div>
           <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '24px', fontWeight: 600 }}>Video Management</h2>
