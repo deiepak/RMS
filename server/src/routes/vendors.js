@@ -91,6 +91,28 @@ router.get('/:id/ledger', async (req, res) => {
       }
     }
     
+    // Auto-apply unlinked advances AND overpaid bills to oldest unpaid bills on-the-fly
+    let totalAdvances = advances.reduce((sum, a) => sum + Number(a.amount), 0);
+    
+    // Pool overpaid bills into advances
+    for (let bill of bills) {
+      if (bill.remaining < 0) {
+        totalAdvances += Math.abs(bill.remaining);
+        bill.paid += bill.remaining; // Adjust paid down so remaining becomes 0
+        bill.remaining = 0;
+      }
+    }
+
+    const oldestBillsFirst = [...bills].reverse();
+    for (let bill of oldestBillsFirst) {
+      if (bill.remaining > 0 && totalAdvances > 0) {
+        const applyAmount = Math.min(bill.remaining, totalAdvances);
+        bill.paid += applyAmount;
+        bill.remaining -= applyAmount;
+        totalAdvances -= applyAmount;
+      }
+    }
+
     res.json({ ledger: finalLedger, current_balance: balance, bills, advances });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -98,23 +120,109 @@ router.get('/:id/ledger', async (req, res) => {
 });
 
 router.post('/:id/ledger', async (req, res) => {
+  const trx = await db.transaction();
   try {
     const { id } = req.params;
-    const { amount, payment_method, reference_id, notes, linked_bill_id } = req.body;
+    const { amount, payment_method, reference_id, notes, selected_bill_ids } = req.body;
     
-    const [entryId] = await db('vendor_ledgers').insert({
-      vendor_id: id,
-      transaction_type: 'payment',
-      amount,
-      payment_method,
-      reference_id,
-      notes,
-      linked_bill_id: linked_bill_id || null
-    });
+    let remainingPayment = Number(amount);
     
-    const newEntry = await db('vendor_ledgers').where({ id: entryId }).first();
-    res.status(201).json(newEntry);
+    if (selected_bill_ids && Array.isArray(selected_bill_ids) && selected_bill_ids.length > 0) {
+      // 1. Calculate the current remaining balances of all bills for this vendor
+      const ledger = await trx('vendor_ledgers').where({ vendor_id: id }).orderBy('created_at', 'desc');
+      const chronologicalLedger = [...ledger].reverse();
+      const finalLedger = chronologicalLedger.reverse();
+      
+      const bills = finalLedger.filter(e => e.transaction_type === 'purchase').map(b => ({ ...b, paid: 0, remaining: Number(b.amount) }));
+      const advances = [];
+
+      for (let entry of finalLedger) {
+        if (entry.transaction_type === 'payment' || entry.transaction_type === 'return') {
+          if (entry.linked_bill_id) {
+            const bill = bills.find(b => b.id === entry.linked_bill_id);
+            if (bill) {
+              bill.paid += Number(entry.amount);
+              bill.remaining -= Number(entry.amount);
+            }
+          } else {
+            advances.push(entry);
+          }
+        }
+      }
+
+      let totalAdvances = advances.reduce((sum, a) => sum + Number(a.amount), 0);
+      for (let bill of bills) {
+        if (bill.remaining < 0) {
+          totalAdvances += Math.abs(bill.remaining);
+          bill.remaining = 0;
+        }
+      }
+      const oldestBillsFirst = [...bills].reverse();
+      for (let bill of oldestBillsFirst) {
+        if (bill.remaining > 0 && totalAdvances > 0) {
+          const applyAmount = Math.min(bill.remaining, totalAdvances);
+          bill.remaining -= applyAmount;
+          totalAdvances -= applyAmount;
+        }
+      }
+
+      // 2. Map selected bill IDs to their remaining balances
+      const selectedBills = bills.filter(b => selected_bill_ids.includes(b.id)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // Oldest first
+      
+      const insertedEntries = [];
+      
+      // 3. Cascade payment over selected bills
+      for (let bill of selectedBills) {
+        if (remainingPayment <= 0) break;
+        if (bill.remaining <= 0) continue;
+        
+        const amountToApply = Math.min(bill.remaining, remainingPayment);
+        const [entryId] = await trx('vendor_ledgers').insert({
+          vendor_id: id,
+          transaction_type: 'payment',
+          amount: amountToApply,
+          payment_method,
+          reference_id,
+          notes: notes || `Bulk payment applied to bill #${bill.id}`,
+          linked_bill_id: bill.id
+        });
+        insertedEntries.push(entryId);
+        remainingPayment -= amountToApply;
+      }
+      
+      // 4. If any payment amount is left over, insert as an unlinked advance payment
+      if (remainingPayment > 0) {
+        const [entryId] = await trx('vendor_ledgers').insert({
+          vendor_id: id,
+          transaction_type: 'payment',
+          amount: remainingPayment,
+          payment_method,
+          reference_id,
+          notes: notes ? `${notes} (Leftover Advance)` : 'Advance from bulk payment',
+          linked_bill_id: null
+        });
+        insertedEntries.push(entryId);
+      }
+      
+      await trx.commit();
+      res.status(201).json({ message: 'Bulk payment processed', inserted_entries: insertedEntries });
+    } else {
+      // Fallback for single standard payment
+      const [entryId] = await trx('vendor_ledgers').insert({
+        vendor_id: id,
+        transaction_type: 'payment',
+        amount,
+        payment_method,
+        reference_id,
+        notes,
+        linked_bill_id: null
+      });
+      await trx.commit();
+      const newEntry = await db('vendor_ledgers').where({ id: entryId }).first();
+      res.status(201).json(newEntry);
+    }
   } catch (error) {
+    await trx.rollback();
     res.status(500).json({ error: error.message });
   }
 });

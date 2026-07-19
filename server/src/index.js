@@ -55,6 +55,7 @@ app.use('/api/stations', stationRoutes);
 app.use('/api/stock-requests', require('./routes/stock_requests'));
 app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/packages', require('./routes/packages'));
+app.use('/api/notes', require('./routes/notes'));
 app.use('/api/adventures', adventuresRoutes);
 app.use('/api/social', require('./routes/social'));
 app.use('/api/cctv', require('./routes/cctv'));

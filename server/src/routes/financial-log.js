@@ -69,6 +69,7 @@ router.get('/', async (req, res) => {
     let vendorPaymentsQuery = db('vendor_ledgers')
       .join('vendors', 'vendor_ledgers.vendor_id', 'vendors.id')
       .where('vendor_ledgers.transaction_type', 'payment')
+      .whereNotNull('vendor_ledgers.payment_method') // Exclude auto-applied credits
       .select(
         'vendor_ledgers.created_at',
         db.raw("'cash_flow' as type"),
@@ -76,7 +77,7 @@ router.get('/', async (req, res) => {
         db.raw("CONCAT('Payment to ', vendors.name) as description"),
         db.raw('0 as amount_in'),
         'vendor_ledgers.amount as amount_out',
-        db.raw("'cash' as payment_method")
+        'vendor_ledgers.payment_method' // Use actual method instead of hardcoded 'cash'
       );
 
     let hrQuery = db('employee_payments')
@@ -106,9 +107,11 @@ router.get('/', async (req, res) => {
     // Apply Date Filters
     const applyDateFilter = (query) => {
       let q = query;
-      // Using generic column names for subqueries or specifying if joined
       if (from) q = q.where('created_at', '>=', from);
-      if (to) q = q.where('created_at', '<=', to);
+      if (to) {
+        if (to.length === 10) q = q.where('created_at', '<=', to + ' 23:59:59');
+        else q = q.where('created_at', '<=', to);
+      }
       return q;
     };
 
@@ -116,7 +119,10 @@ router.get('/', async (req, res) => {
     const applyDateFilterJoined = (query, table) => {
       let q = query;
       if (from) q = q.where(`${table}.created_at`, '>=', from);
-      if (to) q = q.where(`${table}.created_at`, '<=', to);
+      if (to) {
+        if (to.length === 10) q = q.where(`${table}.created_at`, '<=', to + ' 23:59:59');
+        else q = q.where(`${table}.created_at`, '<=', to);
+      }
       return q;
     };
 

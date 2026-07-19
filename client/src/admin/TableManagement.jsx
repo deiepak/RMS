@@ -24,8 +24,6 @@ import { useToast } from '../contexts/ToastContext';
 import { formatCurrency, formatTime, formatDateTime } from '../utils/helpers';
 import '../index.css';
 
-const SECTIONS = ['Main Hall', 'Patio', 'VIP', 'Rooftop', 'Garden', 'Bar'];
-
 const emptyForm = { number: '', capacity: 4, section: 'Main Hall' };
 
 export default function TableManagement() {
@@ -59,6 +57,58 @@ export default function TableManagement() {
   const { showToast } = useToast();
   const qrRef = useRef(null);
 
+  const [sections, setSections] = useState(['Main Hall', 'Patio', 'VIP', 'Rooftop', 'Garden', 'Bar']);
+  const [showSectionsModal, setShowSectionsModal] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [savingSections, setSavingSections] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data.table_sections) {
+        setSections(JSON.parse(res.data.table_sections));
+      }
+    } catch (err) {
+      console.error('Failed to load settings', err);
+    }
+  };
+
+  const handleSaveSections = async (updatedSections) => {
+    setSavingSections(true);
+    try {
+      await api.put('/settings', { table_sections: JSON.stringify(updatedSections) });
+      setSections(updatedSections);
+      showToast('Categories updated successfully', 'success');
+    } catch (err) {
+      showToast('Failed to update categories', 'error');
+    } finally {
+      setSavingSections(false);
+    }
+  };
+
+  const addSection = () => {
+    const s = newSectionName.trim();
+    if (!s) return;
+    if (sections.map(x => x.toLowerCase()).includes(s.toLowerCase())) {
+      showToast('Category already exists', 'error');
+      return;
+    }
+    const newSections = [...sections, s];
+    handleSaveSections(newSections);
+    setNewSectionName('');
+  };
+
+  const removeSection = (sec) => {
+    const isUsed = tables.some(t => t.section === sec);
+    const msg = isUsed 
+      ? `STRICT WARNING: The category "${sec}" is currently assigned to one or more tables.\n\nIf you delete it, those tables might behave unexpectedly or become uncategorized until you reassign them.\n\nAre you absolutely sure you want to permanently delete this category?`
+      : `Are you sure you want to delete the category "${sec}"?`;
+
+    if (!window.confirm(msg)) return;
+    const newSections = sections.filter(s => s !== sec);
+    handleSaveSections(newSections);
+  };
+
   const fetchTables = async () => {
     setLoading(true);
     try {
@@ -84,6 +134,7 @@ export default function TableManagement() {
 
   useEffect(() => {
     fetchTables();
+    fetchSettings();
 
     const handleUpdate = () => fetchTables();
     
@@ -168,7 +219,7 @@ export default function TableManagement() {
   };
 
   const openAdd = () => {
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, section: sections[0] || 'Main Hall' });
     setEditTable(null);
     setShowAddModal(true);
   };
@@ -473,6 +524,9 @@ export default function TableManagement() {
             />
             <span style={{ fontSize: '14px', fontWeight: 600 }}>Active Tables</span>
           </label>
+          <button className="btn btn-secondary" onClick={() => setShowSectionsModal(true)} style={{ whiteSpace: 'nowrap' }}>
+            Manage Categories
+          </button>
           <button className="btn btn-primary" onClick={openAdd} style={{ whiteSpace: 'nowrap' }}>
             <Plus size={18} /> Add Table
           </button>
@@ -972,6 +1026,78 @@ export default function TableManagement() {
         </div>,
         document.body
       )}
+
+      {/* Sections Modal */}
+      {showSectionsModal && (
+        <div className="modal-overlay" onClick={() => setShowSectionsModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="modal-header" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={{ margin: '0 0 4px 0' }}>Manage Categories</h2>
+                <p className="text-secondary" style={{ fontSize: '13px', margin: 0 }}>Create or remove sections to organize your tables.</p>
+              </div>
+              <button className="btn btn-icon" onClick={() => setShowSectionsModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body flex-col gap-md">
+              <div className="flex gap-sm align-center">
+                <input 
+                  type="text" 
+                  className="form-input flex-1" 
+                  placeholder="New Category Name (e.g. Balcony)" 
+                  value={newSectionName} 
+                  onChange={e => setNewSectionName(e.target.value)} 
+                  onKeyDown={e => e.key === 'Enter' && addSection()}
+                  style={{ padding: '12px 16px', fontSize: '15px' }}
+                />
+                <button 
+                  className="btn btn-primary" 
+                  onClick={addSection} 
+                  disabled={savingSections}
+                  style={{ padding: '12px 24px', fontSize: '15px', fontWeight: 600 }}
+                >
+                  Add
+                </button>
+              </div>
+              
+              <div style={{ marginTop: '16px' }}>
+                <h4 className="text-secondary mb-sm" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+                  Current Categories
+                </h4>
+                <div className="flex-col gap-sm">
+                  {sections.length === 0 && (
+                    <div className="text-secondary text-sm p-md text-center bg-secondary" style={{ borderRadius: 'var(--radius)' }}>
+                      No custom categories.
+                    </div>
+                  )}
+                  {sections.map(sec => (
+                    <div 
+                      key={sec} 
+                      className="flex justify-between align-center p-md" 
+                      style={{ 
+                        borderRadius: '10px', 
+                        background: 'var(--bg-elevated)', 
+                        border: '1px solid var(--border)' 
+                      }}
+                    >
+                      <span style={{ fontWeight: 500, fontSize: '15px', color: 'var(--text-primary)' }}>{sec}</span>
+                      <button 
+                        className="btn btn-icon btn-sm" 
+                        style={{ color: 'var(--danger)', background: 'rgba(255, 59, 48, 0.1)' }}
+                        onClick={() => removeSection(sec)} 
+                        disabled={savingSections}
+                        title="Delete Category"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

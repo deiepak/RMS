@@ -5,12 +5,50 @@ import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { UtensilsCrossed, Clock, Check, X } from 'lucide-react';
 import { formatDateTime, checkStationMatch } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
+import NumpadModal from '../components/NumpadModal';
+import Modal from '../components/Modal';
 
 export default function OptimizedOrders() {
   const { user } = useAuth();
   const [tables, setTables] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [numpadState, setNumpadState] = useState({ isOpen: false, item: null });
+  const [rejectModalState, setRejectModalState] = useState({ isOpen: false, orderId: null, itemId: null });
+  const [rejectReason, setRejectReason] = useState('');
   const { showToast } = useToast();
+
+  const openRejectModal = (orderId, itemId) => {
+    setRejectModalState({ isOpen: true, orderId, itemId });
+    setRejectReason('');
+  };
+
+  const handleRejectSubmit = () => {
+    if (!rejectReason) {
+      showToast('Please select a reason', 'warning');
+      return;
+    }
+    updateItemStatus(rejectModalState.orderId, rejectModalState.itemId, 'rejected', rejectReason);
+    setRejectModalState({ isOpen: false, orderId: null, itemId: null });
+  };
+
+  const handleMarkPreparedClick = (item) => {
+    if (item.quantity > 1) {
+      setNumpadState({ isOpen: true, item });
+    } else {
+      submitMarkPrepared(item.id, 1);
+    }
+  };
+
+  const submitMarkPrepared = async (itemId, quantity) => {
+    try {
+      await api.post(`/orders/items/${itemId}/split-status`, { quantity, status: 'prepared' });
+      showToast(`Marked ${quantity} as prepared`, 'success');
+      fetchTableOrders();
+      setNumpadState({ isOpen: false, item: null });
+    } catch (error) {
+      showToast('Failed to update status', 'error');
+    }
+  };
 
   const formatTime = (dateString) => {
     if (!dateString) return '';
@@ -172,7 +210,10 @@ export default function OptimizedOrders() {
               <div key={order.id} style={{ marginBottom: 16 }}>
                 <div className="flex justify-between text-secondary mb-sm" style={{ fontSize: 12 }}>
                   <span>Order #{order.id} {order.status === 'hold' && <span className="badge badge-warning ml-sm">ON HOLD</span>}</span>
-                  <span className="flex align-center gap-sm"><Clock size={12} /> {formatDateTime(order.created_at)}</span>
+                  <span className="flex align-center gap-sm">
+                    {order.waiter_name && <span>👤 {order.waiter_name}</span>}
+                    <Clock size={12} style={{ marginLeft: 4 }} /> {formatDateTime(order.created_at)}
+                  </span>
                 </div>
                 
                 <div className="flex-col gap-sm pb-md">
@@ -190,10 +231,7 @@ export default function OptimizedOrders() {
                         <div className="flex-col align-end gap-xs">
                           {item.status === 'pending' && (
                             <div className="flex gap-xs">
-                              <button className="btn btn-sm btn-secondary" style={{ padding: '4px' }} title="Reject" onClick={() => {
-                                const reason = prompt('Reason for rejection:');
-                                if (reason !== null && reason.trim() !== '') updateItemStatus(order.id, item.id, 'rejected', reason);
-                              }}>
+                              <button className="btn btn-sm btn-secondary" style={{ padding: '4px' }} title="Reject" onClick={() => openRejectModal(order.id, item.id)}>
                                 <X size={16} className="text-danger" />
                               </button>
                               <button className="btn btn-sm btn-info" style={{ padding: '4px' }} title="Accept" onClick={() => updateItemStatus(order.id, item.id, 'accepted')}>
@@ -202,14 +240,26 @@ export default function OptimizedOrders() {
                             </div>
                           )}
                           {(item.status === 'accepted' || item.status === 'preparing') && (
-                            <button className="btn btn-sm btn-danger" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => updateItemStatus(order.id, item.id, 'prepared')}>Mark as prepared</button>
+                            <button className="btn btn-sm btn-danger" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => handleMarkPreparedClick(item)}>Mark as prepared</button>
                           )}
                           {isRejected && (
                             <div className="badge badge-danger" style={{ fontSize: 10 }}>Cancelled</div>
                           )}
                           {!['pending', 'accepted', 'preparing'].includes(item.status) && !isRejected && (
-                            <div className="badge" style={{ backgroundColor: getStatusColor(item.status), color: '#fff', fontSize: 10 }}>
-                              {item.status.replace('_', ' ').toUpperCase()}
+                            <div className="flex gap-xs align-center">
+                              {item.status === 'prepared' && (
+                                <button 
+                                  className="btn btn-sm btn-secondary" 
+                                  style={{ fontSize: 10, padding: '2px 6px' }} 
+                                  onClick={() => updateItemStatus(order.id, item.id, 'preparing')}
+                                  title="Mark as unprepared"
+                                >
+                                  Undo
+                                </button>
+                              )}
+                              <div className="badge" style={{ backgroundColor: getStatusColor(item.status), color: '#fff', fontSize: 10 }}>
+                                {item.status.replace('_', ' ').toUpperCase()}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -224,6 +274,37 @@ export default function OptimizedOrders() {
         );
         })}
       </div>
+      <NumpadModal 
+        isOpen={numpadState.isOpen}
+        onClose={() => setNumpadState({ isOpen: false, item: null })}
+        onSubmit={(qty) => submitMarkPrepared(numpadState.item.id, qty)}
+        maxQuantity={numpadState.item?.quantity || 1}
+        itemName={numpadState.item?.item_name || ''}
+      />
+      
+      <Modal
+        isOpen={rejectModalState.isOpen}
+        onClose={() => setRejectModalState({ isOpen: false, orderId: null, itemId: null })}
+        title="Reject Item"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setRejectModalState({ isOpen: false, orderId: null, itemId: null })}>Cancel</button>
+            <button className="btn btn-danger" onClick={handleRejectSubmit}>Reject Item</button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Reason for rejection</label>
+          <select className="form-select mb-sm" value={rejectReason} onChange={e => setRejectReason(e.target.value)}>
+            <option value="">Select a reason...</option>
+            <option value="Out of stock">Out of stock</option>
+            <option value="Ingredient Missing">Ingredient Missing</option>
+            <option value="Kitchen is too busy">Kitchen is too busy</option>
+            <option value="Equipment Failure">Equipment Failure</option>
+            <option value="Cannot fulfill special request">Cannot fulfill special request</option>
+          </select>
+        </div>
+      </Modal>
     </>
   );
 }

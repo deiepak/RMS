@@ -23,13 +23,40 @@ export default function KitchenPortal() {
   const { speak } = useSpeech();
   const [activeTab, setActiveTab] = useState('pending');
   const [counts, setCounts] = useState({ pending: 0, accepted: 0 });
+  const [globalCounts, setGlobalCounts] = useState({ pending: 0, preparing: 0 });
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const fetchGlobalCounts = async () => {
+    try {
+      const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
+      let pending = 0;
+      let preparing = 0;
+      
+      res.data.forEach(order => {
+        if (!order.items) return;
+        order.items.forEach(i => {
+          if (user?.station_id && !checkStationMatch(i.station_ids, i.category_station_ids, user.station_id)) {
+            return;
+          }
+          if (i.status === 'pending') {
+            pending += i.quantity;
+          } else if (i.status === 'accepted' || i.status === 'preparing') {
+            preparing += i.quantity;
+          }
+        });
+      });
+      setGlobalCounts({ pending, preparing });
+    } catch (err) {
+      console.error('Failed to fetch global counts', err);
+    }
+  };
+
   useEffect(() => {
+    fetchGlobalCounts();
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [user]);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState([{ item_name: '', quantity: '', notes: '' }]);
@@ -40,6 +67,7 @@ export default function KitchenPortal() {
     socket.emit('join', { room: 'kitchen' });
 
     const handleNewOrder = (data) => {
+      if (!data) return;
       let itemsToSpeak = data.items || [];
       if (user?.station_id) {
         // If assigned to a station, only speak items for this station or items with no specific station
@@ -105,23 +133,42 @@ export default function KitchenPortal() {
       speak(`Order for Table ${data.table_number || 'Unknown'} is no longer on hold.`);
     };
 
-    subscribeToEvent('order:new', handleNewOrder);
+    const wrappedNewOrder = (data) => {
+      handleNewOrder(data);
+      fetchGlobalCounts();
+    };
+    const wrappedItemStatus = (data) => {
+      handleItemStatus(data);
+      fetchGlobalCounts();
+    };
+    const wrappedHold = (data) => {
+      handleOrderHold(data);
+      fetchGlobalCounts();
+    };
+    const wrappedUnhold = (data) => {
+      handleOrderUnhold(data);
+      fetchGlobalCounts();
+    };
+
+    subscribeToEvent('order:new', wrappedNewOrder);
     subscribeToEvent('admin:message', handleMessage);
     subscribeToEvent('chat:voice-chunk:receive', handleVoiceChunk);
-    subscribeToEvent('order:item-status', handleItemStatus);
-    subscribeToEvent('order:hold', handleOrderHold);
-    subscribeToEvent('order:unhold', handleOrderUnhold);
+    subscribeToEvent('order:item-status', wrappedItemStatus);
+    subscribeToEvent('order:hold', wrappedHold);
+    subscribeToEvent('order:unhold', wrappedUnhold);
 
     // 15-minute Order Reminder
     const reminderInterval = setInterval(async () => {
       try {
-        const res = await api.get('/orders/items?status=pending,accepted');
-        let pendingItems = res.data;
+        const res = await api.get('/orders?status=active,checkout_requested,payment_ready,hold&include_undelivered=true');
+        let allItems = [];
+        res.data.forEach(o => { if (o.items) allItems.push(...o.items); });
         if (user?.station_id) {
-          pendingItems = pendingItems.filter(i => checkStationMatch(i.station_ids, i.category_station_ids, user.station_id));
+          allItems = allItems.filter(i => checkStationMatch(i.station_ids, i.category_station_ids, user.station_id));
         }
-        if (pendingItems.length > 0) {
-          speak(`Attention! You have ${pendingItems.length} items waiting to be prepared.`);
+        const pendingCount = allItems.filter(i => i.status === 'pending' || i.status === 'accepted').length;
+        if (pendingCount > 0) {
+          speak(`Attention! You have ${pendingCount} items waiting to be prepared.`);
         }
       } catch (err) {
         console.error('Failed to fetch pending items for reminder', err);
@@ -129,12 +176,12 @@ export default function KitchenPortal() {
     }, 15 * 60 * 1000); // 15 minutes
 
     return () => {
-      unsubscribeFromEvent('order:new', handleNewOrder);
+      unsubscribeFromEvent('order:new', wrappedNewOrder);
       unsubscribeFromEvent('admin:message', handleMessage);
       unsubscribeFromEvent('chat:voice-chunk:receive', handleVoiceChunk);
-      unsubscribeFromEvent('order:item-status', handleItemStatus);
-      unsubscribeFromEvent('order:hold', handleOrderHold);
-      unsubscribeFromEvent('order:unhold', handleOrderUnhold);
+      unsubscribeFromEvent('order:item-status', wrappedItemStatus);
+      unsubscribeFromEvent('order:hold', wrappedHold);
+      unsubscribeFromEvent('order:unhold', wrappedUnhold);
       clearInterval(reminderInterval);
     };
   }, [user]);
@@ -149,6 +196,9 @@ export default function KitchenPortal() {
           <div className="flex align-center gap-sm bg-secondary text-primary" style={{ padding: '6px 12px', borderRadius: 'var(--radius)', fontWeight: 600, fontSize: 16 }}>
             <Clock size={18} className="text-warning" />
             {currentTime.toLocaleTimeString()}
+            <div style={{ marginLeft: 16, paddingLeft: 16, borderLeft: '1px solid var(--border-color)', fontSize: 14, fontWeight: 'normal' }}>
+              To Accept: <strong className="text-warning">{globalCounts.pending}</strong> | To Prepare: <strong className="text-info">{globalCounts.preparing}</strong>
+            </div>
           </div>
         </div>
         <div className="flex align-center gap-md">

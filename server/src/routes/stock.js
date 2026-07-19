@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { items, vendor_id, department, name, quantity, unit, low_threshold } = req.body;
+    const { items, vendor_id, department, name, quantity, unit, low_threshold, expiry_date } = req.body;
     
     if (items && Array.isArray(items) && items.length > 0) {
       const insertedItems = [];
@@ -42,7 +42,8 @@ router.post('/', async (req, res) => {
           unit: item.unit || 'kg', 
           low_threshold: item.low_threshold || 0, 
           vendor_id: vendor_id || null, 
-          department: department || 'general' 
+          department: department || 'general',
+          expiry_date: item.expiry_date || null 
         });
         const newItem = await db('stock_items').where({ id }).first();
         insertedItems.push(newItem);
@@ -55,7 +56,8 @@ router.post('/', async (req, res) => {
         unit: unit || 'kg', 
         low_threshold: low_threshold || 0, 
         vendor_id: vendor_id || null, 
-        department: department || 'general' 
+        department: department || 'general',
+        expiry_date: expiry_date || null 
       });
       const newItem = await db('stock_items').where({ id }).first();
       return res.status(201).json(newItem);
@@ -68,8 +70,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, quantity, unit, low_threshold, vendor_id } = req.body;
-    await db('stock_items').where({ id }).update({ name, quantity, unit, low_threshold, vendor_id, updated_at: db.fn.now() });
+    const { name, quantity, unit, low_threshold, vendor_id, expiry_date } = req.body;
+    await db('stock_items').where({ id }).update({ name, quantity, unit, low_threshold, vendor_id, expiry_date: expiry_date !== undefined ? expiry_date : undefined, updated_at: db.fn.now() });
     const updatedItem = await db('stock_items').where({ id }).first();
     res.json(updatedItem);
   } catch (error) {
@@ -166,7 +168,7 @@ router.get('/transactions', async (req, res) => {
 
 router.post('/transactions', async (req, res) => {
   try {
-    const { stock_item_id, transaction_type, quantity, vendor_id, notes, cost, bill_number, items } = req.body;
+    const { stock_item_id, transaction_type, quantity, vendor_id, notes, cost, bill_number, items, date } = req.body;
     
     if (transaction_type === 'purchase' && !bill_number) {
       return res.status(400).json({ error: 'Bill number is required for purchases' });
@@ -180,14 +182,18 @@ router.post('/transactions', async (req, res) => {
         for (const item of items) {
           const qty = Number(item.quantity);
           // 1. Insert transaction
-          await trx('stock_transactions').insert({
+          const transactionData = {
             stock_item_id: item.stock_item_id, 
             transaction_type, 
             quantity: qty, 
             vendor_id: vendor_id || null, 
             notes, 
             bill_number: bill_number || null
-          });
+          };
+          if (date) {
+            transactionData.created_at = new Date(date);
+          }
+          await trx('stock_transactions').insert(transactionData);
 
           // 2. Update stock item quantity
           const stockItem = await trx('stock_items').where({ id: item.stock_item_id }).first();
@@ -200,13 +206,19 @@ router.post('/transactions', async (req, res) => {
 
         // 3. Update vendor ledger once for the whole bill
         if (vendor_id && cost) {
-          await trx('vendor_ledgers').insert({
+          const ledgerData = {
             vendor_id,
             transaction_type: 'purchase',
             amount: cost,
             bill_number: bill_number || null,
             notes: `Bulk Purchase (${items.length} items)` + (notes ? ` - ${notes}` : '')
-          });
+          };
+          if (date) {
+            ledgerData.created_at = new Date(date);
+          }
+          const [ledgerId] = await trx('vendor_ledgers').insert(ledgerData);
+
+          // The auto-credit calculation will now be done on-the-fly in vendors.js
         }
       } else {
         // Single Item Logic (Consume, Damage, Return)

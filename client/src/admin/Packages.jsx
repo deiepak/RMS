@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, X, Download, Package as PackageIcon, BookOpen, Calendar, User, Phone, Banknote } from 'lucide-react';
-import { formatCurrency, formatDateTime } from '../utils/helpers';
+import { formatCurrency, formatDateTime, formatDate } from '../utils/helpers';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import NepaliDate from 'nepali-date-converter';
 
 export default function Packages() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [deletedPackages, setDeletedPackages] = useState([]);
   
   // New Package Form
   const [title, setTitle] = useState('');
@@ -60,10 +63,20 @@ export default function Packages() {
       if (item.quantity <= 0) return showToast('Quantity must be positive', 'error');
     }
 
+    let finalEventDate = eventDate;
+    if (eventDate && localStorage.getItem('rms_date_format') === 'BS') {
+      try {
+        const bsDate = new NepaliDate(eventDate);
+        finalEventDate = bsDate.toJsDate().toLocaleDateString('en-CA'); // YYYY-MM-DD in AD
+      } catch (err) {
+        return showToast('Invalid BS Date format (Use YYYY-MM-DD)', 'error');
+      }
+    }
+
     try {
       await api.post('/packages', {
         title, customer_name: customerName, contact,
-        event_date: eventDate, notes, items
+        event_date: finalEventDate, notes, items
       });
       showToast('Package created successfully', 'success');
       setShowAddModal(false);
@@ -104,7 +117,7 @@ export default function Packages() {
       handleViewPackage(viewPackage.id); // refresh details
       fetchPackages(); // refresh list
     } catch (error) {
-      showToast('Failed to add payment', 'error');
+      showToast(error.response?.data?.error || 'Failed to add payment', 'error');
     }
   };
 
@@ -120,6 +133,27 @@ export default function Packages() {
     }
   };
 
+  const fetchDeletedPackages = async () => {
+    try {
+      const res = await api.get('/packages/deleted');
+      setDeletedPackages(res.data);
+    } catch (error) {
+      showToast('Failed to fetch deleted packages', 'error');
+    }
+  };
+
+  const handleRestorePackage = async (id) => {
+    try {
+      await api.post(`/packages/${id}/restore`);
+      showToast('Package restored', 'success');
+      setViewPackage(null);
+      fetchPackages();
+      if (showDeletedModal) fetchDeletedPackages();
+    } catch (error) {
+      showToast('Failed to restore package', 'error');
+    }
+  };
+
   const generatePDF = () => {
     if (!viewPackage) return;
     const doc = new jsPDF();
@@ -131,7 +165,7 @@ export default function Packages() {
     doc.text(`Package Name: ${viewPackage.title}`, 14, 32);
     doc.text(`Customer: ${viewPackage.customer_name}`, 14, 38);
     doc.text(`Contact: ${viewPackage.contact || 'N/A'}`, 14, 44);
-    doc.text(`Event Date: ${viewPackage.event_date ? new Date(viewPackage.event_date).toLocaleDateString() : 'N/A'}`, 14, 50);
+    doc.text(`Event Date: ${viewPackage.event_date ? formatDate(viewPackage.event_date) : 'N/A'}`, 14, 50);
 
     const itemsData = viewPackage.items.map(item => [
       item.description,
@@ -181,13 +215,22 @@ export default function Packages() {
           <h1>Packages & Events</h1>
           <p>Manage large bookings, banquets, and customized events elegantly.</p>
         </div>
-        <button 
-          className="btn" 
-          style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '12px', padding: '12px 24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', backdropFilter: 'blur(10px)' }}
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus size={20} /> New Package
-        </button>
+        <div className="flex gap-sm">
+          <button 
+            className="btn" 
+            style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '12px', padding: '12px 24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', backdropFilter: 'blur(10px)' }}
+            onClick={() => { setShowDeletedModal(true); fetchDeletedPackages(); }}
+          >
+            <PackageIcon size={20} /> Deleted Packages
+          </button>
+          <button 
+            className="btn" 
+            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '12px', padding: '12px 24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', backdropFilter: 'blur(10px)' }}
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus size={20} /> New Package
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -219,7 +262,7 @@ export default function Packages() {
                 {pkg.event_date && (
                   <div className="pkg-info-row">
                     <div className="pkg-icon-box"><Calendar size={16} /></div>
-                    <span>{new Date(pkg.event_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    <span>{formatDate(pkg.event_date)}</span>
                   </div>
                 )}
                 
@@ -263,7 +306,11 @@ export default function Packages() {
                 </div>
                 <div>
                   <label className="block mb-xs" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Event Date</label>
-                  <input type="date" className="premium-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+                  {localStorage.getItem('rms_date_format') === 'BS' ? (
+                    <input type="text" className="premium-input" placeholder="BS Date (YYYY-MM-DD)" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+                  ) : (
+                    <input type="date" className="premium-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+                  )}
                 </div>
                 <div>
                   <label className="block mb-xs" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Customer Name *</label>
@@ -351,7 +398,7 @@ export default function Packages() {
                 <button className="btn btn-icon" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }} onClick={() => setViewPackage(null)}><X size={20} /></button>
               </div>
             </div>
-            <div className="modal-body flex gap-xl" style={{ height: '70vh', padding: '32px' }}>
+            <div className="modal-body pkg-modal-layout gap-xl" style={{ height: '70vh', padding: '32px', overflowY: 'auto' }}>
               {/* Left Side: Package Details */}
               <div style={{ flex: 1.5, overflowY: 'auto', paddingRight: '20px' }}>
                 <div className="grid mb-lg" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -365,7 +412,7 @@ export default function Packages() {
                   </div>
                   <div className="p-md" style={{ background: 'var(--bg-elevated)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <span className="text-secondary text-sm flex align-center gap-xs mb-xs"><Calendar size={14}/> Event Date</span>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{viewPackage.event_date ? new Date(viewPackage.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{viewPackage.event_date ? formatDate(viewPackage.event_date) : '-'}</div>
                   </div>
                   <div className="p-md" style={{ background: 'var(--bg-elevated)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <span className="text-secondary text-sm flex align-center gap-xs mb-xs">Status</span>
@@ -460,21 +507,22 @@ export default function Packages() {
                     </span>
                   </div>
                   
+                  {!viewPackage.is_deleted && (
                   <div className="flex-col gap-md pt-lg" style={{ borderTop: '2px dashed var(--border)' }}>
                     <h4 style={{ margin: 0, color: 'var(--text-secondary)' }}>Record New Payment</h4>
-                    <div className="flex gap-sm">
-                      <div className="input-with-icon w-full" style={{ flex: 2 }}>
-                        <span style={{ paddingLeft: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Rs.</span>
+                    <div className="flex gap-sm w-full" style={{ display: 'flex', width: '100%' }}>
+                      <div style={{ position: 'relative', flex: 2 }}>
+                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: 'var(--text-secondary)', zIndex: 10 }}>Rs.</span>
                         <input 
                           type="number" 
-                          className="premium-input w-full" 
-                          style={{ paddingLeft: '40px' }}
+                          className="premium-input" 
+                          style={{ paddingLeft: '40px', width: '100%', height: '100%', boxSizing: 'border-box' }}
                           placeholder="Amount" 
                           value={paymentAmount}
                           onChange={e => setPaymentAmount(e.target.value)}
                         />
                       </div>
-                      <select className="premium-input flex-1" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                      <select className="premium-input" style={{ flex: 1, width: '100%' }} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
                         <option value="cash">Cash</option>
                         <option value="card">Card</option>
                         <option value="online">Online</option>
@@ -491,17 +539,77 @@ export default function Packages() {
                       Log Payment
                     </button>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
             <div className="modal-footer flex justify-between" style={{ padding: '24px 32px', background: 'var(--bg-elevated)', borderRadius: '0 0 24px 24px', borderTop: 'none' }}>
-              <button className="btn btn-danger btn-sm" style={{ borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} onClick={() => handleDeletePackage(viewPackage.id)}>Delete Package</button>
+              {!viewPackage.is_deleted ? (
+                <button className="btn btn-danger btn-sm" style={{ borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} onClick={() => handleDeletePackage(viewPackage.id)}>Delete Package</button>
+              ) : (
+                <button className="btn btn-success btn-sm" style={{ borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }} onClick={() => handleRestorePackage(viewPackage.id)}>Restore Package</button>
+              )}
               <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '10px 24px' }} onClick={() => setViewPackage(null)}>Close Window</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Deleted Packages Modal */}
+      {showDeletedModal && (
+        <div className="modal-overlay">
+          <div className="premium-modal-content" style={{ maxWidth: 900, width: '90%', background: 'var(--bg-card)', padding: '32px' }}>
+            <div className="flex justify-between align-center mb-xl">
+              <h2 style={{ margin: 0 }}>Deleted Packages</h2>
+              <button className="btn btn-icon" onClick={() => setShowDeletedModal(false)}><X size={20}/></button>
+            </div>
+            
+            {deletedPackages.length === 0 ? (
+              <div className="text-center text-secondary p-xl" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No deleted packages found.</div>
+            ) : (
+              <div className="package-grid" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '8px', margin: '-8px' }}>
+                {deletedPackages.map(pkg => {
+                  const balance = pkg.total_amount - (pkg.paid_amount || 0);
+                  return (
+                    <div key={pkg.id} className="pkg-card" onClick={() => handleViewPackage(pkg.id)} style={{ opacity: 0.8 }}>
+                      <div className="pkg-header">
+                        <h3 className="pkg-title">{pkg.title}</h3>
+                        <span className="pkg-badge cancelled">Deleted</span>
+                      </div>
+                      
+                      <div className="pkg-info-row">
+                        <div className="pkg-icon-box"><User size={16} /></div>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{pkg.customer_name}</span>
+                      </div>
+                      
+                      <div className="pkg-finances" style={{ marginTop: '16px' }}>
+                        <div className="finance-item total">
+                          <span>Total</span>
+                          <span>{formatCurrency(pkg.total_amount)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <style>{`
+        .pkg-modal-layout {
+          display: flex;
+          flex-direction: row;
+        }
+        @media (max-width: 900px) {
+          .pkg-modal-layout {
+            flex-direction: column;
+          }
+          .pkg-modal-layout > div {
+            border-left: none !important;
+            padding-left: 0 !important;
+          }
+        }
         .packages-hero {
           background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
           border-radius: 24px;

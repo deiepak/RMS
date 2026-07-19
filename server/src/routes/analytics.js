@@ -8,7 +8,13 @@ router.use(requireRole(['admin']));
 
 const applyDateFilter = (query, dateCol, from, to) => {
   if (from) query = query.where(dateCol, '>=', from);
-  if (to) query = query.where(dateCol, '<=', to);
+  if (to) {
+    if (to.length === 10) {
+      query = query.where(dateCol, '<=', to + ' 23:59:59');
+    } else {
+      query = query.where(dateCol, '<=', to);
+    }
+  }
   return query;
 };
 
@@ -119,13 +125,18 @@ router.get('/popular-items', async (req, res) => {
     
     query = applyDateFilter(query, 'order_items.created_at', from, to);
 
-    const popularItems = await query
+    let q = query
       .select('menu_items.name')
       .sum('order_items.quantity as count')
       .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as revenue'))
       .groupBy('menu_items.id', 'menu_items.name')
-      .orderBy('count', 'desc')
-      .limit(10);
+      .orderBy('count', 'desc');
+
+    if (req.query.limit !== 'all') {
+      q = q.limit(10);
+    }
+
+    const popularItems = await q;
 
     res.json(popularItems);
   } catch (error) {
@@ -313,13 +324,18 @@ router.get('/least-popular-items', async (req, res) => {
     
     query = applyDateFilter(query, 'order_items.created_at', from, to);
 
-    const items = await query
+    let q = query
       .select('menu_items.name')
       .sum('order_items.quantity as count')
       .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as revenue'))
       .groupBy('menu_items.id', 'menu_items.name')
-      .orderBy('count', 'asc')
-      .limit(10);
+      .orderBy('count', 'asc');
+
+    if (req.query.limit !== 'all') {
+      q = q.limit(10);
+    }
+
+    const items = await q;
 
     res.json(items);
   } catch (error) {
@@ -329,24 +345,83 @@ router.get('/least-popular-items', async (req, res) => {
 
 router.get('/popular-combos', async (req, res) => {
   try {
-    const { from, to } = req.query;
-    let query = db('order_items as a')
-      .join('order_items as b', 'a.order_id', 'b.order_id')
-      .join('menu_items as m1', 'a.menu_item_id', 'm1.id')
-      .join('menu_items as m2', 'b.menu_item_id', 'm2.id')
-      .whereRaw('a.menu_item_id < b.menu_item_id')
-      .where('a.status', '!=', 'rejected')
-      .where('b.status', '!=', 'rejected');
-      
-    query = applyDateFilter(query, 'a.created_at', from, to);
+    const { from, to, type, size, filters } = req.query;
+    let comboSize = parseInt(size) || 2;
+    if (comboSize > 4) comboSize = 4;
+    if (comboSize < 2) comboSize = 2;
 
-    const combos = await query
-      .select('m1.name as item1', 'm2.name as item2')
+    let parsedFilters = [];
+    try {
+      if (filters) parsedFilters = JSON.parse(filters);
+    } catch (e) {
+      if (Array.isArray(filters)) parsedFilters = filters;
+      else if (typeof filters === 'string') parsedFilters = [filters];
+    }
+    
+    // Sort filters to handle duplicates cleanly
+    if (parsedFilters && parsedFilters.length > 0) {
+      parsedFilters.sort();
+    }
+    const hasFilters = parsedFilters && parsedFilters.length === comboSize;
+
+    let query = db('order_items as o1')
+      .join('menu_items as m1', 'o1.menu_item_id', 'm1.id')
+      .where('o1.status', '!=', 'rejected')
+      .whereNot('o1.status', 'cancelled');
+
+    if (type === 'category') {
+      query = query.leftJoin('menu_categories as c1', 'm1.category_id', 'c1.id');
+    }
+
+    const selectColumns = ['m1.name as item1'];
+    const groupColumns = ['m1.name'];
+
+    for (let i = 2; i <= comboSize; i++) {
+      query = query.join(`order_items as o${i}`, `o1.order_id`, `o${i}.order_id`)
+        .join(`menu_items as m${i}`, `o${i}.menu_item_id`, `m${i}.id`)
+        .where(`o${i}.status`, '!=', 'rejected')
+        .whereNot(`o${i}.status`, 'cancelled');
+
+      if (type === 'category') {
+        query = query.leftJoin(`menu_categories as c${i}`, `m${i}.category_id`, `c${i}.id`);
+      }
+
+      selectColumns.push(`m${i}.name as item${i}`);
+      groupColumns.push(`m${i}.name`);
+    }
+
+    for (let i = 1; i <= comboSize; i++) {
+      if (hasFilters) {
+        const filterVal = parsedFilters[i - 1];
+        if (filterVal && filterVal !== 'all') {
+          if (type === 'category') query = query.where(`c${i}.name`, filterVal);
+          else if (type === 'item') query = query.where(`m${i}.name`, filterVal);
+        }
+      }
+
+      if (i > 1) {
+        const prevFilter = hasFilters ? parsedFilters[i - 2] : null;
+        const currFilter = hasFilters ? parsedFilters[i - 1] : null;
+        
+        if (!hasFilters || prevFilter === currFilter) {
+          query = query.whereRaw(`(m${i-1}.id < m${i}.id OR (m${i-1}.id = m${i}.id AND o${i-1}.id < o${i}.id))`);
+        }
+      }
+    }
+
+    query = applyDateFilter(query, 'o1.created_at', from, to);
+
+    let q = query
+      .select(selectColumns)
       .count('* as count')
-      .groupBy('m1.name', 'm2.name')
-      .orderBy('count', 'desc')
-      .limit(5);
+      .groupBy(groupColumns)
+      .orderBy('count', 'desc');
 
+    if (req.query.limit !== 'all') {
+      q = q.limit(5);
+    }
+
+    const combos = await q;
     res.json(combos);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -371,6 +446,56 @@ router.get('/waiter-performance', async (req, res) => {
       .orderBy('revenue_handled', 'desc');
 
     res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/menu-analysis', async (req, res) => {
+  try {
+    const { from, to, sort } = req.query;
+    
+    let query = db('menu_items')
+      .leftJoin('menu_categories', 'menu_items.category_id', 'menu_categories.id')
+      .leftJoin('order_items', function() {
+        this.on('menu_items.id', '=', 'order_items.menu_item_id')
+          .andOnVal('order_items.status', '!=', 'rejected')
+          .andOnVal('order_items.status', '!=', 'cancelled');
+          
+        if (from) {
+          this.andOnVal('order_items.created_at', '>=', from);
+        }
+        if (to) {
+          if (to.length === 10) {
+            this.andOnVal('order_items.created_at', '<=', to + ' 23:59:59');
+          } else {
+            this.andOnVal('order_items.created_at', '<=', to);
+          }
+        }
+      });
+
+    const menuAnalysis = await query
+      .select(
+        'menu_items.name as itemName',
+        db.raw('COALESCE(menu_categories.name, "Uncategorized") as category')
+      )
+      .sum('order_items.quantity as totalSales')
+      .select(db.raw('SUM(order_items.quantity * COALESCE(order_items.price_at_order, menu_items.price)) as totalRevenue'))
+      .groupBy('menu_items.id', 'menu_items.name', 'menu_categories.name');
+
+    // Handle sorting manually if needed or via DB
+    if (sort === 'revenue') {
+      menuAnalysis.sort((a, b) => parseFloat(b.totalRevenue || 0) - parseFloat(a.totalRevenue || 0));
+    } else if (sort === 'sales') {
+      menuAnalysis.sort((a, b) => parseInt(b.totalSales || 0) - parseInt(a.totalSales || 0));
+    } else if (sort === 'category') {
+      menuAnalysis.sort((a, b) => a.category.localeCompare(b.category));
+    } else {
+      // Default sort by sales desc
+      menuAnalysis.sort((a, b) => parseInt(b.totalSales || 0) - parseInt(a.totalSales || 0));
+    }
+
+    res.json(menuAnalysis);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

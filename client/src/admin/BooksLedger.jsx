@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { Download, FileText, FileSpreadsheet, DollarSign, CreditCard, Smartphone, Wallet, BarChart3 } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 export default function BooksLedger() {
   const [payments, setPayments] = useState([]);
@@ -66,16 +67,22 @@ export default function BooksLedger() {
   }, []);
 
   const fetchData = async () => {
-    if (!filters.from) return; // Wait for dates to be set
+    if (!filters.from) return;
     
     try {
       setIsLoading(true);
-      const queryParams = `?from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59&method=${filters.method}`;
+      
+      const fromDateObj = new Date(`${filters.from}T00:00:00`);
+      const toDateObj = new Date(`${filters.to}T23:59:59.999`);
+      const fromUTC = fromDateObj.toISOString().replace('T', ' ').substring(0, 19);
+      const toUTC = toDateObj.toISOString().replace('T', ' ').substring(0, 19);
+
+      const queryParams = `?from=${encodeURIComponent(fromUTC)}&to=${encodeURIComponent(toUTC)}&method=${filters.method}`;
       
       const [paymentsRes, summaryRes, catRes] = await Promise.all([
         api.get(`/ledger${queryParams}`),
-        api.get(`/ledger/summary?from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`),
-        api.get(`/ledger/by-category?from=${filters.from}%2000:00:00&to=${filters.to}%2023:59:59`)
+        api.get(`/ledger/summary?from=${encodeURIComponent(fromUTC)}&to=${encodeURIComponent(toUTC)}`),
+        api.get(`/ledger/by-category?from=${encodeURIComponent(fromUTC)}&to=${encodeURIComponent(toUTC)}`)
       ]);
       
       setPayments(paymentsRes.data);
@@ -90,6 +97,9 @@ export default function BooksLedger() {
 
   const groupPaymentsByDate = () => {
     const grouped = Object.values(payments.reduce((acc, p) => {
+      // Append Z to correctly parse SQLite UTC timestamp in local JS
+      const safeDate = (dateStr) => new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+      
       if (!acc[p.order_id]) {
         acc[p.order_id] = {
           order_id: p.order_id,
@@ -105,16 +115,19 @@ export default function BooksLedger() {
       acc[p.order_id].amount += parseFloat(p.amount);
       acc[p.order_id].methods.add(p.method);
       acc[p.order_id].collected_by.add(p.collected_by);
-      if (new Date(p.created_at) > new Date(acc[p.order_id].created_at)) {
+      if (safeDate(p.created_at) > safeDate(acc[p.order_id].created_at)) {
         acc[p.order_id].created_at = p.created_at;
       }
       return acc;
-    }, {})).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }, {})).sort((a, b) => {
+      const safeDate = (dateStr) => new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+      return safeDate(b.created_at) - safeDate(a.created_at);
+    });
 
-    // Then group by date string
     const byDate = {};
     grouped.forEach(order => {
-      const dateStr = new Date(order.created_at).toISOString().split('T')[0];
+      const safeDate = (dateStr) => new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+      const dateStr = safeDate(order.created_at).toLocaleDateString('en-CA');
       if (!byDate[dateStr]) {
         byDate[dateStr] = {
           date: dateStr,
@@ -128,14 +141,13 @@ export default function BooksLedger() {
       byDate[dateStr].orders.push(order);
       byDate[dateStr].total += order.amount;
       Array.from(order.methods).forEach(m => {
-        // distribute amount based on exact payment data if needed, but since we grouped by order, we approximate if multiple methods
-        // To be exact, we should iterate raw payments for method sums per day.
+        // distribute amount based on exact payment data if needed
       });
     });
 
     // Let's compute exact method sums per day from raw payments
     payments.forEach(p => {
-      const dateStr = new Date(p.created_at).toISOString().split('T')[0];
+      const dateStr = new Date(p.created_at).toLocaleDateString('en-CA');
       if (byDate[dateStr]) {
         byDate[dateStr][p.method] = (byDate[dateStr][p.method] || 0) + parseFloat(p.amount);
       }
@@ -258,9 +270,9 @@ export default function BooksLedger() {
 
           {filters.period === 'custom' && (
             <div className="flex gap-md align-center">
-              <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
+              <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
               <span className="text-secondary">to</span>
-              <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
+              <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
             </div>
           )}
 
@@ -354,7 +366,7 @@ export default function BooksLedger() {
                       <DollarSign size={16} />
                     </button>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{p.is_package ? p.order_id : `ORD-${p.order_id}`}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{p.is_package ? `${p.order_id} (${p.table_number})` : `ORD-${p.order_id}`}</div>
                       <div className="text-secondary" style={{ fontSize: 12 }}>{p.is_package ? 'Event Package' : (p.table_number ? `Table ${p.table_number}` : 'Counter Order')}</div>
                     </div>
                   </div>

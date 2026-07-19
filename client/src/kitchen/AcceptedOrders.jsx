@@ -5,11 +5,13 @@ import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { checkStationMatch } from '../utils/helpers';
+import NumpadModal from '../components/NumpadModal';
 
 export default function AcceptedOrders({ updateCounts }) {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [numpadState, setNumpadState] = useState({ isOpen: false, item: null });
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -61,11 +63,20 @@ export default function AcceptedOrders({ updateCounts }) {
     }
   };
 
-  const handleMarkPrepared = async (itemId) => {
+  const handleMarkPreparedClick = (item) => {
+    if (item.quantity > 1) {
+      setNumpadState({ isOpen: true, item });
+    } else {
+      submitMarkPrepared(item.id, 1);
+    }
+  };
+
+  const submitMarkPrepared = async (itemId, quantity) => {
     try {
-      await api.patch(`/orders/items/${itemId}/status`, { status: 'prepared' });
-      showToast('Marked as prepared', 'success');
+      await api.post(`/orders/items/${itemId}/split-status`, { quantity, status: 'prepared' });
+      showToast(`Marked ${quantity} as prepared`, 'success');
       fetchAccepted();
+      setNumpadState({ isOpen: false, item: null });
     } catch (error) {
       showToast('Failed to update status', 'error');
     }
@@ -108,7 +119,14 @@ export default function AcceptedOrders({ updateCounts }) {
                   T-{order.table_number}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13 }} className="text-secondary">Order #{order.id} {order.status === 'hold' && <span className="badge badge-warning ml-sm">ON HOLD</span>}</div>
+                  <div style={{ fontSize: 13 }} className="text-secondary">
+                    Order #{order.id} {order.status === 'hold' && <span className="badge badge-warning ml-sm">ON HOLD</span>}
+                  </div>
+                  {order.waiter_name && (
+                    <div style={{ fontSize: 11, marginTop: 4 }} className="text-secondary">
+                      👤 {order.waiter_name}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -138,7 +156,7 @@ export default function AcceptedOrders({ updateCounts }) {
                       {!isRejected && (
                         <button 
                           className="btn btn-primary btn-sm mt-md w-full" 
-                          onClick={() => handleMarkPrepared(item.id)}
+                          onClick={() => handleMarkPreparedClick(item)}
                           disabled={order.status === 'hold'}
                         >
                           <CheckCircle2 size={16} /> Mark as Prepared
@@ -152,6 +170,14 @@ export default function AcceptedOrders({ updateCounts }) {
           </div>
         );
       })}
+      
+      <NumpadModal 
+        isOpen={numpadState.isOpen}
+        onClose={() => setNumpadState({ isOpen: false, item: null })}
+        onSubmit={(qty) => submitMarkPrepared(numpadState.item.id, qty)}
+        title={`Prepared: ${numpadState.item?.item_name}`}
+        maxQuantity={numpadState.item?.quantity || 1}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Plus, Edit2, Trash2, KeyRound, Shield, ChefHat, ConciergeBell, Phone, Briefcase, Camera, Tv } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
@@ -288,13 +289,13 @@ export default function EmployeeManagement() {
               </div>
               <div className="form-group flex-1">
                 <label className="form-label">Join Date (Optional)</label>
-                <input type="date" className="form-input" value={form.join_date || ''} onChange={e => setForm({...form, join_date: e.target.value})} />
+                <DatePicker className="form-input" value={form.join_date || ''} onChange={e => setForm({...form, join_date: e.target.value})} />
               </div>
             </div>
             <div className="flex gap-md">
               <div className="form-group flex-1">
                 <label className="form-label">Date of Birth (Optional)</label>
-                <input type="date" className="form-input" value={form.dob || ''} onChange={e => setForm({...form, dob: e.target.value})} />
+                <DatePicker className="form-input" value={form.dob || ''} onChange={e => setForm({...form, dob: e.target.value})} />
               </div>
               <div className="form-group flex-1">
                 <label className="form-label">Address (Optional)</label>

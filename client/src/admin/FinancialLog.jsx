@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
+import DatePicker from '../components/DatePicker';
 import { BookOpen, Download, TrendingUp, TrendingDown, ArrowRightLeft, Wallet } from 'lucide-react';
 
 export default function FinancialLog() {
@@ -36,8 +37,8 @@ export default function FinancialLog() {
       setFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: fromDate.toLocaleDateString('en-CA'),
+        to: endOfDay.toLocaleDateString('en-CA')
       }));
     } else {
       setFilters(prev => ({ ...prev, period }));
@@ -120,9 +121,9 @@ export default function FinancialLog() {
 
           {filters.period === 'custom' && (
             <div className="flex gap-md align-center">
-              <input type="date" className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
               <span>to</span>
-              <input type="date" className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
             </div>
           )}
 

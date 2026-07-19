@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Video, CheckCircle, Clock, Phone, User, Calendar, Download } from 'lucide-react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
+import DatePicker from '../components/DatePicker';
 
 export default function VideoManagement() {
   const [videos, setVideos] = useState([]);
@@ -35,8 +36,8 @@ export default function VideoManagement() {
       setFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: fromDate.toLocaleDateString('en-CA'),
+        to: endOfDay.toLocaleDateString('en-CA')
       }));
     } else {
       setFilters(prev => ({ ...prev, period }));
@@ -139,9 +140,9 @@ export default function VideoManagement() {
 
           {filters.period === 'custom' && (
             <div className="flex gap-md align-center">
-              <input type="date" className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
               <span>to</span>
-              <input type="date" className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
             </div>
           )}
         </div>

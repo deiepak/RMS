@@ -87,6 +87,7 @@ const NAV_CATEGORIES = [
       { to: '/admin/damage', icon: AlertTriangle, label: 'Damage Report' },
       { to: '/admin/maintenance', icon: Wrench, label: 'Maintenance Log' },
       { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/admin/menu-analysis', icon: BarChart3, label: 'Menu Analysis' },
       { to: '/admin/stations', icon: Settings, label: 'Stations' },
       { to: '/admin/tv-content', icon: Tv, label: 'TV Content' },
       { to: '/admin/cctv', icon: Video, label: 'CCTV Monitoring' },
@@ -111,6 +112,7 @@ const SECTION_TITLES = {
   '/admin/financial-log': 'Financial Log',
   '/admin/damage': 'Damage Report',
   '/admin/analytics': 'Analytics',
+  '/admin/menu-analysis': 'Menu Analysis',
   '/admin/communication': 'Communication',
   '/admin/counter': 'Counter Orders',
   '/admin/packages': 'Packages',
@@ -285,7 +287,7 @@ export default function AdminPortal() {
             </button>
             <h1 className="header-title">{sectionTitle}</h1>
           </div>
-          <div className="header-right">
+          <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button 
               className={`btn btn-icon ${audioEnabled ? 'btn-secondary' : 'btn-danger'}`}
               onClick={() => {

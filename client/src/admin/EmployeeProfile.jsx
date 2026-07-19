@@ -3,8 +3,9 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { ArrowLeft, Phone, Calendar, Briefcase, DollarSign, Plus, Check, X, MapPin, AlertCircle, Clock, FileText, LogIn, LogOut as LogOutIcon } from 'lucide-react';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, formatDate } from '../utils/helpers';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 export default function EmployeeProfile() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export default function EmployeeProfile() {
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'bank', notes: '', bonus: 0, deduction: 0 });
 
   const [isPerfModalOpen, setIsPerfModalOpen] = useState(false);
-  const [perfForm, setPerfForm] = useState({ type: 'warning', notes: '', date: new Date().toISOString().split('T')[0] });
+  const [perfForm, setPerfForm] = useState({ type: 'warning', notes: '', date: new Date().toLocaleDateString('en-CA') });
 
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [docForm, setDocForm] = useState({ document_name: '', status: 'collected' });
@@ -94,7 +95,7 @@ export default function EmployeeProfile() {
       await api.post(`/employees/${id}/performance`, perfForm);
       showToast('Performance record added', 'success');
       setIsPerfModalOpen(false);
-      setPerfForm({ type: 'warning', notes: '', date: new Date().toISOString().split('T')[0] });
+      setPerfForm({ type: 'warning', notes: '', date: new Date().toLocaleDateString('en-CA') });
       fetchData();
     } catch (error) {
       showToast('Failed to add performance record', 'error');
@@ -203,7 +204,7 @@ export default function EmployeeProfile() {
             <div className="flex gap-lg flex-wrap text-secondary">
               <div className="flex align-center gap-sm text-capitalize"><Briefcase size={16} /> {employee.role} {employee.station_name && `(${employee.station_name})`}</div>
               {employee.contact && <div className="flex align-center gap-sm"><Phone size={16} /> {employee.contact}</div>}
-              {employee.join_date && <div className="flex align-center gap-sm"><Calendar size={16} /> Joined: {new Date(employee.join_date).toLocaleDateString()}</div>}
+              {employee.join_date && <div className="flex align-center gap-sm"><Calendar size={16} /> Joined: {formatDate(employee.join_date)}</div>}
               <div className="flex align-center gap-sm font-bold text-success"><DollarSign size={16} /> Base Salary: {formatCurrency(employee.monthly_salary)} / mo</div>
               <div className="flex align-center gap-sm font-bold text-primary"><DollarSign size={16} /> Hourly: {formatCurrency(employee.hourly_rate)} / hr</div>
             </div>
@@ -237,7 +238,7 @@ export default function EmployeeProfile() {
             <div className="card p-lg">
               <h3 className="mb-md">Personal Details</h3>
               <div className="flex-col gap-sm">
-                <div className="flex gap-sm align-center text-secondary"><Calendar size={16} /> <strong className="text-body">DOB:</strong> {employee.dob ? new Date(employee.dob).toLocaleDateString() : 'Not Set'}</div>
+                <div className="flex gap-sm align-center text-secondary"><Calendar size={16} /> <strong className="text-body">DOB:</strong> {employee.dob ? formatDate(employee.dob) : 'Not Set'}</div>
                 <div className="flex gap-sm align-center text-secondary"><MapPin size={16} /> <strong className="text-body">Address:</strong> {employee.address || 'Not Set'}</div>
                 <div className="flex gap-sm align-center text-secondary"><AlertCircle size={16} /> <strong className="text-body">Emergency Contact:</strong> {employee.emergency_contact_name || 'Not Set'} {employee.emergency_contact_phone && `(${employee.emergency_contact_phone})`}</div>
                 <div className="flex gap-sm align-center text-secondary"><Briefcase size={16} /> <strong className="text-body">Emp Type:</strong> <span className="text-capitalize">{employee.employment_type}</span></div>
@@ -247,7 +248,7 @@ export default function EmployeeProfile() {
             <div className="card p-lg">
               <h3 className="mb-md">HR Summary</h3>
               <div className="text-secondary mb-sm">Total Leaves Taken: {hrData.leaves.filter(l => l.status === 'approved').length}</div>
-              <div className="text-secondary mb-sm">Last Payment: {hrData.payments.length > 0 ? new Date(hrData.payments[0].created_at).toLocaleDateString() : 'None'}</div>
+              <div className="text-secondary mb-sm">Last Payment: {hrData.payments.length > 0 ? formatDate(hrData.payments[0].created_at) : 'None'}</div>
               <div className="text-secondary mb-sm">Pending Documents: {hrData.documents.filter(d => d.status === 'missing').length}</div>
               <div className="text-secondary mb-sm">Active Warnings: {hrData.performance.filter(p => p.type === 'warning').length}</div>
             </div>
@@ -271,7 +272,7 @@ export default function EmployeeProfile() {
               <tbody>
                 {hrData.attendance.map(att => (
                   <tr key={att.id}>
-                    <td>{new Date(att.clock_in).toLocaleDateString()}</td>
+                    <td>{formatDate(att.clock_in)}</td>
                     <td>{new Date(att.clock_in).toLocaleTimeString()}</td>
                     <td>{att.clock_out ? new Date(att.clock_out).toLocaleTimeString() : <span className="badge badge-warning">Active</span>}</td>
                     <td className="text-right font-bold">{att.total_hours ? `${att.total_hours}h` : '-'}</td>
@@ -309,7 +310,7 @@ export default function EmployeeProfile() {
               <tbody>
                 {hrData.payments.map(pay => (
                   <tr key={pay.id}>
-                    <td>{new Date(pay.created_at).toLocaleDateString()}</td>
+                    <td>{formatDate(pay.created_at)}</td>
                     <td className="text-capitalize">{pay.payment_method}</td>
                     <td className="text-secondary">{pay.notes || '-'}</td>
                     <td className="text-right text-success">{pay.bonus > 0 ? `+${formatCurrency(pay.bonus)}` : '-'}</td>
@@ -348,7 +349,7 @@ export default function EmployeeProfile() {
               <tbody>
                 {hrData.leaves.map(leave => (
                   <tr key={leave.id}>
-                    <td>{new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}</td>
+                    <td>{formatDate(leave.start_date)} - {formatDate(leave.end_date)}</td>
                     <td className="text-capitalize">{leave.type}</td>
                     <td className="text-secondary">{leave.reason || '-'}</td>
                     <td>
@@ -395,7 +396,7 @@ export default function EmployeeProfile() {
               <tbody>
                 {hrData.performance.map(perf => (
                   <tr key={perf.id}>
-                    <td>{new Date(perf.date).toLocaleDateString()}</td>
+                    <td>{formatDate(perf.date)}</td>
                     <td>
                       <span className={`badge ${perf.type === 'commendation' ? 'badge-success' : perf.type === 'warning' ? 'badge-danger' : 'badge-warning'}`}>
                         {perf.type}
@@ -500,12 +501,12 @@ export default function EmployeeProfile() {
         <form onSubmit={handleAddLeave} className="flex-col gap-md">
           <div className="flex gap-md">
             <div className="form-group flex-1">
-              <label className="form-label">Start Date</label>
-              <input type="date" className="form-input" required value={leaveForm.start_date} onChange={e => setLeaveForm({...leaveForm, start_date: e.target.value})} />
+              <label className="form-label">Start Date *</label>
+              <DatePicker className="form-input" required value={leaveForm.start_date} onChange={e => setLeaveForm({...leaveForm, start_date: e.target.value})} />
             </div>
             <div className="form-group flex-1">
-              <label className="form-label">End Date</label>
-              <input type="date" className="form-input" required value={leaveForm.end_date} onChange={e => setLeaveForm({...leaveForm, end_date: e.target.value})} />
+              <label className="form-label">End Date *</label>
+              <DatePicker className="form-input" required value={leaveForm.end_date} onChange={e => setLeaveForm({...leaveForm, end_date: e.target.value})} />
             </div>
           </div>
           <div className="form-group">
@@ -539,8 +540,8 @@ export default function EmployeeProfile() {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Date</label>
-            <input type="date" className="form-input" required value={perfForm.date} onChange={e => setPerfForm({...perfForm, date: e.target.value})} />
+            <label className="form-label">Date *</label>
+            <DatePicker className="form-input" required value={perfForm.date} onChange={e => setPerfForm({...perfForm, date: e.target.value})} />
           </div>
           <div className="form-group">
             <label className="form-label">Details / Notes</label>

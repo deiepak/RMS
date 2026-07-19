@@ -26,6 +26,7 @@ import {
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import Modal from '../components/Modal';
+import { formatDate } from '../utils/helpers';
 import '../index.css';
 
 const CHART_COLORS = ['#e94560', '#f5a623', '#00d2ff', '#22c55e', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
@@ -328,7 +329,7 @@ export default function Dashboard() {
                     dataKey="date" 
                     tick={{ fontSize: 12 }} 
                     stroke="var(--text-secondary)"
-                    tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    tickFormatter={(val) => formatDate(val)}
                   />
                   <YAxis 
                     tick={{ fontSize: 12 }} 
@@ -344,7 +345,7 @@ export default function Dashboard() {
                         borderRadius: '8px',
                       }}
                       formatter={(v) => [formatCurrency(v), 'Revenue']}
-                      labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      labelFormatter={(label) => formatDate(label)}
                     />
                   )}
                   <Line

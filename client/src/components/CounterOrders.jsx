@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search } from 'lucide-react';
+import { Plus, X, Trash2, ShoppingBag, DollarSign, Bell, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { subscribeToEvent, unsubscribeFromEvent } from '../api/socket';
@@ -29,6 +29,7 @@ export default function CounterOrders({ isAdminView = false }) {
   const [cameFromTables, setCameFromTables] = useState(false);
   const [waiterStep, setWaiterStep] = useState(1);
   const [expandedTableId, setExpandedTableId] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({});
   const cartEndRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -238,78 +239,112 @@ export default function CounterOrders({ isAdminView = false }) {
               </div>
             </div>
 
-            <div style={{ width: '100%', maxWidth: '800px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', overflowY: 'auto' }}>
-              {tables.filter(t => t.number.toString().toLowerCase().includes((tableSearch || '').toLowerCase())).map(t => {
-                const isOccupied = t.status === 'occupied';
-                const isExpanded = expandedTableId === t.id;
-                const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
+            <div style={{ width: '100%', maxWidth: '800px', overflowY: 'auto' }}>
+              {(() => {
+                const filteredTables = tables.filter(t => t.number.toString().toLowerCase().includes((tableSearch || '').toLowerCase()));
+                
+                const grouped = filteredTables.reduce((acc, t) => {
+                  const sec = t.section || 'Main Hall';
+                  if (!acc[sec]) acc[sec] = [];
+                  acc[sec].push(t);
+                  return acc;
+                }, {});
 
-                return (
-                  <div 
-                    key={t.id}
-                    style={{ 
-                      background: 'var(--bg-primary)', 
-                      borderRadius: '12px', 
-                      borderLeft: `6px solid ${isOccupied ? 'var(--danger)' : 'var(--success)'}`,
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                      overflow: 'hidden',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div 
-                      style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                      onClick={() => {
-                        if (isOccupied) {
-                          setExpandedTableId(isExpanded ? null : t.id);
-                        } else {
-                          setSelectedTableId(t.id);
-                          setWaiterStep(2);
-                        }
-                      }}
-                    >
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Table {t.number}</h3>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{isOccupied ? 'Occupied' : 'Available'}</span>
+                return Object.keys(grouped).map(sectionName => {
+                  const isSectionExpanded = expandedSections[sectionName];
+                  
+                  return (
+                    <div key={sectionName} style={{ marginBottom: '24px' }}>
+                      <div 
+                        className="flex justify-between align-center cursor-pointer p-md"
+                        style={{ borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', marginBottom: '16px' }}
+                        onClick={() => setExpandedSections(prev => ({ ...prev, [sectionName]: !prev[sectionName] }))}
+                      >
+                        <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>
+                          {sectionName} <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>({grouped[sectionName].length})</span>
+                        </h3>
+                        {isSectionExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                       </div>
-                      {isOccupied && (
-                        <div style={{ padding: '6px 12px', background: 'var(--bg-secondary)', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
-                          {isExpanded ? 'Hide' : 'View'}
+
+                      {isSectionExpanded && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                          {grouped[sectionName].map(t => {
+                            const isOccupied = t.status === 'occupied';
+                            const isExpanded = expandedTableId === t.id;
+                            const activeOrder = isOccupied ? allOrders.find(o => String(o.table_id) === String(t.id) && ['active', 'checkout_requested'].includes(o.status)) : null;
+
+                            return (
+                              <div 
+                                key={t.id}
+                                style={{ 
+                                  background: 'var(--bg-primary)', 
+                                  borderRadius: '12px', 
+                                  borderLeft: `6px solid ${isOccupied ? 'var(--danger)' : 'var(--success)'}`,
+                                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                  overflow: 'hidden',
+                                  transition: 'all 0.2s',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <div 
+                                  style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                  onClick={() => {
+                                    if (isOccupied) {
+                                      setExpandedTableId(isExpanded ? null : t.id);
+                                    } else {
+                                      setSelectedTableId(t.id);
+                                      setWaiterStep(2);
+                                    }
+                                  }}
+                                >
+                                  <div>
+                                    <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Table {t.number}</h3>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{isOccupied ? 'Occupied' : 'Available'}</span>
+                                  </div>
+                                  {isOccupied && (
+                                    <div style={{ padding: '6px 12px', background: 'var(--bg-secondary)', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
+                                      {isExpanded ? 'Hide' : 'View'}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {isOccupied && isExpanded && (
+                                  <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg-secondary)' }}>
+                                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Active Order Items</h4>
+                                    {activeOrder?.items?.length > 0 ? (
+                                      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', fontSize: '14px' }}>
+                                        {activeOrder.items.map(item => (
+                                          <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                                            <span>{item.quantity}x {item.item_name}</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(item.price_at_order * item.quantity)}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No items found.</p>
+                                    )}
+                                    <button 
+                                      className="btn btn-primary"
+                                      style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTableId(t.id);
+                                        setWaiterStep(2);
+                                      }}
+                                    >
+                                      Place New Order
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
-                    
-                    {isOccupied && isExpanded && (
-                      <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg-secondary)' }}>
-                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Active Order Items</h4>
-                        {activeOrder?.items?.length > 0 ? (
-                          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', fontSize: '14px' }}>
-                            {activeOrder.items.map(item => (
-                              <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
-                                <span>{item.quantity}x {item.item_name}</span>
-                                <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(item.price_at_order * item.quantity)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No items found.</p>
-                        )}
-                        <button 
-                          className="btn btn-primary"
-                          style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 600 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTableId(t.id);
-                            setWaiterStep(2);
-                          }}
-                        >
-                          Place New Order
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         ) : (
@@ -415,7 +450,7 @@ export default function CounterOrders({ isAdminView = false }) {
       {/* Add Counter Order / Table Selection Modal (Admin only) */}
       {showAddModal && isAdminView && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 1100, width: '95%', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
+          <div className="modal-content" style={{ maxWidth: '95vw', width: '95vw', height: '95vh', display: 'flex', flexDirection: 'column', background: 'var(--glass-bg)', backdropFilter: 'blur(30px)', border: '1px solid var(--glass-border)' }}>
             <div className="modal-header">
               <h2>New Counter Order</h2>
               <button 
@@ -434,7 +469,7 @@ export default function CounterOrders({ isAdminView = false }) {
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body" id="customer-scroll-container" style={{ height: '80vh', overflowY: 'auto', overflowX: 'auto', padding: 0 }}>
+            <div className="modal-body" id="customer-scroll-container" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: 0 }}>
               <AdminCounterOrderModal
                 tables={tables}
                 adminTableId={selectedTableId}

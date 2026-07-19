@@ -5,12 +5,12 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 router.use(verifyToken);
-router.use(requireRole(['admin']));
-
-// GET /api/packages - list all packages
-router.get('/', async (req, res) => {
+// GET /api/packages - list all active packages
+router.get('/', requireRole(['admin', 'waiter', 'kitchen']), async (req, res) => {
   try {
-    const packages = await db('packages').orderBy('created_at', 'desc');
+    const packages = await db('packages')
+      .where({ is_deleted: false })
+      .orderBy('created_at', 'desc');
     
     // Attach total payments
     for (let pkg of packages) {
@@ -25,8 +25,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/packages/deleted - list all deleted packages
+router.get('/deleted', requireRole(['admin']), async (req, res) => {
+  try {
+    const packages = await db('packages')
+      .where({ is_deleted: true })
+      .orderBy('created_at', 'desc');
+    
+    // Attach total payments
+    for (let pkg of packages) {
+      const payments = await db('package_payments').where({ package_id: pkg.id });
+      pkg.paid_amount = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    }
+    
+    res.json(packages);
+  } catch (err) {
+    console.error('Deleted packages list error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // GET /api/packages/:id - single package with items and payments
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireRole(['admin', 'waiter', 'kitchen']), async (req, res) => {
   try {
     const pkg = await db('packages').where({ id: req.params.id }).first();
     if (!pkg) return res.status(404).json({ error: 'Package not found' });
@@ -42,7 +62,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/packages - create new package
-router.post('/', async (req, res) => {
+router.post('/', requireRole(['admin']), async (req, res) => {
   try {
     const { title, customer_name, contact, event_date, notes, items } = req.body;
     
@@ -57,7 +77,7 @@ router.post('/', async (req, res) => {
       const [id] = await trx('packages').insert({
         title, customer_name, contact: contact || null, 
         event_date: event_date || null, notes: notes || null, 
-        total_amount, status: 'active'
+        total_amount, status: 'active', is_deleted: false
       });
       packageId = id;
 
@@ -81,7 +101,7 @@ router.post('/', async (req, res) => {
 });
 
 // POST /api/packages/:id/payments - add payment
-router.post('/:id/payments', async (req, res) => {
+router.post('/:id/payments', requireRole(['admin']), async (req, res) => {
   try {
     const { amount, payment_method, notes } = req.body;
     
@@ -89,8 +109,8 @@ router.post('/:id/payments', async (req, res) => {
       return res.status(400).json({ error: 'Amount and payment method are required.' });
     }
 
-    const pkg = await db('packages').where({ id: req.params.id }).first();
-    if (!pkg) return res.status(404).json({ error: 'Package not found.' });
+    const pkg = await db('packages').where({ id: req.params.id, is_deleted: false }).first();
+    if (!pkg) return res.status(404).json({ error: 'Package not found or deleted.' });
 
     const existingPayments = await db('package_payments').where({ package_id: req.params.id });
     const totalPaid = existingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
@@ -116,13 +136,24 @@ router.post('/:id/payments', async (req, res) => {
   }
 });
 
-// DELETE /api/packages/:id
-router.delete('/:id', async (req, res) => {
+// DELETE /api/packages/:id - Soft Delete
+router.delete('/:id', requireRole(['admin']), async (req, res) => {
   try {
-    await db('packages').where({ id: req.params.id }).del();
+    await db('packages').where({ id: req.params.id }).update({ is_deleted: true });
     res.json({ success: true });
   } catch (err) {
     console.error('Package delete error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// POST /api/packages/:id/restore - Restore Package
+router.post('/:id/restore', requireRole(['admin']), async (req, res) => {
+  try {
+    await db('packages').where({ id: req.params.id }).update({ is_deleted: false });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Package restore error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

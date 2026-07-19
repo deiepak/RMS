@@ -8,6 +8,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981'];
 
@@ -53,8 +54,8 @@ export default function ExpensesReport() {
       setFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: fromDate.toLocaleDateString('en-CA'),
+        to: endOfDay.toLocaleDateString('en-CA')
       }));
     } else {
       setFilters(prev => ({ ...prev, period }));
@@ -141,9 +142,9 @@ export default function ExpensesReport() {
 
           {filters.period === 'custom' && (
             <div className="flex gap-md align-center">
-              <input type="date" className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.from} onChange={e => setFilters(prev => ({...prev, from: e.target.value}))} />
               <span>to</span>
-              <input type="date" className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
+              <DatePicker className="form-input" value={filters.to} onChange={e => setFilters(prev => ({...prev, to: e.target.value}))} />
             </div>
           )}
         </div>

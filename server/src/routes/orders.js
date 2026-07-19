@@ -45,7 +45,7 @@ async function recalculateOrderTotals(orderId) {
 }
 
 // POST /api/orders - create order
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const { table_id, customer_name, items, order_type } = req.body;
     if (!items || !items.length) {
@@ -76,6 +76,7 @@ router.post('/', async (req, res) => {
       order_type: order_type || 'table',
       order_name,
       status: 'active',
+      waiter_name: req.user ? req.user.name : null,
     });
 
     // Create order items
@@ -581,6 +582,74 @@ router.patch('/items/:itemId/status', async (req, res) => {
     res.json(updatedItem);
   } catch (err) {
     console.error('Item status update error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// POST /api/orders/items/:itemId/split-status - split item and update status (partial prepare)
+router.post('/items/:itemId/split-status', async (req, res) => {
+  try {
+    const { quantity, status } = req.body;
+    const { itemId } = req.params;
+    
+    if (!quantity || !status) {
+      return res.status(400).json({ error: 'Quantity and status are required' });
+    }
+
+    const item = await db('order_items').where({ id: itemId }).first();
+    if (!item) {
+      return res.status(404).json({ error: 'Order item not found.' });
+    }
+
+    if (quantity < item.quantity) {
+      // Split the item
+      const remainingQty = item.quantity - quantity;
+      
+      await db.transaction(async trx => {
+        // Update original item to remaining qty
+        await trx('order_items').where({ id: itemId }).update({ 
+          quantity: remainingQty,
+          updated_at: db.fn.now()
+        });
+
+        // Create new item for the split quantity
+        await trx('order_items').insert({
+          order_id: item.order_id,
+          menu_item_id: item.menu_item_id,
+          quantity: quantity,
+          customer_name: item.customer_name,
+          notes: item.notes,
+          status: status,
+          price_at_order: item.price_at_order,
+          assigned_waiter: item.assigned_waiter,
+          is_printed: item.is_printed,
+          created_at: item.created_at, // Preserve original timestamp
+          updated_at: db.fn.now()
+        });
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('order:new'); // Trigger refresh
+      }
+
+      res.json({ success: true, message: 'Item split and updated' });
+    } else {
+      // Just update the status
+      await db('order_items').where({ id: itemId }).update({ 
+        status: status,
+        updated_at: db.fn.now()
+      });
+      
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('order:new'); 
+      }
+
+      res.json({ success: true, message: 'Item updated' });
+    }
+  } catch (err) {
+    console.error('Split status error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

@@ -3,6 +3,9 @@ import { api } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Plus, Edit2, Trash2, AlertTriangle, ShoppingBag, History, Download } from 'lucide-react';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function StockManagement() {
   const [stock, setStock] = useState([]);
@@ -10,7 +13,9 @@ export default function StockManagement() {
   const [stockRequests, setStockRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lowStockFilter, setLowStockFilter] = useState(false);
+  const [nearExpiryFilter, setNearExpiryFilter] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
 
   const [menuItems, setMenuItems] = useState([]);
@@ -19,7 +24,7 @@ export default function StockManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({
-    name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: ''
+    name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: '', expiry_date: ''
   });
   const [bulkForm, setBulkForm] = useState({
     vendor_id: '', items: [{ name: '', quantity: '', unit: 'kg', low_threshold: '' }]
@@ -33,7 +38,7 @@ export default function StockManagement() {
   });
   
   const [purchaseForm, setPurchaseForm] = useState({
-    vendor_id: '', bill_number: '', notes: '', items: [{ stock_item_id: '', quantity: '', price_per_unit: '', total_price: '' }]
+    vendor_id: '', bill_number: '', notes: '', date: new Date().toISOString().split('T')[0], items: [{ stock_item_id: '', quantity: '', price_per_unit: '', total_price: '' }]
   });
 
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -67,8 +72,8 @@ export default function StockManagement() {
       setHistoryFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: fromDate.toLocaleDateString('en-CA'),
+        to: endOfDay.toLocaleDateString('en-CA')
       }));
     } else {
       setHistoryFilters(prev => ({ ...prev, period }));
@@ -120,10 +125,12 @@ export default function StockManagement() {
 
   const handleSave = async () => {
     try {
+      setIsSubmitting(true);
       if (editingItem) {
         const payload = {
           ...form,
           vendor_id: form.vendor_id || null,
+          expiry_date: form.expiry_date || null,
           department: activeTab
         };
         const validLinks = menuLinks.filter(link => link.menu_item_id);
@@ -132,7 +139,10 @@ export default function StockManagement() {
         showToast('Stock item updated', 'success');
       } else {
         const validItems = bulkForm.items.filter(i => i.name && i.quantity);
-        if (validItems.length === 0) return showToast('Please add at least one valid stock item', 'error');
+        if (validItems.length === 0) {
+          setIsSubmitting(false);
+          return showToast('Please add at least one valid stock item', 'error');
+        }
 
         const payload = {
           vendor_id: bulkForm.vendor_id || null,
@@ -147,6 +157,8 @@ export default function StockManagement() {
     } catch (error) {
       console.error('Save stock error:', error.response?.data || error);
       showToast(error.response?.data?.error || error.message || 'Failed to save stock item', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -186,6 +198,7 @@ export default function StockManagement() {
   const handleGlobalPurchase = async () => {
     if (!purchaseForm.vendor_id) return showToast('Please select a vendor', 'error');
     if (!purchaseForm.bill_number) return showToast('Bill number is required for purchase', 'error');
+    if (!purchaseForm.notes || purchaseForm.notes.trim() === '') return showToast('Notes are required for purchase', 'error');
 
     // Filter out empty rows
     const validItems = purchaseForm.items.filter(i => i.stock_item_id && i.quantity > 0 && i.price_per_unit >= 0);
@@ -200,6 +213,7 @@ export default function StockManagement() {
         bill_number: purchaseForm.bill_number,
         cost: totalCost,
         notes: purchaseForm.notes,
+        date: purchaseForm.date,
         items: validItems
       });
       showToast('Purchase logged successfully', 'success');
@@ -225,7 +239,7 @@ export default function StockManagement() {
 
   const openGlobalPurchase = () => {
     setPurchaseForm({
-      vendor_id: '', bill_number: '', notes: '', items: [{ stock_item_id: '', quantity: '', price_per_unit: '', total_price: '' }]
+      vendor_id: '', bill_number: '', notes: '', date: new Date().toISOString().split('T')[0], items: [{ stock_item_id: '', quantity: '', price_per_unit: '', total_price: '' }]
     });
     setGlobalPurchaseModalOpen(true);
   };
@@ -238,7 +252,8 @@ export default function StockManagement() {
         quantity: item.quantity,
         unit: item.unit,
         low_threshold: item.low_threshold,
-        vendor_id: item.vendor_id || ''
+        vendor_id: item.vendor_id || '',
+        expiry_date: item.expiry_date || ''
       });
       // Fetch links
       try {
@@ -252,7 +267,7 @@ export default function StockManagement() {
       setBulkForm({
         vendor_id: '', items: [{ name: '', quantity: '', unit: 'kg', low_threshold: '' }]
       });
-      setForm({ name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: '' });
+      setForm({ name: '', quantity: '', unit: 'kg', low_threshold: '', vendor_id: '', expiry_date: '' });
       setMenuLinks([]);
     }
     setIsModalOpen(true);
@@ -314,6 +329,63 @@ export default function StockManagement() {
     document.body.removeChild(link);
   };
 
+  const handleDownloadStockCsv = () => {
+    const headers = ['Name', 'Unit', 'Available', 'Is Low', 'Expiry Date', 'Is Near Expiry'];
+    const rows = stock.map(item => {
+      const isLow = parseFloat(item.quantity) <= parseFloat(item.low_threshold);
+      const isNearExpiry = item.expiry_date && (new Date(item.expiry_date) - new Date()) < 7 * 24 * 60 * 60 * 1000 && new Date(item.expiry_date) > new Date();
+      return [
+        `"${item.name}"`,
+        item.unit,
+        parseFloat(item.quantity).toFixed(2),
+        isLow ? 'Yes' : 'No',
+        item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '-',
+        isNearExpiry ? 'Yes' : 'No'
+      ];
+    });
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `stock_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadStockPdf = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Stock Report', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+
+    const headers = [['Name', 'Unit', 'Available', 'Is Low', 'Expiry Date', 'Is Near Expiry']];
+    const rows = stock.map(item => {
+      const isLow = parseFloat(item.quantity) <= parseFloat(item.low_threshold);
+      const isNearExpiry = item.expiry_date && (new Date(item.expiry_date) - new Date()) < 7 * 24 * 60 * 60 * 1000 && new Date(item.expiry_date) > new Date();
+      return [
+        item.name,
+        item.unit,
+        parseFloat(item.quantity).toFixed(2),
+        isLow ? 'Yes' : 'No',
+        item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '-',
+        isNearExpiry ? 'Yes' : 'No'
+      ];
+    });
+
+    autoTable(doc, {
+      head: headers,
+      body: rows,
+      startY: 34,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [100, 100, 100] }
+    });
+
+    doc.save(`stock_report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const handleDismissRequest = async (id) => {
     try {
       await api.put(`/stock-requests/${id}/status`, { status: 'okay' });
@@ -329,6 +401,12 @@ export default function StockManagement() {
       <div className="admin-header">
         <h2>Stock Management</h2>
         <div className="flex gap-sm">
+          <button className="btn btn-secondary flex align-center gap-sm" onClick={handleDownloadStockCsv}>
+            <Download size={16} /> CSV
+          </button>
+          <button className="btn btn-secondary flex align-center gap-sm" onClick={handleDownloadStockPdf}>
+            <Download size={16} /> PDF
+          </button>
           <button className="btn btn-secondary flex align-center gap-sm" onClick={openGlobalPurchase}>
             <ShoppingBag size={16} /> Purchase Stock
           </button>
@@ -388,6 +466,14 @@ export default function StockManagement() {
             />
             Show Low Stock Only
           </label>
+          <label className="flex align-center gap-sm text-secondary" style={{ cursor: 'pointer', marginLeft: '16px' }}>
+            <input 
+              type="checkbox" 
+              checked={nearExpiryFilter} 
+              onChange={e => setNearExpiryFilter(e.target.checked)} 
+            />
+            Show Near Expiry Only
+          </label>
         </div>
       </div>
 
@@ -399,15 +485,22 @@ export default function StockManagement() {
               <th>Quantity</th>
               <th>Unit</th>
               <th>Status</th>
+              <th>Expiry</th>
               <th>Vendor</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {stock.map(item => {
+            {stock.filter(item => {
+              if (!nearExpiryFilter) return true;
+              const isNearExpiry = item.expiry_date && (new Date(item.expiry_date) - new Date()) < 7 * 24 * 60 * 60 * 1000 && new Date(item.expiry_date) > new Date();
+              return isNearExpiry;
+            }).map(item => {
               const isLow = parseFloat(item.quantity) <= parseFloat(item.low_threshold);
+              const isNearExpiry = item.expiry_date && (new Date(item.expiry_date) - new Date()) < 7 * 24 * 60 * 60 * 1000 && new Date(item.expiry_date) > new Date();
+              const rowBg = isLow ? 'rgba(239, 68, 68, 0.05)' : isNearExpiry ? 'rgba(234, 88, 12, 0.08)' : 'transparent';
               return (
-                <tr key={item.id} style={{ backgroundColor: isLow ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
+                <tr key={item.id} style={{ backgroundColor: rowBg }}>
                   <td style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => fetchHistory(item)}>{item.name}</td>
                   <td style={{ fontWeight: 600, color: isLow ? 'var(--danger)' : 'var(--text-primary)' }}>
                     {parseFloat(item.quantity).toFixed(2)}
@@ -422,6 +515,7 @@ export default function StockManagement() {
                       <span className="badge badge-success">Sufficient</span>
                     )}
                   </td>
+                  <td className="text-secondary">{item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '-'}</td>
                   <td className="text-secondary">{item.vendor_name || 'N/A'}</td>
                   <td className="text-right">
                     <div className="btn-group justify-end">
@@ -448,7 +542,7 @@ export default function StockManagement() {
             })}
             {stock.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center text-muted" style={{ padding: '40px 0' }}>
+                <td colSpan="7" className="text-center text-muted" style={{ padding: '40px 0' }}>
                   No stock items found
                 </td>
               </tr>
@@ -464,8 +558,10 @@ export default function StockManagement() {
         maxWidth={!editingItem ? "900px" : "500px"}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSave}>Save</button>
+            <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save'}
+            </button>
           </>
         }
       >
@@ -566,6 +662,10 @@ export default function StockManagement() {
                 <option value="">No vendor assigned</option>
                 {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
+            </div>
+            <div className="form-group mt-md">
+              <label className="form-label">Expiry Date (Optional)</label>
+              <input type="date" className="form-input" value={form.expiry_date ? form.expiry_date.split('T')[0] : ''} onChange={e => setForm({...form, expiry_date: e.target.value})} />
             </div>
 
             <div className="mt-lg pt-md" style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -726,10 +826,19 @@ export default function StockManagement() {
             <label className="form-label">Bill / Invoice Number <span className="text-danger">*</span></label>
             <input type="text" className="form-input" value={purchaseForm.bill_number} onChange={e => setPurchaseForm({...purchaseForm, bill_number: e.target.value})} placeholder="Required for ledger" required />
           </div>
+          <div className="form-group flex-1">
+            <label className="form-label">Bill Date <span className="text-danger">*</span></label>
+            <DatePicker className="form-input" value={purchaseForm.date} onChange={e => setPurchaseForm({...purchaseForm, date: e.target.value})} required />
+          </div>
         </div>
 
         <div className="form-group mb-md">
-          <label className="form-label">Purchase Items</label>
+          <div className="flex justify-between align-center mb-sm">
+            <label className="form-label" style={{ margin: 0 }}>Purchase Items</label>
+            <button className="btn btn-secondary btn-sm flex align-center gap-xs" onClick={() => openModal()}>
+              <Plus size={14} /> Create New Stock Item
+            </button>
+          </div>
           <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
             <table className="data-table" style={{ minWidth: '600px' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1 }}>
@@ -789,11 +898,23 @@ export default function StockManagement() {
               </tbody>
             </table>
           </div>
+          <button 
+            className="btn btn-secondary btn-sm mt-sm flex align-center gap-xs" 
+            style={{ padding: '6px 12px' }}
+            onClick={() => {
+              setPurchaseForm({
+                ...purchaseForm,
+                items: [...purchaseForm.items, { stock_item_id: '', quantity: '', price_per_unit: '', total_price: '' }]
+              });
+            }}
+          >
+            <Plus size={14} /> Add Row
+          </button>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Notes (Optional)</label>
-          <input type="text" className="form-input" value={purchaseForm.notes} onChange={e => setPurchaseForm({...purchaseForm, notes: e.target.value})} placeholder="Any extra remarks..." />
+        <div className="form-group mt-md">
+          <label className="form-label">Notes <span className="text-danger">*</span></label>
+          <input type="text" className="form-input" value={purchaseForm.notes} onChange={e => setPurchaseForm({...purchaseForm, notes: e.target.value})} placeholder="Any extra remarks..." required />
         </div>
       </Modal>
 
@@ -859,9 +980,9 @@ export default function StockManagement() {
           </div>
           {historyFilters.period === 'custom' && (
             <div className="flex gap-md align-center mb-md justify-end">
-              <input type="date" className="form-input w-auto" value={historyFilters.from} onChange={e => setHistoryFilters(prev => ({...prev, from: e.target.value}))} />
+              <DatePicker className="form-input w-auto" value={historyFilters.from} onChange={e => setHistoryFilters(prev => ({...prev, from: e.target.value}))} />
               <span>to</span>
-              <input type="date" className="form-input w-auto" value={historyFilters.to} onChange={e => setHistoryFilters(prev => ({...prev, to: e.target.value}))} />
+              <DatePicker className="form-input w-auto" value={historyFilters.to} onChange={e => setHistoryFilters(prev => ({...prev, to: e.target.value}))} />
             </div>
           )}
           {itemHistory.length === 0 ? (

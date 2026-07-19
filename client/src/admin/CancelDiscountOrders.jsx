@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { Ban, Tag, Trash2, Download, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 export default function CancelDiscountOrders() {
   const [activeTab, setActiveTab] = useState('cancelled'); // 'cancelled' | 'discounted'
@@ -50,8 +51,8 @@ export default function CancelDiscountOrders() {
       setFilters(prev => ({
         ...prev,
         period,
-        from: fromDate.toISOString().split('T')[0],
-        to: endOfDay.toISOString().split('T')[0]
+        from: fromDate.toLocaleDateString('en-CA'),
+        to: endOfDay.toLocaleDateString('en-CA')
       }));
     } else {
       setFilters(prev => ({ ...prev, period }));
@@ -178,9 +179,9 @@ export default function CancelDiscountOrders() {
 
           {filters.period === 'custom' && (
             <div className="flex gap-md align-center">
-              <input type="date" className="form-input" value={filters.from} onChange={e => setFilters(prev => ({ ...prev, from: e.target.value }))} />
+              <DatePicker className="form-input" value={filters.from} onChange={e => setFilters(prev => ({ ...prev, from: e.target.value }))} />
               <span>to</span>
-              <input type="date" className="form-input" value={filters.to} onChange={e => setFilters(prev => ({ ...prev, to: e.target.value }))} />
+              <DatePicker className="form-input" value={filters.to} onChange={e => setFilters(prev => ({ ...prev, to: e.target.value }))} />
             </div>
           )}
 

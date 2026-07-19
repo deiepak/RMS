@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { formatCurrency, formatDateTime } from '../utils/helpers';
 import { Search, Ban, History, Clock, FileText, CheckCircle, RefreshCw } from 'lucide-react';
 import Modal from '../components/Modal';
+import DatePicker from '../components/DatePicker';
 
 export default function SalesReturn() {
   const [activeTab, setActiveTab] = useState('process'); // 'process' | 'logs'
@@ -207,9 +208,9 @@ export default function SalesReturn() {
 
               {filters.period === 'custom' && (
                 <div className="flex gap-md align-center">
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
+                  <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
                   <span className="text-secondary">to</span>
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
+                  <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
                 </div>
               )}
             </div>
@@ -393,9 +394,9 @@ export default function SalesReturn() {
 
               {filters.period === 'custom' && (
                 <div className="flex gap-md align-center">
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
+                  <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} />
                   <span className="text-secondary">to</span>
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
+                  <DatePicker className="form-input" style={{ padding: '8px' }} value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} />
                 </div>
               )}
 

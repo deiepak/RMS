@@ -155,7 +155,11 @@ export default function PendingOrders({ updateCounts }) {
                   T-{order.table_number}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13 }} className="text-secondary">Order #{order.id} {order.status === 'hold' && <span className="badge badge-warning ml-sm">ON HOLD</span>}</div>
+                  <div style={{ fontSize: 13 }} className="text-secondary">
+                    Order #{order.id} 
+                    {order.waiter_name && ` • by ${order.waiter_name}`}
+                    {order.status === 'hold' && <span className="badge badge-warning ml-sm">ON HOLD</span>}
+                  </div>
                   <div className="timer" style={{ color: isOld ? 'var(--danger)' : 'inherit' }}>
                     {getElapsed(orderTime)}
                   </div>
@@ -223,19 +227,11 @@ export default function PendingOrders({ updateCounts }) {
           <select className="form-select mb-sm" value={rejectReason} onChange={e => setRejectReason(e.target.value)}>
             <option value="">Select a reason...</option>
             <option value="Out of stock">Out of stock</option>
+            <option value="Ingredient Missing">Ingredient Missing</option>
             <option value="Kitchen is too busy">Kitchen is too busy</option>
+            <option value="Equipment Failure">Equipment Failure</option>
             <option value="Cannot fulfill special request">Cannot fulfill special request</option>
-            <option value="Other">Other</option>
           </select>
-          {rejectReason === 'Other' && (
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Type custom reason..."
-              onChange={e => setRejectReason(e.target.value)}
-              autoFocus
-            />
-          )}
         </div>
       </Modal>
     </div>

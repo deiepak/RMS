@@ -35,6 +35,7 @@ import DamageReport from './admin/DamageReport';
 import MaintenanceLog from './admin/MaintenanceLog';
 import TipsLedger from './admin/TipsLedger';
 import Analytics from './admin/Analytics';
+import MenuAnalysis from './admin/MenuAnalysis';
 import Communication from './admin/Communication';
 import StationManagement from './admin/StationManagement';
 import GeneralSettings from './admin/GeneralSettings';
@@ -47,6 +48,7 @@ import SocialMediaManagement from './admin/SocialMediaManagement';
 import CancelDiscountOrders from './admin/CancelDiscountOrders';
 import SalesReturn from './admin/SalesReturn';
 import CCTVMonitoring from './admin/CCTVMonitoring';
+import WidgetBar from './components/WidgetBar';
 
 const App = () => {
   return (
@@ -55,6 +57,7 @@ const App = () => {
         <SettingsProvider>
           <ToastProvider>
             <SocketProvider>
+              <WidgetBar />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route
@@ -116,6 +119,7 @@ const App = () => {
                   <Route path="damage" element={<DamageReport />} />
                   <Route path="maintenance" element={<MaintenanceLog />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="menu-analysis" element={<MenuAnalysis />} />
                   <Route path="communication" element={<Communication />} />
                   <Route path="stations" element={<StationManagement />} />
                   <Route path="settings" element={<GeneralSettings />} />
